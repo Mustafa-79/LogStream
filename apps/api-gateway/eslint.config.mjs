@@ -1,34 +1,39 @@
+import js from '@eslint/js'
 import globals from 'globals'
-import pluginJs from '@eslint/js'
-import tseslint from 'typescript-eslint'
+import tsParser from '@typescript-eslint/parser'
+import tsPlugin from '@typescript-eslint/eslint-plugin'
 
 export default [
   {
     files: ['**/*.ts'],
     languageOptions: {
-      parser: tseslint.parser,
+      parser: tsParser,
       parserOptions: {
         project: './tsconfig.json',
-        sourceType: 'module'
-      }
+        sourceType: 'module',
+        ecmaVersion: 'latest',
+      },
     },
     plugins: {
-      '@typescript-eslint': tseslint.plugin
+      '@typescript-eslint': tsPlugin,
     },
     rules: {
-
-    }
+      ...tsPlugin.configs.recommended.rules,
+    },
   },
   {
     files: ['**/*.js'],
     languageOptions: {
-      sourceType: 'commonjs'
-    }
+      sourceType: 'commonjs',
+    },
   },
   {
     languageOptions: {
-      globals: globals.node
-    }
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+    },
   },
-  pluginJs.configs.recommended
+  js.configs.recommended,
 ]

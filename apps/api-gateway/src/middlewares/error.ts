@@ -4,22 +4,33 @@ import { StatusCodes, getReasonPhrase } from 'http-status-codes'
 import logger from '../config/logger'
 import ApiError from '../utils/ApiError'
 
+// Extend Error with optional statusCode (message is already required in Error)
+interface CustomError extends Error {
+  statusCode?: number
+  stack?: string
+}
+
 const errorConverter = (
   err: unknown,
   _req: Request,
   _res: Response,
   next: NextFunction
 ): void => {
-  let error = err
+  let error: ApiError
 
-  if (!(error instanceof ApiError)) {
-    const isMongooseError = error instanceof mongoose.Error
+  if (err instanceof ApiError) {
+    error = err
+  } else {
+    const e = err as CustomError
+    const isMongooseError = e instanceof mongoose.Error
+
     const statusCode =
-      (error as any).statusCode || (isMongooseError ? StatusCodes.BAD_REQUEST : StatusCodes.INTERNAL_SERVER_ERROR)
-    const message =
-      (error as any).message || getReasonPhrase(statusCode)
+      e.statusCode ??
+      (isMongooseError ? StatusCodes.BAD_REQUEST : StatusCodes.INTERNAL_SERVER_ERROR)
 
-    error = new ApiError(statusCode, message, false, (error as Error).stack)
+    const message = e.message || getReasonPhrase(statusCode)
+
+    error = new ApiError(statusCode, message, false, e.stack)
   }
 
   next(error)
