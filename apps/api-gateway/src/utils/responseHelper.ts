@@ -1,10 +1,10 @@
-type ResponsePayload<T = any> = {
+type ResponsePayload<T> = {
   status: string | number
   message: string
   data: T | null
 }
 
-const createResponse = <T = any>(
+const createResponse = <T>(
   status: string | number,
   message: string,
   data: T | null = null
@@ -12,7 +12,7 @@ const createResponse = <T = any>(
   return {
     status,
     message,
-    data,
+    data
   }
 }
 
