@@ -5,6 +5,11 @@ import GroupApplication, { IGroupApplication } from '../models/Group-Application
 import User from '../models/User.model'
 import Application from '../models/Application.model'
 
+interface CreateUserGroupInput extends Partial<IGroup> {
+  members?: string[]
+  applications?: string[]
+}
+
 export const getAllUserGroups = async (): Promise<any[]> => {
   const groups = await Group.find({ deleted: false })
   const result = await Promise.all(
@@ -23,15 +28,56 @@ export const getAllUserGroups = async (): Promise<any[]> => {
   return result
 }
 
+// Create a user group and add members and applications as provided
+export const createUserGroup = async (data: CreateUserGroupInput): Promise<any> => {
+  const { members, applications, ...groupData } = data
 
-// TODO: Add members and application at the itme of creation  
-export const createUserGroup = async (data: Partial<IGroup>): Promise<IGroup> => {
-  const group = new Group(data)
-  return await group.save()
+  // Validate provided members exist
+  if (members && Array.isArray(members) && members.length > 0) {
+    const foundUsers = await User.find({ _id: { $in: members } })
+    if (foundUsers.length !== members.length) {
+      throw new Error('One or more provided member IDs do not exist.')
+    }
+  }
+
+  // Validate provided applications exist
+  if (applications && Array.isArray(applications) && applications.length > 0) {
+    const foundApps = await Application.find({ _id: { $in: applications } })
+    if (foundApps.length !== applications.length) {
+      throw new Error('One or more provided application IDs do not exist.')
+    }
+  }
+
+  const group = await new Group(groupData).save()
+
+  // Create user group memberships if provided
+  if (members && Array.isArray(members) && members.length > 0) {
+    await Promise.all(
+      members.map(async (userId) => {
+        const exists = await UserGroup.findOne({ group_id: group._id, user_id: userId, active: true })
+        if (!exists) {
+          await new UserGroup({ group_id: group._id, user_id: userId }).save()
+        }
+      })
+    )
+  }
+
+  // Create group application entries if provided
+  if (applications && Array.isArray(applications) && applications.length > 0) {
+    await Promise.all(
+      applications.map(async (applicationId) => {
+        const exists = await GroupApplication.findOne({ group_id: group._id, application_id: applicationId, active: true })
+        if (!exists) {
+          await new GroupApplication({ group_id: group._id, application_id: applicationId }).save()
+        }
+      })
+    )
+  }
+
+  // Optionally reload the group data with populated members and applications if needed.
+  return group
 }
 
-
-// TODO: Check for name change
 export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promise<IGroup | null> => {
   const updated = await Group.findOneAndUpdate({ _id: id, deleted: false }, data, { new: true })
   return updated
@@ -62,7 +108,24 @@ export const deleteUserGroup = async (id: string): Promise<IGroup | null> => {
 
 
 
+
+
+
+
+
+
 export const addMember = async (groupId: string, userId: string): Promise<IUserGroup> => {
+  // Check if group exists
+  const group = await Group.findById(groupId)
+  if (!group) {
+    throw new Error('Group not found.')
+  }
+  // Check if user exists
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new Error('User not found.')
+  }
+  // Check if membership already exists
   const exists = await UserGroup.findOne({ group_id: groupId, user_id: userId, active: true })
   if (exists) {
     throw new Error('Member already exists in the group.')
@@ -84,6 +147,17 @@ export const removeMember = async (groupId: string, userId: string): Promise<IUs
 }
 
 export const addApplication = async (groupId: string, applicationId: string): Promise<IGroupApplication> => {
+  // Check if group exists
+  const group = await Group.findById(groupId)
+  if (!group) {
+    throw new Error('Group not found.')
+  }
+  // Check if application exists
+  const application = await Application.findById(applicationId)
+  if (!application) {
+    throw new Error('Application not found.')
+  }
+  // Check if application membership already exists
   const exists = await GroupApplication.findOne({ group_id: groupId, application_id: applicationId, active: true })
   if (exists) {
     throw new Error('Application already added to the group.')
