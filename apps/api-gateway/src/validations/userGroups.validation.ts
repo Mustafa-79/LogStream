@@ -3,11 +3,14 @@ import Joi from 'joi'
 export const createUserGroupSchema = Joi.object({
   name: Joi.string().trim().required(),
   description: Joi.string().allow('').optional(),
+  members: Joi.array().items(Joi.string()).optional(),
+  applications: Joi.array().items(Joi.string()).optional(),
 })
 
 export const updateUserGroupSchema = Joi.object({
-  description: Joi.string().allow('').optional(),
-})
+  name: Joi.string().trim().min(1),
+  description: Joi.string().min(1),
+}).or('name', 'description')
 
 export const addRemoveMemberSchema = Joi.object({
   groupId: Joi.string().required(),
