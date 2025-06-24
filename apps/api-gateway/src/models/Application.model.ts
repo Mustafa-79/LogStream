@@ -1,15 +1,18 @@
+//// filepath: /home/mustafaabbas/Work/Probation/LogStream/LogStream/apps/api-gateway/src/models/Application.model.ts
 import { Schema, model, Document } from 'mongoose'
 
-export interface IGroup extends Document {
+export interface IApplication extends Document {
   name: string
   description: string
   created_on: Date
   updated_on: Date
+  threshold: number
+  time_period: number
   active: boolean
   deleted: boolean
 }
 
-const GroupSchema = new Schema<IGroup>({
+const ApplicationSchema = new Schema<IApplication>({
   name: {
     type: String,
     required: true,
@@ -28,6 +31,14 @@ const GroupSchema = new Schema<IGroup>({
     type: Date,
     default: Date.now,
   },
+  threshold: {
+    type: Number,
+    default: 0,
+  },
+  time_period: {
+    type: Number,
+    default: 0,
+  },
   active: {
     type: Boolean,
     default: true,
@@ -38,9 +49,9 @@ const GroupSchema = new Schema<IGroup>({
   },
 })
 
-GroupSchema.pre<IGroup>('save', function (next) {
+ApplicationSchema.pre<IApplication>('save', function (next) {
   this.updated_on = new Date()
   next()
 })
 
-export default model<IGroup>('Group', GroupSchema)
+export default model<IApplication>('Application', ApplicationSchema)
