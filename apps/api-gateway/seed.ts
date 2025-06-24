@@ -6,19 +6,19 @@ dotenv.config()
 import Group from './src/models/Group.model'
 import User from './src/models/User.model'
 import Application from './src/models/Application.model'
-import UserGroup from './src/models/Group-User.model'
-import GroupApplication from './src/models/Group-Application.model'
+import Group_User from './src/models/Group-User.model'
+import Group_Application from './src/models/Group-Application.model'
 
-// Use your MongoDB connection string or default to a local database
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/logstream'
+import config from './src/config/config'
+
 
 const flushDatabase = async () => {
   console.log('Flushing database...')
   await Group.deleteMany({})
   await User.deleteMany({})
   await Application.deleteMany({})
-  await UserGroup.deleteMany({})
-  await GroupApplication.deleteMany({})
+  await Group_User.deleteMany({})
+  await Group_Application.deleteMany({})
   console.log('Database flushed.')
 }
 
@@ -47,7 +47,7 @@ const populateDummyData = async () => {
   ])
   console.log('Applications created:', applications)
 
-  // Add Users to Groups (UserGroup)
+  // Add Users to Groups (Group_User)
   // Assume: alice and bob are admins, charlie is editor
   const adminGroup = groups[0]
   const editorGroup = groups[1]
@@ -55,22 +55,22 @@ const populateDummyData = async () => {
   const bob = users.find((user) => user.username === 'bob')
   const charlie = users.find((user) => user.username === 'charlie')
 
-  const userGroupsData = [
+  const Group_UsersData = [
     { group_id: adminGroup._id, user_id: alice?._id },
     { group_id: adminGroup._id, user_id: bob?._id },
     { group_id: editorGroup._id, user_id: charlie?._id },
   ]
-  const userGroups = await UserGroup.insertMany(userGroupsData)
-  console.log('User-Groups relations created:', userGroups)
+  const Group_Users = await Group_User.insertMany(Group_UsersData)
+  console.log('User-Groups relations created:', Group_Users)
 
-  // Add Applications to Groups (GroupApplication)
+  // Add Applications to Groups (Group_Application)
   // Assume: Admins have access to both apps, Editors have access to App One only.
   const groupApplicationsData = [
     { group_id: adminGroup._id, application_id: applications[0]._id },
     { group_id: adminGroup._id, application_id: applications[1]._id },
     { group_id: editorGroup._id, application_id: applications[0]._id },
   ]
-  const groupApplications = await GroupApplication.insertMany(groupApplicationsData)
+  const groupApplications = await Group_Application.insertMany(groupApplicationsData)
   console.log('Group-Applications relations created:', groupApplications)
 
   console.log('Dummy data population complete.')
@@ -78,8 +78,8 @@ const populateDummyData = async () => {
 
 const main = async () => {
   try {
-    await mongoose.connect(MONGO_URI)
-    console.log(`Connected to MongoDB at ${MONGO_URI}`)
+    await mongoose.connect(config.mongoose)
+    console.log(`Connected to MongoDB at ${config.mongoose}`)
 
     await flushDatabase()
     await populateDummyData()
