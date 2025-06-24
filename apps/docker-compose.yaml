@@ -1,0 +1,56 @@
+version: '3'
+services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  producer:
+    build: ./producer
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+
+  consumer:
+    build: ./consumer
+    ports:
+      - "3002:3002"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGODB_URL=mongodb+srv://logstream:ZcQ99tKbtzMNyoZA@cluster0.hrotqyq.mongodb.net/logs
+    depends_on:
+      - redis
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+  
+  simulator:
+    build: ./simulator
+    volumes:
+      - ./simulator/logs:/usr/src/app/logs
+
+  fluent-bit:
+    build: ./fluent-bit
+    volumes:
+      - ./simulator/logs:/simulator/logs:ro   # Adjust path as needed
+      - ./fluent-bit/storage:/fluent-bit/storage
+    depends_on:
+      - producer   # or whatever service is running on port 3000
+    ports:
+      - "2020:2020"   # Optional: expose Fluent Bit's HTTP server if enabled
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+volumes:
+  mongo_data:
+  
