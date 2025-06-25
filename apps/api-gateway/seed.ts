@@ -40,10 +40,23 @@ const populateDummyData = async () => {
   ])
   console.log('Groups created:', groups)
 
-  // Create Applications
+  // Force-feed Application data
   const applications = await Application.insertMany([
-    { name: 'App One', description: 'First application', threshold: 100, time_period: 30 },
-    { name: 'App Two', description: 'Second application', threshold: 200, time_period: 60 },
+    {
+      // _id: new mongoose.Types.ObjectId('685a8328b93040684ee3bdd1'),
+      name: "Test App 1",
+      description: "Testing create application pt2",
+    },
+    {
+      // _id: new mongoose.Types.ObjectId('685a846d78c060b88efa791b'),
+      name: "Test App 2",
+      description: "Testing create application pt1",
+    },
+    {
+      // _id: new mongoose.Types.ObjectId('685a847278c060b88efa791d'),
+      name: "Test App 3",
+      description: "Testing create application pt1",
+    }
   ])
   console.log('Applications created:', applications)
 
@@ -61,14 +74,16 @@ const populateDummyData = async () => {
     { group_id: editorGroup._id, user_id: charlie?._id },
   ]
   const Group_Users = await Group_User.insertMany(Group_UsersData)
-  console.log('User-Groups relations created:', Group_Users)
+  console.log('Groups-User relations created:', Group_Users)
 
   // Add Applications to Groups (Group_Application)
-  // Assume: Admins have access to both apps, Editors have access to App One only.
+  // For this example, assume:
+  // - Admins have access to Test App 1 and Test App 2
+  // - Editors have access to Test App 3
   const groupApplicationsData = [
     { group_id: adminGroup._id, application_id: applications[0]._id },
     { group_id: adminGroup._id, application_id: applications[1]._id },
-    { group_id: editorGroup._id, application_id: applications[0]._id },
+    { group_id: editorGroup._id, application_id: applications[2]._id },
   ]
   const groupApplications = await Group_Application.insertMany(groupApplicationsData)
   console.log('Group-Applications relations created:', groupApplications)
