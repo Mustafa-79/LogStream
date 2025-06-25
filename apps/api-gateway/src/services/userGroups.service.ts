@@ -1,6 +1,5 @@
-//// filepath: /home/mustafaabbas/Work/Probation/LogStream/LogStream/apps/api-gateway/src/services/userGroups.service.ts
 import Group, { IGroup } from '../models/Group.model'
-import UserGroup, { IUserGroup } from '../models/Group-User.model'
+import GroupUser, { IGroupUser } from '../models/Group-User.model'
 import GroupApplication, { IGroupApplication } from '../models/Group-Application.model'
 import User from '../models/User.model'
 import Application from '../models/Application.model'
@@ -10,12 +9,13 @@ interface CreateUserGroupInput extends Partial<IGroup> {
   applications?: string[]
 }
 
+// Get all user groups with their members and applications
 export const getAllUserGroups = async (): Promise<any[]> => {
   const groups = await Group.find({ deleted: false })
   const result = await Promise.all(
     groups.map(async (group) => {
-      const userGroups = await UserGroup.find({ group_id: group._id, active: true })
-      const members = await User.find({ _id: { $in: userGroups.map((ug) => ug.user_id) } })
+      const groupUsers = await GroupUser.find({ group_id: group._id, active: true })
+      const members = await User.find({ _id: { $in: groupUsers.map((ug) => ug.user_id) } })
       const groupApps = await GroupApplication.find({ group_id: group._id, active: true })
       const applications = await Application.find({ _id: { $in: groupApps.map((ga) => ga.application_id) } })
       return {
@@ -54,9 +54,9 @@ export const createUserGroup = async (data: CreateUserGroupInput): Promise<any> 
   if (members && Array.isArray(members) && members.length > 0) {
     await Promise.all(
       members.map(async (userId) => {
-        const exists = await UserGroup.findOne({ group_id: group._id, user_id: userId, active: true })
+        const exists = await GroupUser.findOne({ group_id: group._id, user_id: userId, active: true })
         if (!exists) {
-          await new UserGroup({ group_id: group._id, user_id: userId }).save()
+          await new GroupUser({ group_id: group._id, user_id: userId }).save()
         }
       })
     )
@@ -74,15 +74,27 @@ export const createUserGroup = async (data: CreateUserGroupInput): Promise<any> 
     )
   }
 
-  // Optionally reload the group data with populated members and applications if needed.
+  // Return the created group with populated members and applications
   return group
 }
 
+// Update a user group by ID
+// Only updates fields that are provided in the data object
 export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promise<IGroup | null> => {
-  const updated = await Group.findOneAndUpdate({ _id: id, deleted: false }, data, { new: true })
+  const updated = await Group.findOneAndUpdate(
+    { _id: id, deleted: false },
+    data,
+    { new: true }
+  )
+  if (!updated) {
+    throw new Error('Group not found.')
+  }
   return updated
 }
 
+// Delete a user group by ID
+// Marks the group as deleted and inactive, but does not remove it from the database
+// Returns the deleted group object
 export const deleteUserGroup = async (id: string): Promise<IGroup | null> => {
   const group = await Group.findById(id)
   if (!group) {
@@ -114,7 +126,7 @@ export const deleteUserGroup = async (id: string): Promise<IGroup | null> => {
 
 
 
-export const addMember = async (groupId: string, userId: string): Promise<IUserGroup> => {
+export const addMember = async (groupId: string, userId: string): Promise<IGroupUser> => {
   // Check if group exists
   const group = await Group.findById(groupId)
   if (!group) {
@@ -126,16 +138,16 @@ export const addMember = async (groupId: string, userId: string): Promise<IUserG
     throw new Error('User not found.')
   }
   // Check if membership already exists
-  const exists = await UserGroup.findOne({ group_id: groupId, user_id: userId, active: true })
+  const exists = await GroupUser.findOne({ group_id: groupId, user_id: userId, active: true })
   if (exists) {
     throw new Error('Member already exists in the group.')
   }
-  const membership = new UserGroup({ group_id: groupId, user_id: userId })
+  const membership = new GroupUser({ group_id: groupId, user_id: userId })
   return await membership.save()
 }
 
-export const removeMember = async (groupId: string, userId: string): Promise<IUserGroup | null> => {
-  const membership = await UserGroup.findOneAndUpdate(
+export const removeMember = async (groupId: string, userId: string): Promise<IGroupUser | null> => {
+  const membership = await GroupUser.findOneAndUpdate(
     { group_id: groupId, user_id: userId, active: true },
     { active: false, updated_at: new Date() },
     { new: true }
