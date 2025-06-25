@@ -2,30 +2,28 @@
 import { Router } from 'express'
 import * as userGroupsController from '../controllers/userGroups.controller'
 import validate from '../middlewares/validate'
-import {
-  createUserGroupSchema,
-  updateUserGroupSchema,
-  addRemoveMemberSchema,
-  addRemoveApplicationSchema,
-} from '../validations/userGroups.validation'
+import { userGroupValidation } from '../validations/userGroups.validation'
+
+
+
 
 const router = Router()
 
 router.get('/', userGroupsController.getUserGroups)
 
-router.post('/', validate({ body: createUserGroupSchema }), userGroupsController.createUserGroup)
+router.post('/', validate(userGroupValidation.createUserGroup), userGroupsController.createUserGroup)
 
-router.put('/:id', validate({ body: updateUserGroupSchema }), userGroupsController.updateUserGroup)
+router.put('/:id', validate(userGroupValidation.updateUserGroup), userGroupsController.updateUserGroup)
 
-router.delete('/:id', userGroupsController.deleteUserGroup)
+router.delete('/:id', validate(userGroupValidation.deleteUserGroup), userGroupsController.deleteUserGroup)
 
-router.post('/add-member', validate({ body: addRemoveMemberSchema }), userGroupsController.addMember)
+router.post('/add-member', validate(userGroupValidation.addRemoveMember), userGroupsController.addMember)
 
-router.post('/remove-member', validate({ body: addRemoveMemberSchema }), userGroupsController.removeMember)
+router.post('/remove-member', validate(userGroupValidation.addRemoveMember), userGroupsController.removeMember)
 
-router.post('/add-application', validate({ body: addRemoveApplicationSchema }), userGroupsController.addApplication)
+router.post('/add-application', validate(userGroupValidation.addRemoveApplication), userGroupsController.addApplication)
 
-router.post('/remove-application', validate({ body: addRemoveApplicationSchema }), userGroupsController.removeApplication)
+router.post('/remove-application', validate(userGroupValidation.addRemoveApplication), userGroupsController.removeApplication)
 
 export default router
 
