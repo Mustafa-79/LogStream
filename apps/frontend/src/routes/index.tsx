@@ -9,9 +9,18 @@ import Applications from '../pages/Applications';
 import UserGroups from '../pages/UserGroups';
 import Settings from '../pages/Settings';
 import NotFound from '../pages/NotFound';
+import Login from '../pages/Login';
 
 // Type-safe route array
 const routes: RouteObject[] = [
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/analytics',
+    element: <Analytics />,
+  },
   {
     path: '/',
     element: <DashboardLayout />,
