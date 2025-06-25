@@ -1,14 +1,14 @@
 import { Schema, model, Document } from 'mongoose'
 
-export interface IUserGroup extends Document {
+export interface IGroupUser extends Document {
   user_id: Schema.Types.ObjectId
   group_id: Schema.Types.ObjectId
   active: boolean
-  created_at: Date
-  updated_at: Date
+  created_on: Date
+  updated_on: Date
 }
 
-const UserGroupSchema = new Schema<IUserGroup>({
+const GroupUserSchema = new Schema<IGroupUser>({
   user_id: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -23,19 +23,8 @@ const UserGroupSchema = new Schema<IUserGroup>({
     type: Boolean,
     default: true,
   },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true,
 })
 
-UserGroupSchema.pre<IUserGroup>('save', function (next) {
-  this.updated_at = new Date()
-  next()
-})
-
-export default model<IUserGroup>('UserGroup', UserGroupSchema)
+export default model<IGroupUser>('GroupUser', GroupUserSchema)

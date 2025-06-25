@@ -2,56 +2,52 @@
 import { Schema, model, Document } from 'mongoose'
 
 export interface IApplication extends Document {
-  name: string
-  description: string
-  created_on: Date
-  updated_on: Date
-  threshold: number
-  time_period: number
-  active: boolean
-  deleted: boolean
+  name: string;
+  description: string;
+  threshold: number;
+  time_period: number;
+  active: boolean;
+  deleted: boolean;
+  created_on: Date;
+  updated_on: Date;
 }
 
-const ApplicationSchema = new Schema<IApplication>({
-  name: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
+const applicationSchema: Schema<IApplication> = new Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    threshold: {
+      type: Number,
+      required: true,
+      default: 10,
+    },
+    time_period: {
+      type: Number,
+      required: true,
+      default: 5,
+    },
+    active: {
+      type: Boolean,
+      required: true,
+      default: true,
+    },
+    deleted: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
   },
-  description: {
-    type: String,
-    default: '',
-  },
-  created_on: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_on: {
-    type: Date,
-    default: Date.now,
-  },
-  threshold: {
-    type: Number,
-    default: 0,
-  },
-  time_period: {
-    type: Number,
-    default: 0,
-  },
-  active: {
-    type: Boolean,
-    default: true,
-  },
-  deleted: {
-    type: Boolean,
-    default: false,
-  },
-})
+  {
+    timestamps: true,
+  }
+);
 
-ApplicationSchema.pre<IApplication>('save', function (next) {
-  this.updated_on = new Date()
-  next()
-})
 
-export default model<IApplication>('Application', ApplicationSchema)
+export default model<IApplication>('Application', applicationSchema);
