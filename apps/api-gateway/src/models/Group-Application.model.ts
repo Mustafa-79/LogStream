@@ -4,8 +4,8 @@ export interface IGroupApplication extends Document {
   group_id: Schema.Types.ObjectId
   application_id: Schema.Types.ObjectId
   active: boolean
-  created_at: Date
-  updated_at: Date
+  created_on: Date
+  updated_on: Date
 }
 
 const GroupApplicationSchema = new Schema<IGroupApplication>({
@@ -23,19 +23,9 @@ const GroupApplicationSchema = new Schema<IGroupApplication>({
     type: Boolean,
     default: true,
   },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true,
 })
 
-GroupApplicationSchema.pre<IGroupApplication>('save', function (next) {
-  this.updated_at = new Date()
-  next()
-})
 
 export default model<IGroupApplication>('GroupApplication', GroupApplicationSchema)

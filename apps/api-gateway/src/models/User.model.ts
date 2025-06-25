@@ -4,8 +4,8 @@ export interface IUser extends Document {
   username: string
   email: string
   active: boolean
-  created_at: Date
-  updated_at: Date
+  created_on: Date
+  updated_on: Date
 }
 
 const UserSchema = new Schema<IUser>({
@@ -24,19 +24,9 @@ const UserSchema = new Schema<IUser>({
     type: Boolean,
     default: true,
   },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true,
 })
 
-UserSchema.pre<IUser>('save', function (next) {
-  this.updated_at = new Date()
-  next()
-})
 
 export default model<IUser>('User', UserSchema)

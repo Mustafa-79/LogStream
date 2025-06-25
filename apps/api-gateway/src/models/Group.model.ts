@@ -20,14 +20,6 @@ const GroupSchema = new Schema<IGroup>({
     type: String,
     default: '',
   },
-  created_on: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_on: {
-    type: Date,
-    default: Date.now,
-  },
   active: {
     type: Boolean,
     default: true,
@@ -36,11 +28,8 @@ const GroupSchema = new Schema<IGroup>({
     type: Boolean,
     default: false,
   },
-})
-
-GroupSchema.pre<IGroup>('save', function (next) {
-  this.updated_on = new Date()
-  next()
+}, {
+  timestamps: true,
 })
 
 export default model<IGroup>('Group', GroupSchema)
