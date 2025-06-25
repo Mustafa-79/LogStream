@@ -3,8 +3,6 @@ import { Schema, model, Document } from 'mongoose'
 export interface IGroup extends Document {
   name: string
   description: string
-  created_on: Date
-  updated_on: Date
   active: boolean
   deleted: boolean
 }

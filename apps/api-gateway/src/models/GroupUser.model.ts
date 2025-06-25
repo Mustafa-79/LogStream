@@ -1,20 +1,18 @@
 import { Schema, model, Document } from 'mongoose'
 
 export interface IGroupUser extends Document {
-  user_id: Schema.Types.ObjectId
-  group_id: Schema.Types.ObjectId
+  userId: Schema.Types.ObjectId
+  groupId: Schema.Types.ObjectId
   active: boolean
-  created_on: Date
-  updated_on: Date
 }
 
 const GroupUserSchema = new Schema<IGroupUser>({
-  user_id: {
+  userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
-  group_id: {
+  groupId: {
     type: Schema.Types.ObjectId,
     ref: 'Group',
     required: true,

@@ -5,11 +5,9 @@ export interface IApplication extends Document {
   name: string;
   description: string;
   threshold: number;
-  time_period: number;
+  timePeriod: number;
   active: boolean;
   deleted: boolean;
-  created_on: Date;
-  updated_on: Date;
 }
 
 const applicationSchema: Schema<IApplication> = new Schema(
@@ -28,7 +26,7 @@ const applicationSchema: Schema<IApplication> = new Schema(
       required: true,
       default: 10,
     },
-    time_period: {
+    timePeriod: {
       type: Number,
       required: true,
       default: 5,
