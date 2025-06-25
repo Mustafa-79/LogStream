@@ -1,23 +1,47 @@
 import Joi from 'joi'
 
-export const createUserGroupSchema = Joi.object({
-  name: Joi.string().trim().required(),
-  description: Joi.string().allow('').optional(),
-  members: Joi.array().items(Joi.string()).optional(),
-  applications: Joi.array().items(Joi.string()).optional(),
-})
 
-export const updateUserGroupSchema = Joi.object({
-  name: Joi.string().trim().min(1),
-  description: Joi.string().min(1),
-}).or('name', 'description')
+export const userGroupValidation = {
+  
+  createUserGroup: {
+    body: Joi.object({
+      name:           Joi.string().trim().required().min(1).label('Group Name'),
+      description:    Joi.string().allow('').required().label('Group Description'),
+      members:        Joi.array().items(Joi.string()).optional().label('Group Members'),
+      applications:   Joi.array().items(Joi.string()).optional().label('Group Applications'),
+    }),
+  },
 
-export const addRemoveMemberSchema = Joi.object({
-  groupId: Joi.string().required(),
-  userId: Joi.string().required(),
-})
+  updateUserGroup: {
+    params: Joi.object({
+      id:             Joi.string().required().length(24).label('Group ID'),
+    }),
 
-export const addRemoveApplicationSchema = Joi.object({
-  groupId: Joi.string().required(),
-  applicationId: Joi.string().required(),
-})
+    body: Joi.object({
+      name:           Joi.string().trim().min(1).label('Group Name'),
+      description:    Joi.string().min(1).label('Group Description'),
+    }).or('name', 'description'),
+  },
+
+  deleteUserGroup: {
+    params: Joi.object({
+      id:             Joi.string().required().length(24).label('Group ID'),
+    }),
+  },
+
+  addRemoveMember: {
+    body: Joi.object({
+      groupId:        Joi.string().required().label('Group ID'),
+      userId:         Joi.string().required().label('User ID'),
+    }),
+  },
+
+  addRemoveApplication: {
+    body: Joi.object({
+      groupId:        Joi.string().required().label('Group ID'),
+      applicationId:  Joi.string().required().label('Application ID'),
+    }),
+  },
+
+}
+
