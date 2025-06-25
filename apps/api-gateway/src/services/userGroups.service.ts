@@ -1,25 +1,20 @@
 import Group, { IGroup } from '../models/Group.model'
 import GroupUser, { IGroupUser } from '../models/GroupUser.model'
 import GroupApplication, { IGroupApplication } from '../models/GroupApplication.model'
-import User from '../models/User.model'
-import Application from '../models/Application.model'
-
-interface CreateUserGroupInput extends Partial<IGroup> {
-  members?: string[]
-  applications?: string[]
-}
+import User, { IUser } from '../models/User.model'
+import Application, { IApplication } from '../models/Application.model'
 
 // Get all user groups with their members and applications
-export const getAllUserGroups = async (): Promise<any[]> => {
-  const groups = await Group.find({ deleted: false })
+export const getAllUserGroups = async (): Promise<Array<Omit<IGroup, keyof Document> & { members?: IUser[]; applications?: IApplication[] }>> => {
+  const groups = await Group.find({ deleted: false }).lean()
   const result = await Promise.all(
     groups.map(async (group) => {
       const groupUsers = await GroupUser.find({ groupId: group._id, active: true })
-      const members = await User.find({ _id: { $in: groupUsers.map((ug) => ug.userId) } })
+      const members = await User.find({ _id: { $in: groupUsers.map((ug) => ug.userId) } }).lean()
       const groupApps = await GroupApplication.find({ groupId: group._id, active: true })
-      const applications = await Application.find({ _id: { $in: groupApps.map((ga) => ga.applicationId) } })
+      const applications = await Application.find({ _id: { $in: groupApps.map((ga) => ga.applicationId) } }).lean()
       return {
-        ...group.toObject(),
+        ...group,
         members,
         applications,
       }
@@ -28,8 +23,13 @@ export const getAllUserGroups = async (): Promise<any[]> => {
   return result
 }
 
+interface CreateUserGroupInput extends Partial<IGroup> {
+  members?: string[]
+  applications?: string[]
+}
+
 // Create a user group and add members and applications as provided
-export const createUserGroup = async (data: CreateUserGroupInput): Promise<any> => {
+export const createUserGroup = async (data: CreateUserGroupInput): Promise<IGroup> => {
   const { members, applications, ...groupData } = data
 
   // Validate provided members exist
