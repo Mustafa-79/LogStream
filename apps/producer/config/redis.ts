@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 
 export const redisConnection = {
-  host: '127.0.0.1',
+  host: 'redis',
   port: 6379
 };
 

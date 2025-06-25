@@ -16,4 +16,10 @@ router.get('/health', (_req: Request, res: Response) => {
   res.status(200).json(createResponse(200, 'Server is healthy', { timestamp: new Date().toISOString() }))
 })
 
+// router.post('/ingest', async (req: Request, res: Response) => {
+//   // You can add validation and MongoDB storage here
+//   console.log('Received log:', req.body)
+//   res.status(200).json({ message: 'Log received' })
+// })
+
 export default router
