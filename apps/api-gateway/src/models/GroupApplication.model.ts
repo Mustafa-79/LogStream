@@ -1,20 +1,18 @@
 import { Schema, model, Document } from 'mongoose'
 
 export interface IGroupApplication extends Document {
-  group_id: Schema.Types.ObjectId
-  application_id: Schema.Types.ObjectId
+  groupId: Schema.Types.ObjectId
+  applicationId: Schema.Types.ObjectId
   active: boolean
-  created_on: Date
-  updated_on: Date
 }
 
 const GroupApplicationSchema = new Schema<IGroupApplication>({
-  group_id: {
+  groupId: {
     type: Schema.Types.ObjectId,
     ref: 'Group',
     required: true,
   },
-  application_id: {
+  applicationId: {
     type: Schema.Types.ObjectId,
     ref: 'Application',
     required: true,

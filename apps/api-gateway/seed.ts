@@ -6,8 +6,8 @@ dotenv.config()
 import Group from './src/models/Group.model'
 import User from './src/models/User.model'
 import Application from './src/models/Application.model'
-import Group_User from './src/models/Group-User.model'
-import Group_Application from './src/models/Group-Application.model'
+import Group_User from './src/models/GroupUser.model'
+import Group_Application from './src/models/GroupApplication.model'
 
 import config from './src/config/config'
 
@@ -69,9 +69,9 @@ const populateDummyData = async () => {
   const charlie = users.find((user) => user.username === 'charlie')
 
   const Group_UsersData = [
-    { group_id: adminGroup._id, user_id: alice?._id },
-    { group_id: adminGroup._id, user_id: bob?._id },
-    { group_id: editorGroup._id, user_id: charlie?._id },
+    { groupId: adminGroup._id, userId: alice?._id },
+    { groupId: adminGroup._id, userId: bob?._id },
+    { groupId: editorGroup._id, userId: charlie?._id },
   ]
   const Group_Users = await Group_User.insertMany(Group_UsersData)
   console.log('Groups-User relations created:', Group_Users)
@@ -81,9 +81,9 @@ const populateDummyData = async () => {
   // - Admins have access to Test App 1 and Test App 2
   // - Editors have access to Test App 3
   const groupApplicationsData = [
-    { group_id: adminGroup._id, application_id: applications[0]._id },
-    { group_id: adminGroup._id, application_id: applications[1]._id },
-    { group_id: editorGroup._id, application_id: applications[2]._id },
+    { groupId: adminGroup._id, applicationId: applications[0]._id },
+    { groupId: adminGroup._id, applicationId: applications[1]._id },
+    { groupId: editorGroup._id, applicationId: applications[2]._id },
   ]
   const groupApplications = await Group_Application.insertMany(groupApplicationsData)
   console.log('Group-Applications relations created:', groupApplications)

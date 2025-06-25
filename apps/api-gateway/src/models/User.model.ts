@@ -4,8 +4,6 @@ export interface IUser extends Document {
   username: string
   email: string
   active: boolean
-  created_on: Date
-  updated_on: Date
 }
 
 const UserSchema = new Schema<IUser>({
