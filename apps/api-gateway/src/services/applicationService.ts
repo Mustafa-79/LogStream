@@ -1,10 +1,11 @@
-import { Application, ApplicationInput, IApplication, validateApplication } from "../models/applicationModel";
+// import { Application, ApplicationInput, IApplication, validateApplication } from "../models/applicationModel";
+import Application, { IApplication } from '../models/Application.model';
 
 export const getAllApplications = async () => {
   return await Application.find({ deleted: false }).sort({ createdAt: -1 });
 };
 
-export const createApplication = async (data: Partial<ApplicationInput>): Promise<IApplication> => {
+export const createApplication = async (data: Partial<IApplication>): Promise<IApplication> => {
   const application = new Application(data);
   return await application.save();
 };
