@@ -67,9 +67,11 @@ function generateLog(): string {
   const level: string = levels[Math.floor(Math.random() * levels.length)];
   const traceId: string = generateId();
   const message: string = getRandomMessage();
-  const requestId: string = generateId();
+  const timestamp: string = getCurrentTimestamp();
   
-  return `[${getCurrentTimestamp()}] [${level}] [${traceId}] [${APP_NAME}] [${requestId}] ${message}\n`;
+  // New format: [%d] [%p] [%X{traceid}] %m%n
+  // where %d = timestamp, %p = log level, %X{traceid} = trace ID, %m = message, %n = newline
+  return `[${timestamp}] [${level}] [${traceId}] ${message}\n`;
 }
 
 function writeLog(): void {
