@@ -38,4 +38,4 @@ const logSchema: Schema<ILog> = new Schema(
   }
 );
 
-export default mongoose.model("Log", logSchema);
+export const Log: Model<ILog> = mongoose.model<ILog>('Log', logSchema);
