@@ -1,10 +1,11 @@
 import express, { Router, Request, Response } from 'express'
 import createResponse from '../utils/responseHelper'
+import applicationRoute from './applicationRoutes'
 
 const router: Router = express.Router()
 
 const defaultRoutes: { path: string; route: Router }[] = [
-//   { path: '/user', route: userRoute }, -> How to import routes
+  { path: '/application', route: applicationRoute }
 ]
 
 defaultRoutes.forEach(({ path, route }) => {
