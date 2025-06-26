@@ -2,9 +2,9 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface ILog extends Document {
   message: string;
-  log_level: string;
-  trace_id: string;
-  source_app: mongoose.Types.ObjectId;
+  logLevel: string;
+  traceId: string;
+  sourceApp: mongoose.Types.ObjectId;
   date: Date;
 }
 
@@ -14,16 +14,16 @@ const logSchema: Schema<ILog> = new Schema(
       type: String,
       required: true,
     },
-    log_level: {
+    logLevel: {
       type: String,
       required: true,
       enum: ['INFO', 'WARNING', 'ERROR', 'DEBUG'],
     },
-    trace_id: {
+    traceId: {
       type: String,
       required: true,
     },
-    source_app: {
+    sourceApp: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Application',
       required: true,

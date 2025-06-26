@@ -17,15 +17,15 @@ function App() {
   const location = useLocation();
   const authed = isAuthenticated();
 
-  // Allow unauthenticated users to access /login and /analytics only
-  if (!authed && location.pathname !== "/login" && location.pathname !== "/analytics") {
-    return <Navigate to="/login" replace />;
-  }
+  // // Allow unauthenticated users to access /login and /analytics only
+  // if (!authed && location.pathname !== "/login" && location.pathname !== "/analytics") {
+  //   return <Navigate to="/login" replace />;
+  // }
 
-  // Prevent authenticated users from seeing the login page
-  if (authed && location.pathname === "/login") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // // Prevent authenticated users from seeing the login page
+  // if (authed && location.pathname === "/login") {
+  //   return <Navigate to="/dashboard" replace />;
+  // }
 
   return <ThemeRoutes />;
 }
