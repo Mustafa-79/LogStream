@@ -1,56 +1,247 @@
-version: '3'
+networks:
+  logstream:
+    driver: bridge
+
 services:
 
   redis:
     image: redis:7-alpine
+    container_name: logstream-redis
     ports:
       - "6379:6379"
+    networks:
+      - logstream
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
   producer:
-    build: ./producer
+    build: 
+      context: ./producer
+      dockerfile: Dockerfile
+    container_name: logstream-producer
     ports:
       - "3001:3001"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - NODE_ENV=${NODE_ENV:-development}
+    networks:
+      - logstream
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
   consumer:
-    build: ./consumer
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    container_name: logstream-consumer
     ports:
       - "3002:3002"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGODB_URL=mongodb+srv://logstream:ZcQ99tKbtzMNyoZA@cluster0.hrotqyq.mongodb.net/logs
+      - MONGODB_URL=${MONGODB_URL:-mongodb+srv://logstream:ZcQ99tKbtzMNyoZA@cluster0.hrotqyq.mongodb.net/logs}
+      - NODE_ENV=${NODE_ENV:-development}
+    networks:
+      - logstream
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: logstream-api-gateway
     ports:
       - "3000:3000"
-  
-  simulator:
-    build: ./simulator
-    volumes:
-      - ./simulator/logs:/usr/src/app/logs
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    networks:
+      - logstream
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
-  fluent-bit:
-    build: ./fluent-bit
+  # Simulator for App 1
+  simulator-app1:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app1
+    environment:
+      - APP_NAME=app1
     volumes:
-      - ./simulator/logs:/simulator/logs:ro   # Adjust path as needed
-      - ./fluent-bit/storage:/fluent-bit/storage
+      - ./simulator/logs/app1:/usr/src/app/logs
+    networks:
+      - logstream
+    restart: unless-stopped
+
+  # Simulator for App 2  
+  simulator-app2:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app2
+    environment:
+      - APP_NAME=app2
+    volumes:
+      - ./simulator/logs/app2:/usr/src/app/logs
+    networks:
+      - logstream
+    restart: unless-stopped
+
+  # Simulator for App 3
+  simulator-app3:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app3
+    environment:
+      - APP_NAME=app3
+    volumes:
+      - ./simulator/logs/app3:/usr/src/app/logs
+    networks:
+      - logstream
+    restart: unless-stopped
+
+  # Fluent Bit for App 1
+  fluent-bit-app1:
+    build:
+      context: ./fluent-bit
+      dockerfile: Dockerfile
+    container_name: logstream-fluent-bit-app1
+    environment:
+      - APP_NAME=app1
+      - LOG_PATH=/simulator/logs/app.log
+      - PRODUCER_HOST=producer
+      - PRODUCER_PORT=3001
+      - NODE_ENV=${NODE_ENV:-development}
+    volumes:
+      - ./simulator/logs/app1:/simulator/logs:ro
+      - ./fluent-bit/storage/app1:/fluent-bit/storage
+      - ./fluent-bit/configs/app1.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    networks:
+      - logstream
     depends_on:
-      - producer   # or whatever service is running on port 3000
+      producer:
+        condition: service_healthy
+      simulator-app1:
+        condition: service_started
+    restart: unless-stopped
     ports:
-      - "2020:2020"   # Optional: expose Fluent Bit's HTTP server if enabled
+      - "2020:2020"
+
+  # Fluent Bit for App 2
+  fluent-bit-app2:
+    build:
+      context: ./fluent-bit
+      dockerfile: Dockerfile
+    container_name: logstream-fluent-bit-app2
+    environment:
+      - APP_NAME=app2
+      - LOG_PATH=/simulator/logs/app.log
+      - PRODUCER_HOST=producer
+      - PRODUCER_PORT=3001
+      - NODE_ENV=${NODE_ENV:-development}
+    volumes:
+      - ./simulator/logs/app2:/simulator/logs:ro
+      - ./fluent-bit/storage/app2:/fluent-bit/storage
+      - ./fluent-bit/configs/app2.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      simulator-app2:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "2021:2020"
+
+  # Fluent Bit for App 3
+  fluent-bit-app3:
+    build:
+      context: ./fluent-bit
+      dockerfile: Dockerfile
+    container_name: logstream-fluent-bit-app3
+    environment:
+      - APP_NAME=app3
+      - LOG_PATH=/simulator/logs/app.log
+      - PRODUCER_HOST=producer
+      - PRODUCER_PORT=3001
+      - NODE_ENV=${NODE_ENV:-development}
+    volumes:
+      - ./simulator/logs/app3:/simulator/logs:ro
+      - ./fluent-bit/storage/app3:/fluent-bit/storage
+      - ./fluent-bit/configs/app3.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      simulator-app3:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "2022:2020"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: logstream-frontend
     ports:
       - "5173:5173"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_API_BASE_URL=${API_BASE_URL:-http://localhost:3000}
+    networks:
+      - logstream
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
 volumes:
-  mongo_data:
+  redis_data:
+    driver: local
+  fluent_bit_storage_app1:
+    driver: local
+  fluent_bit_storage_app2:
+    driver: local
+  fluent_bit_storage_app3:
+    driver: local
   
