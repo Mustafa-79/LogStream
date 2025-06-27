@@ -42,7 +42,9 @@ import { parseLogLine } from "./logParser";
 
 // Connect to MongoDB (use your connection string)
 const mongoUrl = process.env.MONGODB_URL || "mongodb://mongo:27017/logstream";
-mongoose.connect(mongoUrl);
+mongoose.connect(mongoUrl)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Redis connection options
 const redisConnection = {
@@ -68,16 +70,17 @@ export const worker = new Worker(
     }
 
     if (parsed) {
-      // Map fields to your schema
-      await Log.create({
-        date: parsed.timestamp ? new Date(parsed.timestamp) : parsed.date ? new Date(parsed.date) : new Date(),
+      // Create log entry according to the schema
+      const logEntry = {
+        message: parsed.log_message || parsed.message || "",
         log_level: parsed.log_level || parsed.level || "INFO",
         trace_id: parsed.trace_id || "",
-        message: parsed.log_message || parsed.message || "",
         source_app: parsed.source_app || "unknown",
-        metadata: parsed.metadata || {},
-      });
-      console.log(`Saved log to MongoDB:`, parsed);
+        date: parsed.timestamp || "",
+      };
+
+      await Log.create(logEntry);
+      console.log(`Saved log to MongoDB:`, logEntry);
     } else {
       console.warn(`Could not parse log: ${JSON.stringify(job.data)}`);
     }
