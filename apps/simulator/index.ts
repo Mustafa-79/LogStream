@@ -6,7 +6,7 @@ const APP_NAME = process.env.APP_NAME || "default-app";
 // const LOG_LEVEL = process.env.LOG_LEVEL || "info";
 
 // Log levels
-const levels: string[] = ["DEBUG", "INFO", "ERROR", "TRACE"];
+const levels: string[] = ['INFO', 'WARNING', 'ERROR', 'DEBUG'];
 
 // App-specific log messages
 const appMessages: { [key: string]: string[] } = {
