@@ -57,6 +57,9 @@ export const worker = new Worker(
   async (job: Job) => {
     let parsed: any;
 
+    // print job data to console for debugging
+    console.log(`Received job ${job.id} with data:`, job.data);
+
     // If job.data is a string, try to parse as JSON, else parse as log line
     if (typeof job.data === "string") {
       try {
@@ -70,13 +73,15 @@ export const worker = new Worker(
     }
 
     if (parsed) {
+
+      console.log(`Processing job ${job.id} with data:`, parsed);
       // Create log entry according to the schema
       const logEntry = {
-        message: parsed.log_message || parsed.message || "",
-        log_level: parsed.log_level || parsed.level || "INFO",
-        trace_id: parsed.trace_id || "",
-        source_app: parsed.source_app || "unknown",
-        date: parsed.timestamp || "",
+        message: parsed.message || parsed.log_message || "",
+        logLevel: parsed.logLevel || parsed.log_level || parsed.level || "INFO",
+        traceId: parsed.traceId || parsed.trace_id || "",
+        sourceApp: parsed.sourceApp || parsed.source_app || "unknown",
+        date: parsed.timestamp || new Date(),
       };
 
       await Log.create(logEntry);
