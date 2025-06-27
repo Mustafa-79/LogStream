@@ -1,6 +1,7 @@
 import * as ko from 'knockout';
 import MutableArrayDataProvider = require('ojs/ojmutablearraydataprovider');
 import 'ojs/ojlistview';
+import ApplicationService from '../services/applicationService';
 
 type Application = {
   _id: string;
@@ -17,7 +18,9 @@ type Application = {
 class ApplicationViewModel {
   applicationsArray: Application[] = [];
   applicationsDataProvider = ko.observable(
-    new MutableArrayDataProvider<string, Application>([], { keyAttributes: '_id' })
+    new MutableArrayDataProvider<string, Application>([], {
+      keyAttributes: '_id',
+    })
   );
 
   constructor() {
@@ -26,14 +29,14 @@ class ApplicationViewModel {
 
   fetchApplications = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/application');
-      const json = await response.json();
-
+      const json = await ApplicationService.fetchAllApplications();
       const apps: Application[] = json.data;
       this.applicationsArray = apps;
 
       this.applicationsDataProvider(
-        new MutableArrayDataProvider<string, Application>(apps, { keyAttributes: '_id' })
+        new MutableArrayDataProvider<string, Application>(apps, {
+          keyAttributes: '_id',
+        })
       );
     } catch (error) {
       console.error('Error fetching applications:', error);
