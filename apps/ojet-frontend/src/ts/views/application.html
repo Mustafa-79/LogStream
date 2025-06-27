@@ -1,0 +1,69 @@
+<div class="oj-hybrid-padding">
+  <h1 class="oj-typography-heading-lg oj-text-color-primary">Applications</h1>
+
+  <div class="oj-sm-margin-bottom-4">
+    <p class="oj-text-color-secondary">
+      Manage and monitor all your connected applications.
+    </p>
+    <div class="oj-flex oj-sm-align-items-center">
+      <div class="oj-icon-circle oj-bg-success oj-animation-pulse" style="width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;"></div>
+      <span class="oj-typography-body-sm">Live Status</span>
+    </div>
+  </div>
+
+  <!-- Add Application Button with margin-bottom -->
+  <div class="oj-sm-margin-bottom-4">
+    <oj-button id="addAppButton" chroming="callToAction" class="oj-sm-margin-bottom-2">
+      <span slot="startIcon" class="oj-ux-ico-plus"></span>
+      Add Application
+    </oj-button>
+  </div>
+
+  <!-- Responsive Flex Grid with spacing -->
+  <div class="oj-flex oj-flex-wrap oj-gap-sm">
+    <oj-bind-for-each data="[[applicationsDataProvider().data]]">
+      <template>
+        <div class="oj-flex-item oj-sm-12 oj-md-6 oj-lg-4">
+          <div style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px;">
+            <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-start">
+              <div>
+                <div class="oj-typography-heading-sm oj-text-color-primary">
+                  <oj-bind-text value="[[$current.data.name]]"></oj-bind-text>
+                </div>
+                <div class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-top-1">
+                  <oj-bind-text value="[[$current.data.description]]"></oj-bind-text>
+                </div>
+              </div>
+              <oj-button display="icons" chroming="borderless" size="sm">
+                <span slot="startIcon" class="oj-ux-ico-settings"></span>
+              </oj-button>
+            </div>
+
+            <div class="oj-sm-margin-top-2">
+              <oj-bind-if test="[[$current.data.active]]">
+                <span class="oj-badge oj-badge-success">Active</span>
+              </oj-bind-if>
+              <oj-bind-if test="[[!$current.data.active]]">
+                <span class="oj-badge oj-badge-danger">Inactive</span>
+              </oj-bind-if>
+              <span class="oj-typography-caption oj-text-color-secondary oj-sm-margin-start-2">
+                <oj-bind-text value="[[$current.data.createdAt]]"></oj-bind-text>
+              </span>
+            </div>
+
+            <div class="oj-sm-margin-top-2 oj-typography-body-sm">
+              <div class="oj-flex oj-sm-justify-content-space-between">
+                <span class="oj-text-color-secondary">Threshold:</span>
+                <oj-bind-text value="[[$current.data.threshold]]"></oj-bind-text>
+              </div>
+              <div class="oj-flex oj-sm-justify-content-space-between">
+                <span class="oj-text-color-secondary">Time Period:</span>
+                <oj-bind-text value="[[$current.data.timePeriod]]"></oj-bind-text>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </oj-bind-for-each>
+  </div>
+</div>
