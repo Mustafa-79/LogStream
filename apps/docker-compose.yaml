@@ -8,7 +8,7 @@ services:
     image: redis:7-alpine
     container_name: logstream-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_EXTERNAL_PORT}:6379"
     networks:
       - logstream
     restart: unless-stopped
@@ -20,8 +20,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: ${REDIS_MEMORY_LIMIT}
+          cpus: '${REDIS_CPU_LIMIT}'
 
   producer:
     build: 
@@ -29,11 +29,11 @@ services:
       dockerfile: Dockerfile
     container_name: logstream-producer
     ports:
-      - "3001:3001"
+      - "${PRODUCER_EXTERNAL_PORT}:3001"
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - NODE_ENV=${NODE_ENV}
     networks:
       - logstream
     depends_on:
@@ -48,8 +48,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: ${PRODUCER_MEMORY_LIMIT}
+          cpus: '${PRODUCER_CPU_LIMIT}'
 
   consumer:
     build:
@@ -57,12 +57,12 @@ services:
       dockerfile: Dockerfile
     container_name: logstream-consumer
     ports:
-      - "3002:3002"
+      - "${CONSUMER_EXTERNAL_PORT}:3002"
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MONGODB_URL=${MONGODB_URL:-mongodb+srv://logstream:ZcQ99tKbtzMNyoZA@cluster0.hrotqyq.mongodb.net/logs}
-      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - MONGODB_URL=${MONGODB_URL}
+      - NODE_ENV=${NODE_ENV}
     networks:
       - logstream
     depends_on:
@@ -72,8 +72,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: ${CONSUMER_MEMORY_LIMIT}
+          cpus: '${CONSUMER_CPU_LIMIT}'
 
   api-gateway:
     build:
@@ -81,17 +81,17 @@ services:
       dockerfile: Dockerfile
     container_name: logstream-api-gateway
     ports:
-      - "3000:3000"
+      - "${API_GATEWAY_EXTERNAL_PORT}:3000"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=${NODE_ENV}
     networks:
       - logstream
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: ${API_GATEWAY_MEMORY_LIMIT}
+          cpus: '${API_GATEWAY_CPU_LIMIT}'
 
   # Simulator for App 1
   simulator-app1:
@@ -105,6 +105,9 @@ services:
       - ./simulator/logs/app1:/usr/src/app/logs
     networks:
       - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
     restart: unless-stopped
 
   # Simulator for App 2  
@@ -119,6 +122,9 @@ services:
       - ./simulator/logs/app2:/usr/src/app/logs
     networks:
       - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
     restart: unless-stopped
 
   # Simulator for App 3
@@ -133,6 +139,9 @@ services:
       - ./simulator/logs/app3:/usr/src/app/logs
     networks:
       - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
     restart: unless-stopped
 
   # Fluent Bit for App 1
@@ -144,9 +153,9 @@ services:
     environment:
       - APP_NAME=app1
       - LOG_PATH=/simulator/logs/app.log
-      - PRODUCER_HOST=producer
-      - PRODUCER_PORT=3001
-      - NODE_ENV=${NODE_ENV:-development}
+      - PRODUCER_HOST=${PRODUCER_HOST}
+      - PRODUCER_PORT=${PRODUCER_PORT}
+      - NODE_ENV=${NODE_ENV}
     volumes:
       - ./simulator/logs/app1:/simulator/logs:ro
       - ./fluent-bit/storage/app1:/fluent-bit/storage
@@ -160,7 +169,7 @@ services:
         condition: service_started
     restart: unless-stopped
     ports:
-      - "2020:2020"
+      - "${FLUENT_BIT_APP1_PORT}:2020"
 
   # Fluent Bit for App 2
   fluent-bit-app2:
@@ -171,9 +180,9 @@ services:
     environment:
       - APP_NAME=app2
       - LOG_PATH=/simulator/logs/app.log
-      - PRODUCER_HOST=producer
-      - PRODUCER_PORT=3001
-      - NODE_ENV=${NODE_ENV:-development}
+      - PRODUCER_HOST=${PRODUCER_HOST}
+      - PRODUCER_PORT=${PRODUCER_PORT}
+      - NODE_ENV=${NODE_ENV}
     volumes:
       - ./simulator/logs/app2:/simulator/logs:ro
       - ./fluent-bit/storage/app2:/fluent-bit/storage
@@ -187,7 +196,7 @@ services:
         condition: service_started
     restart: unless-stopped
     ports:
-      - "2021:2020"
+      - "${FLUENT_BIT_APP2_PORT}:2020"
 
   # Fluent Bit for App 3
   fluent-bit-app3:
@@ -198,9 +207,9 @@ services:
     environment:
       - APP_NAME=app3
       - LOG_PATH=/simulator/logs/app.log
-      - PRODUCER_HOST=producer
-      - PRODUCER_PORT=3001
-      - NODE_ENV=${NODE_ENV:-development}
+      - PRODUCER_HOST=${PRODUCER_HOST}
+      - PRODUCER_PORT=${PRODUCER_PORT}
+      - NODE_ENV=${NODE_ENV}
     volumes:
       - ./simulator/logs/app3:/simulator/logs:ro
       - ./fluent-bit/storage/app3:/fluent-bit/storage
@@ -214,7 +223,7 @@ services:
         condition: service_started
     restart: unless-stopped
     ports:
-      - "2022:2020"
+      - "${FLUENT_BIT_APP3_PORT}:2020"
 
   frontend:
     build:
@@ -222,18 +231,18 @@ services:
       dockerfile: Dockerfile
     container_name: logstream-frontend
     ports:
-      - "5173:5173"
+      - "${FRONTEND_EXTERNAL_PORT}:5173"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - VITE_API_BASE_URL=${API_BASE_URL:-http://localhost:3000}
+      - NODE_ENV=${NODE_ENV}
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
     networks:
       - logstream
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: ${FRONTEND_MEMORY_LIMIT}
+          cpus: '${FRONTEND_CPU_LIMIT}'
 
 volumes:
   redis_data:
@@ -244,4 +253,3 @@ volumes:
     driver: local
   fluent_bit_storage_app3:
     driver: local
-  
