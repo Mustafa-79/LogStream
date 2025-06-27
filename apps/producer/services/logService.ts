@@ -5,6 +5,10 @@ export async function queueLogs(logs: any[]) {
 
   for (const record of records) {
     const log = record?.log ?? record;
+
+
+    console.log('Adding log to queue:', log);
+    
     await logQueue.add('new_log', log);
   }
 }
