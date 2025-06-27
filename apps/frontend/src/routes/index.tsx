@@ -12,56 +12,32 @@ import NotFound from '../pages/NotFound';
 import Login from '../pages/Login';
 
 // Type-safe route array
+import ProtectedRoute from './ProtectedRoute';
+
 const routes: RouteObject[] = [
   {
     path: '/login',
     element: <Login />,
   },
   {
-    path: '/analytics',
-    element: <Analytics />,
-  },
-  {
-    path: '/',
-    element: <DashboardLayout />,
+    element: <ProtectedRoute />, // Protect all routes below
     children: [
       {
-        path: 'dashboard',
-        element: (
-              <Dashboard />
-        ),
-      },
-      {
-        path: 'analytics',
-        element: (
-            <Analytics />
-        ),
-      },
-      {
-        path: 'settings',
-        element: (
-          <Settings />
-        ),
-      },
-      {
-        path: 'applications',
-        element: (
-          <Applications />
-        ),
-      },
-      {
-        path: 'user-groups',
-        element: (
-          <UserGroups />
-        ),
+        path: '/',
+        element: <DashboardLayout />,
+        children: [
+          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'analytics', element: <Analytics /> },
+          { path: 'settings', element: <Settings /> },
+          { path: 'applications', element: <Applications /> },
+          { path: 'user-groups', element: <UserGroups /> },
+        ],
       },
     ],
   },
   {
     path: '*',
-    element: (
-        <NotFound />
-    ),
+    element: <NotFound />,
   },
 ];
 
