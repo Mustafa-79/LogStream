@@ -1,10 +1,11 @@
+import { useLocation } from 'react-router-dom';
 import './App.css'
 import ThemeRoutes from './routes'
 
 function App() {
 
   const location = useLocation();
-  const authed = isAuthenticated();
+  // const authed = isAuthenticated();
 
   // // Allow unauthenticated users to access /login and /analytics only
   // if (!authed && location.pathname !== "/login" && location.pathname !== "/analytics") {

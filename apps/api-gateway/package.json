@@ -24,6 +24,7 @@
     "http-status-codes": "^2.3.0",
     "joi": "^17.13.3",
     "joi-password-complexity": "^5.2.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.3",
     "morgan": "^1.10.0",
     "nodemon": "^3.1.7",
