@@ -1,12 +1,42 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
-const logSchema = new mongoose.Schema({
-  date: { type: Date, required: true },
-  log_level: { type: String, required: true },
-  trace_id: { type: String },
-  message: { type: String, required: true },
-  source_app: { type: String },
-  metadata: { type: Object },
-}, { timestamps: true });
+export interface ILog extends Document {
+  message: string;
+  logLevel: string;
+  traceId: string;
+  sourceApp: mongoose.Types.ObjectId;
+  date: Date;
+}
 
-export default mongoose.model("Log", logSchema);
+const logSchema: Schema<ILog> = new Schema(
+  {
+    message: {
+      type: String,
+      required: true,
+    },
+    logLevel: {
+      type: String,
+      required: true,
+      enum: ['INFO', 'WARNING', 'ERROR', 'DEBUG'],
+    },
+    traceId: {
+      type: String,
+      required: true,
+    },
+    sourceApp: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Application',
+      required: true,
+    },
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const Log: Model<ILog> = mongoose.model<ILog>('Log', logSchema);
+export default Log;

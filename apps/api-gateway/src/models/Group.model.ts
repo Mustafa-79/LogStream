@@ -1,0 +1,33 @@
+import { Schema, model, Document } from 'mongoose'
+
+export interface IGroup extends Document {
+  name: string
+  description: string
+  active: boolean
+  deleted: boolean
+}
+
+const GroupSchema = new Schema<IGroup>({
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
+  description: {
+    type: String,
+    default: '',
+  },
+  active: {
+    type: Boolean,
+    default: true,
+  },
+  deleted: {
+    type: Boolean,
+    default: false,
+  },
+}, {
+  timestamps: true,
+})
+
+export default model<IGroup>('Group', GroupSchema)

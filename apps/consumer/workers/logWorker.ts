@@ -42,7 +42,9 @@ import { parseLogLine } from "./logParser";
 
 // Connect to MongoDB (use your connection string)
 const mongoUrl = process.env.MONGODB_URL || "mongodb://mongo:27017/logstream";
-mongoose.connect(mongoUrl);
+mongoose.connect(mongoUrl)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Redis connection options
 const redisConnection = {
@@ -54,6 +56,9 @@ export const worker = new Worker(
   "log_queue",
   async (job: Job) => {
     let parsed: any;
+
+    // print job data to console for debugging
+    console.log(`Received job ${job.id} with data:`, job.data);
 
     // If job.data is a string, try to parse as JSON, else parse as log line
     if (typeof job.data === "string") {
@@ -68,16 +73,19 @@ export const worker = new Worker(
     }
 
     if (parsed) {
-      // Map fields to your schema
-      await Log.create({
-        date: parsed.timestamp ? new Date(parsed.timestamp) : parsed.date ? new Date(parsed.date) : new Date(),
-        log_level: parsed.log_level || parsed.level || "INFO",
-        trace_id: parsed.trace_id || "",
-        message: parsed.log_message || parsed.message || "",
-        source_app: parsed.source_app || "unknown",
-        metadata: parsed.metadata || {},
-      });
-      console.log(`Saved log to MongoDB:`, parsed);
+
+      console.log(`Processing job ${job.id} with data:`, parsed);
+      // Create log entry according to the schema
+      const logEntry = {
+        message: parsed.message || parsed.log_message || "",
+        logLevel: parsed.logLevel || parsed.log_level || parsed.level || "INFO",
+        traceId: parsed.traceId || parsed.trace_id || "",
+        sourceApp: parsed.sourceApp || parsed.source_app || "unknown",
+        date: parsed.timestamp || new Date(),
+      };
+
+      await Log.create(logEntry);
+      console.log(`Saved log to MongoDB:`, logEntry);
     } else {
       console.warn(`Could not parse log: ${JSON.stringify(job.data)}`);
     }
