@@ -15,13 +15,16 @@ const LoginContent = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: tokenResponse.access_token }),
       });
-      if (!res.ok) throw new Error("Login Failed");
+      if (!res.ok){
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Login Failed: " + res.statusText);
+      }
       const { jwt } = await res.json();
       sessionStorage.setItem("auth_token", jwt);
       // Optionally, check isAdmin in user_profile or jwt payload
       navigate("/dashboard", { replace: true });
-    } catch {
-      alert("Login Failed");
+    } catch (e: any) {
+        alert("Login Failed: " + (e.message || e));
     }
   },
   onError: () => alert("Login Failed"),
