@@ -7,9 +7,19 @@ import ingestRoute from './routes/ingest';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = parseInt(process.env.PORT || '3001', 10);
 
 app.use(bodyParser.json({ limit: '1mb' }));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    service: 'producer',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 // Routes
 app.use('/', ingestRoute);
@@ -19,9 +29,11 @@ app.use('/', ingestRoute);
 async function start() {
   await initRedis();
 
-  app.listen(port, () => {
-    console.log(`Log producer server listening at http://localhost:${port}`);
-  });
+  // using 0.0.0.0 allows the server to be accessible from any network interface
+  app.listen(port, '0.0.0.0', () => {
+  console.log(`Log producer server listening at http://0.0.0.0:${port}`);
+});
+
 }
 
 start().catch((err) => {
