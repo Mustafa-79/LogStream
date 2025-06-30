@@ -1,19 +1,8 @@
 import './App.css'
 import ThemeRoutes from './routes'
-import { useLocation, Navigate } from "react-router-dom";
-
-function isAuthenticated() {
-  const profileStr = localStorage.getItem("user_profile");
-  if (!profileStr) return false;
-  try {
-    const profile = JSON.parse(profileStr);
-    return profile.hd === "gosaas.io";
-  } catch {
-    return false;
-  }
-}
 
 function App() {
+
   const location = useLocation();
   const authed = isAuthenticated();
 

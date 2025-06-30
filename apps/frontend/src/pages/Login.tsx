@@ -1,34 +1,32 @@
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 
-const GOOGLE_CLIENT_ID = "68897052946-698kit30b1s5bin6heshna24k32j9ekv.apps.googleusercontent.com"; // Replace with your client ID
+const GOOGLE_CLIENT_ID = "68897052946-qov2lsf2ga6sb9fuqpk0ruk8nkgsuj6n.apps.googleusercontent.com"; // Replace with your client ID
 
 const LoginContent = () => {
   const navigate = useNavigate();
 
   const login = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`,
-          },
-        });
-        const profile = await res.json();
-        if (profile.hd === "gosaas.io") {
-          localStorage.setItem("auth_token", tokenResponse.access_token);
-          localStorage.setItem("user_profile", JSON.stringify(profile)); // <-- store profile
-          navigate("/dashboard", { replace: true });
-        } else {
-          alert("Only GoSaaS users can log in.");
-        }
-      } catch {
-        alert("Login Failed");
-      }
-    },
-    onError: () => alert("Login Failed"),
-    flow: "implicit",
-  });
+  onSuccess: async (tokenResponse) => {
+    try {
+      // Send Google access token to your API Gateway
+      const res = await fetch("http://localhost:3000/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: tokenResponse.access_token }),
+      });
+      if (!res.ok) throw new Error("Login Failed");
+      const { jwt } = await res.json();
+      sessionStorage.setItem("auth_token", jwt);
+      // Optionally, check isAdmin in user_profile or jwt payload
+      navigate("/dashboard", { replace: true });
+    } catch {
+      alert("Login Failed");
+    }
+  },
+  onError: () => alert("Login Failed"),
+  flow: "implicit",
+});
 
   return (
     <div style={{
