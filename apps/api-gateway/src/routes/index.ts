@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express'
 import createResponse from '../utils/responseHelper'
-import { authRoute } from './authRoutes' // Adjust the import path as necessary
+import authRoute from './authRoutes' // Adjust the import path as necessary
 import applicationRoute from './applicationRoutes'
 import logRoutes from './logRoutes'
 import userGroupsRoute from './userGroups'
