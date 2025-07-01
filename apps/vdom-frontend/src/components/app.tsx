@@ -5,24 +5,18 @@ import Context = require("ojs/ojcontext");
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
+import { Log } from "src/utils/applicationUtils";
 
 type Props = Readonly<{
   appName?: string;
   userLogin?: string;
 }>;
 
-type Log = {
-  _id: string;
-  message: string;
-  log_level: string;
-  trace_id: string;
-  date: string;
-};
-
 export const App = registerCustomElement(
   "app-root",
   ({ appName = "App Name", userLogin = "john.hancock@oracle.com" }: Props) => {
     const [logs, setLogs] = useState<Log[]>([]);
+    const [logCounts, setLogCounts] = useState<Record<string, { logsToday: number; errors: number }>>({});
     const [isPaused, setIsPaused] = useState<boolean>(false);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,22 +28,58 @@ export const App = registerCustomElement(
         }`;
 
         const res = await fetch(url);
-        
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-        
+
         const data = await res.json();
         const newLogs: Log[] = data.data;
-        console.log('Fetched new logs:', newLogs);
 
         if (newLogs.length) {
-          setLogs((prev) => [...prev, ...newLogs]);
+          setLogs(prev => {
+            const merged = [...prev, ...newLogs];
+            computeLogCounts(merged);
+            return merged;
+          });
           latestDateRef.current = newLogs[newLogs.length - 1].date;
         }
       } catch (err) {
         console.error('Error fetching new logs:', err);
       }
+    };
+
+    const computeLogCounts = (logsToProcess: Log[]) => {      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const counts: Record<string, { logsToday: number; errors: number }> = {};
+
+      logsToProcess.forEach(log => {
+        const sourceAppId = log.sourceApp;
+        
+        if (!sourceAppId) {
+          return;
+        }
+
+        const logDate = new Date(log.date);  
+        if (isNaN(logDate.getTime())) {
+          return;
+        }
+        
+        logDate.setHours(0, 0, 0, 0);
+
+        if (!counts[sourceAppId]) {
+          counts[sourceAppId] = { logsToday: 0, errors: 0 };
+        }
+
+        counts[sourceAppId].logsToday++;
+    
+        if (log.logLevel && log.logLevel.toLowerCase().includes('error')) {
+          counts[sourceAppId].errors++;
+        }
+      });
+
+      setLogCounts(counts);
     };
 
     useEffect(() => {
@@ -65,7 +95,6 @@ export const App = registerCustomElement(
 
       intervalIdRef.current = id;
 
-      // Cleanup interval on component unmount
       return () => {
         if (intervalIdRef.current) {
           clearInterval(intervalIdRef.current);
@@ -80,7 +109,7 @@ export const App = registerCustomElement(
     return (
       <div id="appContainer" class="oj-web-applayout-page">
         <Header appName={appName} userLogin={userLogin} />
-        <Applications />
+        <Applications logs={logs} logCounts={logCounts} />
         <Footer />
       </div>
     );
