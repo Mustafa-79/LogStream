@@ -1,7 +1,6 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const router = express.Router();
+import jwt from 'jsonwebtoken';
 import { Request, Response } from "express";
+import config from '../config/config';
 import { isAdmin } from '../services/authService'; // Adjust the import path as necessary
 
 
@@ -33,7 +32,7 @@ export const authRoute = async (req: Request, res: Response): Promise<void> => {
       isAdmin: isAdminFlag,
       // ...other fields...
     };
-    const jwtToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const jwtToken = jwt.sign(jwtPayload, config.jwtSecret, { expiresIn: '1h' });
 
     res.json({ jwt: jwtToken });
   } catch {
