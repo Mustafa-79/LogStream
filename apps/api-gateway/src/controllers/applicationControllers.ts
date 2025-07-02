@@ -29,9 +29,9 @@ export const createApplication = async (req: Request, res: Response, next: NextF
 export const updateApplication = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, active } = req.body;
 
-    const updatedApp = await applicationService.updateApplication(id, { name, description });
+    const updatedApp = await applicationService.updateApplication(id, { name, description, active });
 
     res.status(200).json(
       createResponse(200, 'Application updated successfully', updatedApp)

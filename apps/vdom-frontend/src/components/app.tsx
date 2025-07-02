@@ -5,7 +5,7 @@ import Context = require("ojs/ojcontext");
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
-import { Log } from "src/utils/applicationUtils";
+import { Log } from "../utils/applicationUtils";
 
 type Props = Readonly<{
   appName?: string;
