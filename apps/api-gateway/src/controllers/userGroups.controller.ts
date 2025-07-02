@@ -47,49 +47,11 @@ export const deleteUserGroup = async (req: Request, res: Response, next: NextFun
     }
 }
 
-export const addMember = async (req: Request, res: Response, next: NextFunction) => {
+export const restoreUserGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { groupId, userId } = req.body
-        const membership = await userGroupService.addMember(groupId, userId)
-
+        const group = await userGroupService.restoreUserGroup(req.params.id)
         res.status(200).json(
-            createResponse(200, 'Member added to user group successfully', membership)
-        )
-    } catch (error) {
-        next(error)
-    }
-}
-
-export const removeMember = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { groupId, userId } = req.body
-        const membership = await userGroupService.removeMember(groupId, userId)
-        res.status(200).json(
-            createResponse(200, 'Member removed successfully', membership)
-        )
-    } catch (error) {
-        next(error)
-    }
-}
-
-export const addApplication = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { groupId, applicationId } = req.body
-        const groupApp = await userGroupService.addApplication(groupId, applicationId)
-        res.status(200).json(
-            createResponse(200, 'Application added successfully', groupApp)
-        )
-    } catch (error) {
-        next(error)
-    }
-}
-
-export const removeApplication = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { groupId, applicationId } = req.body
-        const groupApp = await userGroupService.removeApplication(groupId, applicationId)
-        res.status(200).json(
-            createResponse(200, 'Application removed successfully', groupApp)
+            createResponse(200, 'User group restored successfully', group)
         )
     } catch (error) {
         next(error)

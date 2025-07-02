@@ -7,8 +7,8 @@ export const userGroupValidation = {
     body: Joi.object({
       name:           Joi.string().trim().required().min(1).label('Group Name'),
       description:    Joi.string().allow('').required().label('Group Description'),
-      members:        Joi.array().items(Joi.string()).optional().label('Group Members'),
-      applications:   Joi.array().items(Joi.string()).optional().label('Group Applications'),
+      members:        Joi.array().items(Joi.string().length(24)).optional().label('Group Member IDs'),
+      applications:   Joi.array().items(Joi.string().length(24)).optional().label('Group Application IDs'),
     }),
   },
 
@@ -19,8 +19,10 @@ export const userGroupValidation = {
 
     body: Joi.object({
       name:           Joi.string().trim().min(1).label('Group Name'),
-      description:    Joi.string().min(1).label('Group Description'),
-    }).or('name', 'description'),
+      description:    Joi.string().allow('').label('Group Description'),
+      members:        Joi.array().items(Joi.string().length(24)).optional().label('Group Member IDs'),
+      applications:   Joi.array().items(Joi.string().length(24)).optional().label('Group Application IDs'),
+    }).or('name', 'description', 'members', 'applications'),
   },
 
   deleteUserGroup: {
@@ -29,17 +31,9 @@ export const userGroupValidation = {
     }),
   },
 
-  addRemoveMember: {
-    body: Joi.object({
-      groupId:        Joi.string().required().label('Group ID'),
-      userId:         Joi.string().required().label('User ID'),
-    }),
-  },
-
-  addRemoveApplication: {
-    body: Joi.object({
-      groupId:        Joi.string().required().label('Group ID'),
-      applicationId:  Joi.string().required().label('Application ID'),
+  restoreUserGroup: {
+    params: Joi.object({
+      id:             Joi.string().required().length(24).label('Group ID'),
     }),
   },
 
