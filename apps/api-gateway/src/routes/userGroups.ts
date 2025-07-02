@@ -17,13 +17,8 @@ router.put('/:id', validate(userGroupValidation.updateUserGroup), userGroupsCont
 
 router.delete('/:id', validate(userGroupValidation.deleteUserGroup), userGroupsController.deleteUserGroup)
 
-router.post('/add-member', validate(userGroupValidation.addRemoveMember), userGroupsController.addMember)
-
-router.post('/remove-member', validate(userGroupValidation.addRemoveMember), userGroupsController.removeMember)
-
-router.post('/add-application', validate(userGroupValidation.addRemoveApplication), userGroupsController.addApplication)
-
-router.post('/remove-application', validate(userGroupValidation.addRemoveApplication), userGroupsController.removeApplication)
+// TODO: add a restore delete route
+router.post('/:id/restore', validate(userGroupValidation.restoreUserGroup), userGroupsController.restoreUserGroup)
 
 export default router
 
