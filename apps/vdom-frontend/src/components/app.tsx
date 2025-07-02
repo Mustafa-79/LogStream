@@ -7,6 +7,8 @@ import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
 import { Log } from "../utils/applicationUtils";
 
+import { UserGroups } from "./pages/UserGroups/UserGroups";
+
 type Props = Readonly<{
   appName?: string;
   userLogin?: string;
@@ -110,6 +112,8 @@ export const App = registerCustomElement(
       <div id="appContainer" class="oj-web-applayout-page">
         <Header appName={appName} userLogin={userLogin} />
         <Applications logs={logs} logCounts={logCounts} />
+         
+        {/* <UserGroups /> */}
         <Footer />
       </div>
     );
