@@ -5,7 +5,9 @@ import Context = require("ojs/ojcontext");
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
-import { Log } from "src/utils/applicationUtils";
+import { Login } from "./pages/Login/index";
+import { Log } from "../utils/applicationUtils";
+import { AuthManager } from "../utils/auth";
 
 type Props = Readonly<{
   appName?: string;
@@ -15,20 +17,65 @@ type Props = Readonly<{
 export const App = registerCustomElement(
   "app-root",
   ({ appName = "App Name", userLogin = "john.hancock@oracle.com" }: Props) => {
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [currentUser, setCurrentUser] = useState<string>("");
     const [logs, setLogs] = useState<Log[]>([]);
     const [logCounts, setLogCounts] = useState<Record<string, { logsToday: number; errors: number }>>({});
     const [isPaused, setIsPaused] = useState<boolean>(false);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Check authentication status on component mount
+    useEffect(() => {
+      const authenticated = AuthManager.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      if (authenticated) {
+        const user = AuthManager.getCurrentUser();
+        setCurrentUser(user?.email || userLogin);
+      }
+    }, [userLogin]);
+
+    const handleLoginSuccess = () => {
+      setIsAuthenticated(true);
+      const user = AuthManager.getCurrentUser();
+      setCurrentUser(user?.email || userLogin);
+    };
+
+    const handleLogout = () => {
+      AuthManager.clearAuth();
+      setIsAuthenticated(false);
+      setCurrentUser("");
+      setLogs([]);
+      setLogCounts({});
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+      }
+    };
+
     const fetchNewLogs = async () => {
+      if (!isAuthenticated) return;
+      
       try {
         const url = `http://localhost:3000/api/logs/new${
           latestDateRef.current ? `?since=${encodeURIComponent(latestDateRef.current)}` : ''
         }`;
 
-        const res = await fetch(url);
+        const token = AuthManager.getToken();
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(url, { headers });
         if (!res.ok) {
+          if (res.status === 401) {
+            // Token expired or invalid, logout user
+            handleLogout();
+            return;
+          }
           throw new Error(`HTTP error! status: ${res.status}`);
         }
 
@@ -74,7 +121,7 @@ export const App = registerCustomElement(
 
         counts[sourceAppId].logsToday++;
     
-        if (log.logLevel && log.logLevel.toLowerCase().includes('error')) {
+        if (log.logLevel?.toLowerCase().includes('error')) {
           counts[sourceAppId].errors++;
         }
       });
@@ -83,6 +130,8 @@ export const App = registerCustomElement(
     };
 
     useEffect(() => {
+      if (!isAuthenticated) return;
+
       Context.getPageContext().getBusyContext().applicationBootstrapComplete();
 
       fetchNewLogs();
@@ -100,17 +149,23 @@ export const App = registerCustomElement(
           clearInterval(intervalIdRef.current);
         }
       };
-    }, [isPaused]);
-
-    const togglePause = () => {
-      setIsPaused(prev => !prev);
-    };
+    }, [isPaused, isAuthenticated]);
 
     return (
       <div id="appContainer" class="oj-web-applayout-page">
-        <Header appName={appName} userLogin={userLogin} />
-        <Applications logs={logs} logCounts={logCounts} />
-        <Footer />
+        {!isAuthenticated ? (
+          <Login loginSuccess={handleLoginSuccess} />
+        ) : (
+          <>
+            <Header 
+              appName={appName} 
+              userLogin={currentUser || userLogin} 
+              onLogout={handleLogout}
+            />
+            <Applications logs={logs} logCounts={logCounts} />
+            <Footer />
+          </>
+        )}
       </div>
     );
   }

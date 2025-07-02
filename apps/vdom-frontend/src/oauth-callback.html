@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>OAuth Callback</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        .processing {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="processing">
+        <h2>Processing authentication...</h2>
+        <p>Please wait while we complete your login.</p>
+    </div>
+
+    <script>
+        try {
+            // Extract access token from URL fragment
+            const urlParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = urlParams.get('access_token');
+            const error = urlParams.get('error');
+
+            if (accessToken) {
+                // Send success message to parent window
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'OAUTH_SUCCESS',
+                        accessToken: accessToken
+                    }, window.location.origin);
+                }
+            } else {
+                // Send error message to parent window
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'OAUTH_ERROR',
+                        error: error || 'Authentication failed'
+                    }, window.location.origin);
+                }
+            }
+
+            // Close the popup after a short delay
+            setTimeout(() => {
+                window.close();
+            }, 1000);
+
+        } catch (e) {
+            console.error('OAuth callback error:', e);
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'OAUTH_ERROR',
+                    error: 'OAuth callback processing failed'
+                }, window.location.origin);
+            }
+            window.close();
+        }
+    </script>
+</body>
+</html>
