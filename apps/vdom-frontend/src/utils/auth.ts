@@ -10,7 +10,6 @@ export interface User {
 
 export class AuthManager {
   private static readonly TOKEN_KEY = 'auth_token';
-  private static readonly USER_KEY = 'user_profile';
 
   /**
    * Check if user is currently authenticated
@@ -30,31 +29,31 @@ export class AuthManager {
   }
 
   /**
-   * Get current user profile
+   * Get current user profile from JWT token
    */
   static getCurrentUser(): User | null {
-    const userStr = sessionStorage.getItem(this.USER_KEY);
-    return userStr ? JSON.parse(userStr) : null;
-  }
+    const token = sessionStorage.getItem(this.TOKEN_KEY);
+    if (!token) return null;
 
-  /**
-   * Set authentication token and user profile
-   */
-  static setAuth(token: string): void {
-    sessionStorage.setItem(this.TOKEN_KEY, token);
-    
     try {
       // Decode JWT payload to get user info
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const user: User = {
+      return {
         email: payload.email,
         name: payload.name,
         isAdmin: payload.isAdmin || false
       };
-      sessionStorage.setItem(this.USER_KEY, JSON.stringify(user));
     } catch (error) {
       console.error('Failed to decode JWT token:', error);
+      return null;
     }
+  }
+
+  /**
+   * Set authentication token
+   */
+  static setAuth(token: string): void {
+    sessionStorage.setItem(this.TOKEN_KEY, token);
   }
 
   /**
@@ -62,7 +61,6 @@ export class AuthManager {
    */
   static clearAuth(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
-    sessionStorage.removeItem(this.USER_KEY);
   }
 
   /**

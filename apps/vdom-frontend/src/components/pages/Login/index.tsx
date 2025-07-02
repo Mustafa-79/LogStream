@@ -2,6 +2,7 @@ import { registerCustomElement } from "ojs/ojvcomponent";
 import { useState } from "preact/hooks";
 import { AuthManager } from "../../../utils/auth";
 import "ojs/ojbutton";
+import Color = require("ojs/ojcolor");
 
 const GOOGLE_CLIENT_ID = "68897052946-qov2lsf2ga6sb9fuqpk0ruk8nkgsuj6n.apps.googleusercontent.com";
 
@@ -81,29 +82,10 @@ export const Login = registerCustomElement(
       }
     };
 
-    // Demo login for development
-    const handleDemoLogin = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        // Simulate successful OAuth response
-        const demoTokenResponse = {
-          access_token: 'demo_token_' + Date.now()
-        };
-        
-        await AuthManager.loginWithGoogle(demoTokenResponse.access_token);
-        loginSuccess?.();
-      } catch (err: any) {
-        setError(err.message || 'Demo login failed');
-        setIsLoading(false);
-      }
-    };
-
     return (
       <div class="login-container">
         <div class="login-card">
-          <div class="login-header">
+          <header class="login-header">
             <img 
               src="/src/assets/GoSaas_Logo.jpg" 
               alt="GoSaaS Logo" 
@@ -114,43 +96,31 @@ export const Login = registerCustomElement(
               }}
             />
             <h1>LogStream</h1>
-          </div>
+          </header>
 
           {error && (
-            <div class="error-message">
-              <div class="error-text">{error}</div>
+            <div class="error-message" role="alert" aria-live="polite">
+              <p class="error-text">{error}</p>
             </div>
           )}
 
-          <div class="login-buttons">
+          <main class="login-buttons">
             <oj-button
               class="google-login-btn"
               disabled={isLoading}
               onojAction={handleGoogleLogin}
+              aria-describedby={error ? "error-description" : undefined}
             >
               <span slot="startIcon">
-                <svg width="18" height="18" viewBox="0 0 18 18">
-                  <path fill="#4285F4" d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.54C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"/>
-                  <path fill="#34A853" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.21 1.18-.84 2.88-2.42 4.03l3.72 2.88c2.17-2.01 3.38-4.97 3.38-8.41z"/>
-                  <path fill="#FBBC04" d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"/>
-                  <path fill="#EA4335" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-3.72-2.88c-.93.62-2.1.99-3.24.99-2.38 0-4.4-1.57-5.12-3.74L.96 13.04C2.44 15.98 5.48 18 9 18z"/>
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/>
                 </svg>
               </span>
-              {isLoading ? 'Signing in...' : 'Sign in with Google'}
+              <span style={'color: white'}>{isLoading ? 'Signing in...' : 'Continue with Google'}</span>
             </oj-button>
+          </main>
 
-            {/* Demo login for development */}
-            <oj-button
-              class="demo-login-btn"
-              chroming="outlined"
-              disabled={isLoading}
-              onojAction={handleDemoLogin}
-            >
-              Demo Login (Development)
-            </oj-button>
-          </div>
-
-          <div class="brand-bar"></div>
+          <footer class="brand-bar" aria-hidden="true"></footer>
         </div>
 
         <style>{`
@@ -160,78 +130,99 @@ export const Login = registerCustomElement(
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: #e5e5e5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--oj-core-bg-color-1, #fafafa);
+            font-family: var(--oj-typography-body-font-family, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+            padding: 2rem;
           }
 
           .login-card {
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            min-width: 40rem;
+            background: var(--oj-core-bg-color-2, #ffffff);
+            border-radius: var(--oj-border-radius-lg, 12px);
+            box-shadow: var(--oj-box-shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12));
+            min-width: 400px;
+            max-width: 480px;
+            width: 100%;
             text-align: center;
             position: relative;
-            padding: 2rem 3rem;
+            padding: 3rem 2.5rem;
+            border: 1px solid var(--oj-border-color-1, #e5e5e5);
           }
 
           .login-header {
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
           }
 
           .logo {
-            width: 200px;
-            margin-bottom: 16px;
+            width: 180px;
+            margin-bottom: 1.5rem;
             display: block;
             margin-left: auto;
             margin-right: auto;
           }
 
           .login-header h1 {
-            color: #3f51b5;
-            font-size: 30px;
-            margin: 16px 0 0 0;
-            font-weight: normal;
+            color: var(--oj-text-color-primary, #161513);
+            font-size: var(--oj-typography-heading-lg-font-size, 2rem);
+            font-weight: var(--oj-typography-heading-lg-font-weight, 300);
+            margin: 0;
+            letter-spacing: -0.02em;
           }
 
           .login-buttons {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            margin: 2rem 0;
+            gap: 1.5rem;
+            margin: 2.5rem 0;
           }
 
           .google-login-btn {
-            width: 80%;
-            margin: 0 auto;
-            background: #3f51b5 !important;
-            color: #fff !important;
-            border: none;
-            padding: 12px 0;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+            width: 100%;
+            height: 48px;
+            background: var(--oj-button-primary-bg-color, #0572ce) !important;
+            color: var(--oj-button-primary-text-color, #ffffff) !important;
+            border: none !important;
+            border-radius: var(--oj-border-radius-md, 6px) !important;
+            font-size: var(--oj-typography-body-md-font-size, 1rem) !important;
+            font-weight: var(--oj-typography-body-md-font-weight, 400) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.75rem !important;
+            transition: all 0.2s ease !important;
+            box-shadow: var(--oj-box-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12)) !important;
           }
 
-          .demo-login-btn {
-            width: 80%;
-            margin: 0 auto;
-            padding: 12px 0;
-            font-size: 14px;
+          .google-login-btn:hover {
+            background: var(--oj-button-primary-bg-color-hover, #0461b4) !important;
+            box-shadow: var(--oj-box-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15)) !important;
+            transform: translateY(-1px);
+          }
+
+          .google-login-btn:active {
+            transform: translateY(0);
+            box-shadow: var(--oj-box-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12)) !important;
+          }
+
+          .google-login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
           }
 
           .error-message {
-            margin: 1rem 0;
-            padding: 0.75rem;
-            background-color: #fee;
-            border: 1px solid #fcc;
-            border-radius: 6px;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: var(--oj-core-bg-color-danger-1, #fef7f7);
+            border: 1px solid var(--oj-border-color-danger, #d73527);
+            border-radius: var(--oj-border-radius-md, 6px);
+            border-left-width: 4px;
           }
 
           .error-text {
-            color: #d00;
-            font-size: 0.9rem;
+            color: var(--oj-text-color-danger, #d73527);
+            font-size: var(--oj-typography-body-sm-font-size, 0.875rem);
+            font-weight: var(--oj-typography-body-sm-font-weight, 400);
+            margin: 0;
           }
 
           .brand-bar {
@@ -239,11 +230,58 @@ export const Login = registerCustomElement(
             left: 0;
             bottom: 0;
             width: 100%;
-            height: 6px;
-            background: #3f51b5;
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
-            box-shadow: 0 2px 6px rgba(63,81,181,0.15);
+            height: 4px;
+            background: linear-gradient(90deg, var(--oj-button-primary-bg-color, #0572ce) 0%, var(--oj-core-accent-color, #667eea) 100%);
+            border-bottom-left-radius: var(--oj-border-radius-lg, 12px);
+            border-bottom-right-radius: var(--oj-border-radius-lg, 12px);
+          }
+
+          /* Responsive design */
+          @media (max-width: 768px) {
+            .login-container {
+              padding: 1rem;
+            }
+            
+            .login-card {
+              min-width: unset;
+              padding: 2rem 1.5rem;
+            }
+            
+            .logo {
+              width: 150px;
+            }
+            
+            .login-header h1 {
+              font-size: var(--oj-typography-heading-md-font-size, 1.5rem);
+            }
+          }
+
+          /* Focus states for accessibility */
+          .google-login-btn:focus {
+            outline: 2px solid var(--oj-core-focus-border-color, #0572ce);
+            outline-offset: 2px;
+          }
+
+          /* Loading state animation */
+          .google-login-btn[disabled] {
+            position: relative;
+            overflow: hidden;
+          }
+
+          .google-login-btn[disabled]::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: loading-shimmer 1.5s infinite;
+          }
+
+          @keyframes loading-shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
           }
         `}</style>
       </div>
