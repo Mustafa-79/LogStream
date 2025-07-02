@@ -5,10 +5,11 @@ export const userGroupValidation = {
   
   createUserGroup: {
     body: Joi.object({
-      name:           Joi.string().trim().required().min(1).label('Group Name'),
-      description:    Joi.string().allow('').required().label('Group Description'),
+      name:           Joi.string().trim().required().min(3).max(50).label('Group Name'),
+      description:    Joi.string().allow('').required().max(500).label('Group Description'),
       members:        Joi.array().items(Joi.string().length(24)).optional().label('Group Member IDs'),
       applications:   Joi.array().items(Joi.string().length(24)).optional().label('Group Application IDs'),
+      active:         Joi.boolean().required().label('Group Active Status'),
     }),
   },
 
@@ -18,11 +19,12 @@ export const userGroupValidation = {
     }),
 
     body: Joi.object({
-      name:           Joi.string().trim().min(1).label('Group Name'),
-      description:    Joi.string().allow('').label('Group Description'),
+      name:           Joi.string().trim().min(3).max(50).label('Group Name'),
+      description:    Joi.string().allow('').max(500).label('Group Description'),
       members:        Joi.array().items(Joi.string().length(24)).optional().label('Group Member IDs'),
       applications:   Joi.array().items(Joi.string().length(24)).optional().label('Group Application IDs'),
-    }).or('name', 'description', 'members', 'applications'),
+      active:         Joi.boolean().optional().label('Group Active Status'),
+    }).or('name', 'description', 'members', 'applications', 'active'),
   },
 
   deleteUserGroup: {
