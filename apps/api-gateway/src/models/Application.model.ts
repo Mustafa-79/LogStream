@@ -1,4 +1,3 @@
-//// filepath: /home/mustafaabbas/Work/Probation/LogStream/LogStream/apps/api-gateway/src/models/Application.model.ts
 import { Schema, model, Document } from 'mongoose'
 
 export interface IApplication extends Document {
