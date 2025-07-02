@@ -1,4 +1,3 @@
-// import { Application, ApplicationInput, IApplication, validateApplication } from "../models/applicationModel";
 import Application, { IApplication } from '../models/Application.model';
 
 export const getAllApplications = async () => {
