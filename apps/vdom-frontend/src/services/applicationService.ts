@@ -55,9 +55,7 @@ class ApplicationService {
     try {
       const response = await fetch(ApiLinks.CREATE_APPLICATION, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(applicationData),
       });
 
