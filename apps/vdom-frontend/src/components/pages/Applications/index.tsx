@@ -5,11 +5,13 @@ import { getLastLogTime, getStatusBadge, Log, validateApplicationForm } from "..
 import { ApplicationModal } from "./ApplicationModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import "oj-c/button";
+import { RouteProps } from "preact-router";
 
-interface ApplicationsProps {
+
+export type ApplicationsProps = {
   logs: Log[];
   logCounts: Record<string, { logsToday: number; errors: number }>;
-}
+};
 
 export function Applications({ logs, logCounts }: ApplicationsProps) {
   const { applications, setApplications, loading } = useApplications();
