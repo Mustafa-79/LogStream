@@ -300,11 +300,11 @@ export function CreateUserGroupModal({ isOpen, onClose, onSubmit, loading = fals
 
             {/* Description Field */}
             <div>
-              <oj-label for="groupDescription">Description</oj-label>
+              <oj-label for="groupDescription">Description *</oj-label>
               <oj-input-text
                 id="groupDescription"
                 value={formData.description}
-                placeholder="Enter group description (optional)"
+                placeholder="Enter group description (10-100 characters)"
                 onrawValueChanged={handleDescriptionChange}
                 class={errors.description ? 'oj-invalid' : ''}
                 aria-describedby={errors.description ? 'groupDescriptionError' : undefined}

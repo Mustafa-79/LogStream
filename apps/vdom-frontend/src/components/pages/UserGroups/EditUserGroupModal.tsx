@@ -329,11 +329,11 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
 
             {/* Description Field */}
             <div>
-              <oj-label for="editGroupDescription">Description</oj-label>
+              <oj-label for="editGroupDescription">Description *</oj-label>
               <oj-input-text
                 id="editGroupDescription"
                 value={formData.description}
-                placeholder="Enter group description (optional)"
+                placeholder="Enter group description (10-100 characters)"
                 onrawValueChanged={handleDescriptionChange}
                 class={errors.description ? 'oj-invalid' : ''}
                 aria-describedby={errors.description ? 'editGroupDescriptionError' : undefined}
