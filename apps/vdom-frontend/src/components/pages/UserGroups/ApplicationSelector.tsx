@@ -10,9 +10,10 @@ interface ApplicationSelectorProps {
   selectedApplications: string[];
   onSelectionChange: (selectedApps: string[]) => void;
   error?: string;
+  disabled?: boolean;
 }
 
-export function ApplicationSelector({ applications, selectedApplications, onSelectionChange, error }: ApplicationSelectorProps) {
+export function ApplicationSelector({ applications, selectedApplications, onSelectionChange, error, disabled = false }: ApplicationSelectorProps) {
 
   const [selectAllChecked, setSelectAllChecked] = useState(false);
 
@@ -54,17 +55,19 @@ export function ApplicationSelector({ applications, selectedApplications, onSele
   // };
 
   return (
-    <div class="application-selector">
+    <div class={`application-selector ${disabled ? 'oj-disabled' : ''}`}>
       {/* Select All Option */}
       <div class="oj-flex oj-sm-flex-items-center oj-sm-margin-2x-bottom">
         <oj-checkboxset
           value={selectAllChecked ? ['selectAll'] : []}
           onvalueChanged={(event: any) => {
+            if (disabled) return;
             const isChecked = event.detail.value.includes('selectAll');
             if (isChecked !== selectAllChecked) {
               handleSelectAllToggle();
             }
           }}
+          disabled={disabled}
         >
           <oj-option value="selectAll">
             <span class="oj-typography-body-md" style={{ fontWeight: 'bold' }}>
@@ -76,12 +79,13 @@ export function ApplicationSelector({ applications, selectedApplications, onSele
 
 
       {/* Applications List */}
-      <div class={`oj-panel oj-panel-alt1 ${error ? 'oj-invalid' : ''}`} style={{
+      <div class={`oj-panel oj-panel-alt1 ${error ? 'oj-invalid' : ''} ${disabled ? 'oj-disabled' : ''}`} style={{
         maxHeight: '200px',
         overflow: 'auto',
         border: error ? '1px solid #d32f2f' : '1px solid #e0e0e0',
         borderRadius: '4px',
-        padding: '8px'
+        padding: '8px',
+        opacity: disabled ? '0.6' : '1'
       }}>
         {activeApplications.length === 0 ? (
           <div class="oj-typography-body-sm" style={{ color: '#666', textAlign: 'center', padding: '16px' }}>
@@ -90,8 +94,9 @@ export function ApplicationSelector({ applications, selectedApplications, onSele
         ) : (
           <oj-checkboxset
             value={selectedApplications}
-            onvalueChanged={(event: any) => handleApplicationsToggle(event.detail.value)}
+            onvalueChanged={(event: any) => !disabled && handleApplicationsToggle(event.detail.value)}
             class="oj-sm-padding-2x"
+            disabled={disabled}
           >
             {activeApplications.map(app => (
               <oj-option key={app._id} value={app._id}>
@@ -109,6 +114,13 @@ export function ApplicationSelector({ applications, selectedApplications, onSele
       {error && (
         <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
           {error}
+        </div>
+      )}
+
+      {/* Disabled Message for Administrators Group */}
+      {disabled && (
+        <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
+          The administrators group applications cannot be changed
         </div>
       )}
 
