@@ -81,10 +81,10 @@ export function UserGroups() {
 
     } catch (error) {
       console.error('Error deleting user group:', error);
-      
+
       // Create a user-friendly error message
       let errorMessage = 'Failed to delete user group';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
           errorMessage = 'Unable to connect to server. Please check your connection and try again.';
@@ -94,7 +94,7 @@ export function UserGroups() {
           errorMessage = error.message;
         }
       }
-      
+
       // Re-throw with user-friendly message to let the card component handle the error display
       throw new Error(errorMessage);
     }
@@ -185,7 +185,7 @@ export function UserGroups() {
     } catch (error) {
       console.error('Error creating user group:', error);
       let errorMessage = 'Failed to create user group';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
           errorMessage = 'Unable to connect to server. Please check your connection and try again.';
@@ -195,7 +195,7 @@ export function UserGroups() {
           errorMessage = error.message;
         }
       }
-      
+
       setCreateGroupError(errorMessage);
 
       // Re-throw the error so the modal stays open
@@ -275,7 +275,7 @@ export function UserGroups() {
     } catch (error) {
       console.error('Error updating user group:', error);
       let errorMessage = 'Failed to update user group';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
           errorMessage = 'Unable to connect to server. Please check your connection and try again.';
@@ -285,9 +285,9 @@ export function UserGroups() {
           errorMessage = error.message;
         }
       }
-      
+
       setCreateGroupError(errorMessage);
-      
+
       // Re-throw the error so the modal stays open
       throw new Error(errorMessage);
     } finally {
@@ -305,14 +305,14 @@ export function UserGroups() {
       <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
         <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
           <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading user groups...</div>
-            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
             <oj-c-progress-circle
               class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
               aria-labelledby="lgLabel indetLabel"
               size="lg"
               value={-1}
             ></oj-c-progress-circle>
-            </div>
+          </div>
         </div>
       </div>
     );
@@ -335,10 +335,10 @@ export function UserGroups() {
   }
 
   return (
-    <div class="oj-sm-12">
+    <div class="oj-web-applayout-page" style="padding: 40px;">
       {/* Success Message */}
       {successMessage && (
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-4x-bottom">
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
           <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
             backgroundColor: '#d4edda',
             border: '1px solid #c3e6cb',
@@ -366,7 +366,7 @@ export function UserGroups() {
 
       {/* Undo Delete Notification */}
       {deletedGroup && (
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-4x-bottom">
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
           <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
             backgroundColor: '#d4edda',
             border: '1px solid #c3e6cb',
@@ -409,23 +409,15 @@ export function UserGroups() {
       )}
 
       {/* Page Header */}
-      <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-4x-bottom">
+      <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-1x-vertical">
         <div>
-          <h1
-            class="oj-typography-heading-xl oj-sm-margin-2x-bottom"
-            style={{
-              background: 'linear-gradient(to right, #8e2de2, #cbb4d4 80%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              color: 'transparent'
-            }}
-          >
+          <h1 style="color: #6366f1; margin: 0; font-size: 2rem; font-weight: 600; font-family: 'Poppins', sans-serif;">
             User Groups
           </h1>
-          <p class="oj-typography-body-md">Organize users into groups and manage their application access. All groups have full permissions.</p>
+
+          <p class="oj-typography-body-md">Organize users into groups and manage their application access.</p>
         </div>
-        <div class="oj-flex oj-sm-flex-items-center oj-sm-flex-direction-column oj-sm-justify-content-center" style={{ minHeight: '120px' }}>
+        <div class="oj-flex oj-sm-flex-items-center oj-sm-margin-1x-vertical" style={{ minHeight: '120px' }}>
           <oj-button
             class="oj-button-primary"
             onojAction={handleCreateGroup}
