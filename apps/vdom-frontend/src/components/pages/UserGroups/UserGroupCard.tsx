@@ -127,7 +127,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
                 chroming='borderless'
                 onojAction={handleEditClick}
               >
-                <span slot='startIcon' class='oj-ux-ico-edit'></span>
+                <span slot='startIcon' class='oj-ux-ico-settings'></span>
               </oj-button>
               <oj-button
                 display='icons'
