@@ -17,14 +17,11 @@ type Props = Readonly<{
   appName: string,
   userLogin: string,
   onLogout?: () => void,
-  onToggleDrawer: () => void
+  onToggleDrawer: () => void,
+  isAuthenticated?: boolean
 }>;
 
-// export function Header({ appName, userLogin, onLogout }: Props) {
-//   onToggleDrawer: () => void
-// }>;<
-
-export function Header({ appName, userLogin, onLogout,  onToggleDrawer }: Props) {
+export function Header({ appName, userLogin, onLogout,  onToggleDrawer, isAuthenticated = false }: Props) {
   const mediaQueryRef = useRef<MediaQueryList>(window.matchMedia(ResponsiveUtils.getFrameworkQuery("sm-only")!));
   
   const [isSmallWidth, setIsSmallWidth] = useState(mediaQueryRef.current.matches);
@@ -62,14 +59,10 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer }: Props)
           </oj-c-button>
         </div>
         <div class="oj-flex-bar-middle oj-sm-align-items-baseline oj-web-applayout-max-width">
-        <img class="oj-icon demo-oracle-icon"
+        {/* <img class="oj-icon demo-oracle-icon"
               title="Oracle Logo"
-              alt="Oracle Logo"/>
-          <h1
-            class="oj-sm-only-hide oj-web-applayout-header-title"
-            title="Application Name">
-            {appName}
-          </h1>
+              alt="Oracle Logo"/> */}
+          <h6 class="oj-typography-heading-sm oj-sm-margin-0">LogStream</h6>
         </div>
         <div class="oj-flex-bar-end" style="padding-right: 0; margin-right: 0;">
         <oj-toolbar>
@@ -77,9 +70,6 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer }: Props)
             <span>{userLogin}</span>
             <span slot="endIcon" class={getEndIconClass()}></span>
             <oj-menu id="menu1" slot="menu" onojMenuAction={handleMenuAction}>
-              <oj-option id="pref" value="pref">Preferences</oj-option>
-              <oj-option id="help" value="help">Help</oj-option>
-              <oj-option id="about" value="about">About</oj-option>
               <oj-option id="out" value="out">Sign Out</oj-option>
             </oj-menu>
           </oj-menu-button>
