@@ -36,14 +36,7 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
           <h6 class="oj-typography-heading-sm oj-sm-margin-0">LogStream</h6>
         </div>
 
-        {/* <oj-navigation-list>
-          <ul>
-            <li><a href="#">Dashboard</a></li>
-            <li><a href="#">Analytics</a></li>
-            <li><a href="#">Applications</a></li>
-            <li><a href="#">User Groups</a></li>
-          </ul>
-        </oj-navigation-list> */}
+   
         <oj-navigation-list selection={currentPath}>
           <ul>
             {routes.map((routeItem) => {
@@ -61,8 +54,12 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
                       e.preventDefault();
                       onNavigate(routeItem.path);
                     }}
+                    style="display: flex; align-items: center; gap: 12px;"
                   >
-                    {routeItem.label}
+                    {routeItem.icon && (
+                      <span class={`oj-navigationlist-item-icon ${routeItem.icon}`}></span>
+                    )}
+                    <span>{routeItem.label}</span>
                   </a>
                 </li>
               );

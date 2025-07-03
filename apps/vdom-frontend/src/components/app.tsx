@@ -92,7 +92,7 @@ export const App = registerCustomElement(
           </ProtectedRoute>
         ),
         label: 'Applications',
-        icon: 'oj-ux-ico-application',
+        icon: 'oj-ux-ico-applications',
         requireAuth: true
       },
       {
