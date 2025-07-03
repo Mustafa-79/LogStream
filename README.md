@@ -1,3 +1,26 @@
+# LogStream - Sprint 1 Testing
+
+## Quick Setup for Development
+
+### Prerequisites
+Ensure you have an `.env` file in the `apps/api-gateway` directory with the required environment variables.
+
+### Backend Setup
+```bash
+cd apps/api-gateway
+npm install
+npm run dev
+```
+
+### Frontend Setup
+```bash
+cd apps/vdom-frontend
+npm install
+ojet serve
+```
+
+---
+
 # LogStream Multi-Application Setup
 
 ## Overview
