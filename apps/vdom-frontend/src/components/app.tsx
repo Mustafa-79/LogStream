@@ -235,7 +235,7 @@ export const App = registerCustomElement(
           if (!isPaused) {
             fetchNewLogs();
           }
-        }, 30000);
+        }, 5000);
 
         intervalIdRef.current = id;
       }

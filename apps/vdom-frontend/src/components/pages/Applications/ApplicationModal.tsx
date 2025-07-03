@@ -124,7 +124,7 @@ export function ApplicationModal({
               </div>
             )}
             <div style="color: #9ca3af; font-size: 0.75rem; font-family: 'Poppins', sans-serif; margin-left: auto;">
-              {newAppDescription.length} /1000 characters
+              {newAppDescription.length} /100 characters
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export function ApplicationModal({
           </div>
         )}
 
-        <div class="oj-flex oj-justify-content-flex-end" style="gap: 12px;">
+        <div class="oj-flex oj-justify-content-flex-end" style="gap: 12px; justify-content: flex-end;">
           <oj-button
             onojAction={onClose}
             disabled={isProcessing}
