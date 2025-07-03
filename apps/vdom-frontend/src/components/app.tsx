@@ -6,6 +6,7 @@ import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
 import { Log } from "../utils/applicationUtils";
+import { Sidebar } from "./sidebar/index";
 
 import { UserGroups } from "./pages/UserGroups/UserGroups";
 
@@ -20,6 +21,7 @@ export const App = registerCustomElement(
     const [logs, setLogs] = useState<Log[]>([]);
     const [logCounts, setLogCounts] = useState<Record<string, { logsToday: number; errors: number }>>({});
     const [isPaused, setIsPaused] = useState<boolean>(false);
+    const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -108,14 +110,21 @@ export const App = registerCustomElement(
       setIsPaused(prev => !prev);
     };
 
+    const toggleDrawer = () => {
+      setIsDrawerOpen(prev => !prev);
+    };
+
     return (
       <div id="appContainer" class="oj-web-applayout-page">
-        <Header appName={appName} userLogin={userLogin} />
-        {/* <Applications logs={logs} logCounts={logCounts} /> */}
-         
-        <UserGroups />
+        <Header appName={appName} userLogin={userLogin} onToggleDrawer={toggleDrawer} />
+        <Sidebar isOpen={isDrawerOpen}>
+          {/* <Applications logs={logs} logCounts={logCounts} /> */}
+          <UserGroups />
+        </Sidebar>
         <Footer />
       </div>
     );
   }
 );
+
+
