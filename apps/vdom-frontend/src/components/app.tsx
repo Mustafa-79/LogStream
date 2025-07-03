@@ -6,7 +6,7 @@ import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
 import { Log } from "../utils/applicationUtils";
-import { Sidebar } from "./sidebar/index";
+import { Sidebar } from "./sidebar";
 
 import { UserGroups } from "./pages/UserGroups/UserGroups";
 
