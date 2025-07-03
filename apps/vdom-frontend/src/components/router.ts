@@ -6,6 +6,8 @@ export interface RouteConfig {
   component: () => any;
   label: string;
   icon: string;
+  requireAuth?: boolean;
+  requireAdmin?: boolean;
 }
 
 class SimpleRouter {
@@ -17,7 +19,6 @@ class SimpleRouter {
     this.routes = routes;
     this.currentPath = this.getPathFromHash();
     
-    // Listen for browser back/forward
     window.addEventListener('popstate', () => {
       this.currentPath = this.getPathFromHash();
       this.notifyListeners();
@@ -48,16 +49,14 @@ class SimpleRouter {
   }
 
   public getCurrentRoute(): RouteConfig | undefined {
-    // First, try exact match
     const exactMatch = this.routes.find(route => route.path === this.currentPath);
     if (exactMatch) {
       return exactMatch;
     }
 
-    // Then try prefix match for non-root routes
     const prefixMatch = this.routes.find(route => {
       if (route.path === '/') {
-        return false; // Don't allow root to match other paths
+        return false; 
       }
       return this.currentPath.startsWith(route.path);
     });
