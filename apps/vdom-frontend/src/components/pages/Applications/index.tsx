@@ -156,10 +156,6 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
             <span style="color: #6b7280; font-size: 0.975rem; font-family: 'Poppins', sans-serif;">
               Manage and monitor all your connected applications.
             </span>
-            <div class="oj-flex oj-align-items-center" style="gap: 4px;">
-              <span class="oj-badge oj-badge-success" style="width: 5px; height: 15px; border-radius: 50%; padding: 0;"></span>
-              <span style="color: #6b7280; font-size: 0.875rem; font-family: 'Poppins', sans-serif;">Live Status</span>
-            </div>
           </div>
         </div>
         <div style="flex-shrink: 0; margin-left: 16px;">
