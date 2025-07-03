@@ -12,6 +12,9 @@ const GroupSchema = new Schema<IGroup>({
     type: String,
     required: true,
     trim: true,
+    minlength: 3,
+    maxlength: 50,
+    unique: true,
   },
   description: {
     type: String,

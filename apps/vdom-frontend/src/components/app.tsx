@@ -6,6 +6,9 @@ import Context = require("ojs/ojcontext");
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
+// import { Log } from "../utils/applicationUtils";
+import { Sidebar } from "./sidebar";
+
 import { UserGroups } from "./pages/UserGroups/UserGroups";
 import { Navigation } from "./Navigation";
 import { useRouter, RouteConfig } from "./router";
@@ -26,6 +29,7 @@ export const App = registerCustomElement(
     const [logs, setLogs] = useState<Log[]>([]);
     const [logCounts, setLogCounts] = useState<Record<string, { logsToday: number; errors: number }>>({});
     const [isPaused, setIsPaused] = useState<boolean>(false);
+    const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -177,10 +181,13 @@ export const App = registerCustomElement(
       return <Dashboard />;
     };
 
+    const toggleDrawer = () => {
+      setIsDrawerOpen(prev => !prev);
+    };
+
     return (
       <div id="appContainer" class="oj-web-applayout-page">
-        <Header appName={appName} userLogin={userLogin} />
-        
+        <Header appName={appName} userLogin={userLogin} onToggleDrawer={toggleDrawer} />
         <div style="padding: 20px 40px 0 40px;">
           <Navigation 
             routes={routes} 
@@ -188,13 +195,22 @@ export const App = registerCustomElement(
             onNavigate={navigate}
           />
         </div>
-        
         <div style="transition: opacity 0.2s ease-in-out;">
           {getCurrentComponent()}
         </div>
+
+        <Sidebar isOpen={isDrawerOpen}>
+          {/* <Applications logs={logs} logCounts={logCounts} /> */}
+          <UserGroups />
+        </Sidebar>
+        
+        
+        
         
         <Footer />
       </div>
     );
   }
 );
+
+

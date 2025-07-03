@@ -35,6 +35,9 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
   const [applications, setApplications] = useState<IApplication[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
+  // Check if the current group is the "Administrators" group
+  const isAdministratorsGroup = userGroup?.name?.toLowerCase() === 'administrators' || userGroup?.name?.toLowerCase() === 'admins';
+
   // Load users and applications when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -101,10 +104,10 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
     // Required name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Group name is required';
-    } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Group name must be at least 3 characters long';
-    } else if (formData.name.trim().length > 50) {
-      newErrors.name = 'Group name must be less than 50 characters';
+    } else if (formData.name.trim().length < 5) {
+      newErrors.name = 'Group name must be at least 5 characters long';
+    } else if (formData.name.trim().length > 20) {
+      newErrors.name = 'Group name must be less than 20 characters';
     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(formData.name.trim())) {
       newErrors.name = 'Group name can only contain letters, numbers, spaces, hyphens, and underscores';
     } else {
@@ -119,8 +122,12 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
     }
 
     // Description validation (if provided)
-    if (formData.description && formData.description.length > 500) {
-      newErrors.description = 'Description must be less than 500 characters';
+    if (formData.description) {
+      if (formData.description.length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+      } else if (formData.description.length > 100) {
+      newErrors.description = 'Description must be less than 100 characters';
+      }
     }
 
     // Applications validation
@@ -178,7 +185,7 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
       const newErrors = { ...errors };
 
       // Check basic validation first
-      if (value.trim().length >= 3 && value.trim().length <= 50 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
+      if (value.trim().length >= 5 && value.trim().length <= 20 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
         // Check for name uniqueness (case-insensitive), excluding current group
         const trimmedName = value.trim().toLowerCase();
         const isDuplicate = existingGroups.some(group =>
@@ -306,24 +313,31 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
                 onvalueChanged={handleNameChange}
                 class={errors.name ? 'oj-invalid' : ''}
                 aria-describedby={errors.name ? 'editGroupNameError' : undefined}
+                disabled={isAdministratorsGroup}
               />
               {errors.name && (
                 <div id="editGroupNameError" class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
                   {errors.name}
                 </div>
               )}
+              {isAdministratorsGroup && (
+                <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
+                  The administrators group name cannot be changed
+                </div>
+              )}
             </div>
 
             {/* Description Field */}
             <div>
-              <oj-label for="editGroupDescription">Description</oj-label>
+              <oj-label for="editGroupDescription">Description *</oj-label>
               <oj-input-text
                 id="editGroupDescription"
                 value={formData.description}
-                placeholder="Enter group description (optional)"
-                onvalueChanged={handleDescriptionChange}
+                placeholder="Enter group description (10-100 characters)"
+                onrawValueChanged={handleDescriptionChange}
                 class={errors.description ? 'oj-invalid' : ''}
                 aria-describedby={errors.description ? 'editGroupDescriptionError' : undefined}
+                disabled={isAdministratorsGroup}
               />
               {errors.description && (
                 <div id="editGroupDescriptionError" class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
@@ -332,8 +346,13 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
               )}
               {/* Character count display */}
               <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
-                {formData.description.length}/500 characters
+                {formData.description.length}/100 characters
               </div>
+              {isAdministratorsGroup && (
+                <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
+                  The administrators group description cannot be changed
+                </div>
+              )}
             </div>
 
             {/* Status Field */}
@@ -345,11 +364,17 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
                   value={formData.active}
                   onvalueChanged={handleStatusChange}
                   style={{ alignSelf: 'center' }}
+                  disabled={isAdministratorsGroup}
                 />
                 <span class="oj-typography-body-sm oj-sm-margin-2x-start oj-text-color-secondary" style={{ display: 'inline-flex', alignItems: 'center' }}>
                   {formData.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
+              {isAdministratorsGroup && (
+                <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
+                  The administrators group status cannot be changed
+                </div>
+              )}
             </div>
 
 
@@ -361,6 +386,7 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
                 selectedApplications={formData.selectedApplications}
                 onSelectionChange={handleApplicationsChange}
                 error={errors.applications}
+                disabled={isAdministratorsGroup}
               />
             </div>
 
