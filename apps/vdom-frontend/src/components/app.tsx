@@ -141,8 +141,7 @@ export const App = registerCustomElement(
 
     return (
       <div id="appContainer" class="oj-web-applayout-page">
-        <Header appName={appName} userLogin={userLogin} />
-        
+        <Header appName={appName} userLogin={userLogin} />        
         <div style="padding: 20px 40px 0 40px;">
           <Navigation 
             routes={routes} 
@@ -154,7 +153,6 @@ export const App = registerCustomElement(
         <div style="transition: opacity 0.2s ease-in-out;">
           {getCurrentComponent()}
         </div>
-        
         <Footer />
       </div>
     );
