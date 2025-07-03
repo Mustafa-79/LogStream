@@ -4,7 +4,6 @@ import httpStatus from 'http-status';
 import config from '../config/config';
 import ApiError from '../utils/ApiError';
 
-// User payload interface
 export interface UserPayload {
   email: string;
   name: string;
@@ -13,27 +12,20 @@ export interface UserPayload {
   exp: number;
 }
 
-// Extend Request interface to include user data
 declare module 'express-serve-static-core' {
   interface Request {
     user?: UserPayload;
   }
 }
 
-/**
- * JWT Authentication Middleware
- * Verifies JWT token and adds user data to request object
- */
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
-
-  console.log('Authorization Header:', authHeader);
   
   if (!authHeader) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Access token is required');
   }
 
-  const token = authHeader.split(' ')[1]; // Bearer <token>
+  const token = authHeader.split(' ')[1]; 
   
   if (!token) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Access token is required');
@@ -54,12 +46,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
   }
 };
 
-/**
- * Admin Authorization Middleware
- * Requires user to be authenticated and have admin privileges
- */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
-  console.log('User:', req.user);
   if (!req.user) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required');
   }

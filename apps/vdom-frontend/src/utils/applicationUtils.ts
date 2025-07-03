@@ -102,18 +102,20 @@ export function validateApplicationForm(name: string, description: string): {
   const trimmedName = name.trim();
   const trimmedDescription = description.trim();
 
-  const allowedPattern = /^[a-zA-Z0-9-_ ]+$/;
+  const namePattern = /^[a-zA-Z0-9 _-]+$/;
+
+  const descriptionPattern = /^[a-zA-Z0-9 _\-\.\,\:\;\(\)\[\]'""]+$/;
 
   if (trimmedName.length < 5 || trimmedName.length > 20) {
     errors.name = 'Name must be between 5 and 20 characters.';
-  } else if (!allowedPattern.test(trimmedName)) {
+  } else if (!namePattern.test(trimmedName)) {
     errors.name = 'Name can only contain letters, numbers, spaces, hyphens (-), and underscores (_).';
   }
 
   if (trimmedDescription.length < 10 || trimmedDescription.length > 100) {
     errors.description = 'Description must be between 10 and 100 characters.';
-  } else if (!allowedPattern.test(trimmedDescription)) {
-    errors.description = 'Description can only contain letters, numbers, spaces, hyphens (-), and underscores (_).';
+  } else if (!descriptionPattern.test(trimmedDescription)) {
+    errors.description = 'Description contains invalid characters.';
   }
 
   return {
