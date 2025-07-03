@@ -11,13 +11,15 @@ import * as ResponsiveUtils from "ojs/ojresponsiveutils";
 import "ojs/ojtoolbar";
 import "ojs/ojmenu";
 import "ojs/ojbutton";
+import "oj-c/button";
 
 type Props = Readonly<{
   appName: string,
-  userLogin: string
+  userLogin: string,
+  onToggleDrawer: () => void
 }>;
 
-export function Header({ appName, userLogin }: Props) {
+export function Header({ appName, userLogin, onToggleDrawer }: Props) {
   const mediaQueryRef = useRef<MediaQueryList>(window.matchMedia(ResponsiveUtils.getFrameworkQuery("sm-only")!));
   
   const [isSmallWidth, setIsSmallWidth] = useState(mediaQueryRef.current.matches);
@@ -41,8 +43,13 @@ export function Header({ appName, userLogin }: Props) {
 
   return (
     <header role="banner" class="oj-web-applayout-header">
-      <div class="oj-web-applayout-max-width oj-flex-bar oj-sm-align-items-center">
-        <div class="oj-flex-bar-middle oj-sm-align-items-baseline">
+      <div class="oj-flex-bar oj-sm-align-items-center" style="width: 100%;">
+        <div class="oj-flex-bar-start" style="padding-left: 0; margin-left: 0;">
+          <oj-c-button display="icons" onojAction={onToggleDrawer} label="Toggle Menu">
+            <span slot="startIcon" className="oj-ux-ico-menu"></span>
+          </oj-c-button>
+        </div>
+        <div class="oj-flex-bar-middle oj-sm-align-items-baseline oj-web-applayout-max-width">
         <img class="oj-icon demo-oracle-icon"
               title="Oracle Logo"
               alt="Oracle Logo"/>
@@ -52,7 +59,7 @@ export function Header({ appName, userLogin }: Props) {
             {appName}
           </h1>
         </div>
-        <div class="oj-flex-bar-end">
+        <div class="oj-flex-bar-end" style="padding-right: 0; margin-right: 0;">
         <oj-toolbar>
           <oj-menu-button id="userMenu" display={getDisplayType()} chroming="borderless">
             <span>{userLogin}</span>
