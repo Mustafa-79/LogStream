@@ -26,6 +26,8 @@ declare module 'express-serve-static-core' {
  */
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
+
+  console.log('Authorization Header:', authHeader);
   
   if (!authHeader) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Access token is required');
@@ -57,6 +59,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
  * Requires user to be authenticated and have admin privileges
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  console.log('User:', req.user);
   if (!req.user) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required');
   }

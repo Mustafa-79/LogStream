@@ -12,6 +12,8 @@ import { useRouter, RouteConfig } from "./router";
 import { Log } from "../utils/applicationUtils";
 import { Dashboard } from "./pages/Dashboard/index";
 import "oj-c/button";
+import { Login } from "./pages/Login/index";
+import { AuthManager } from "../utils/auth";
 
 type Props = Readonly<{
   appName?: string;
@@ -26,6 +28,36 @@ export const App = registerCustomElement(
     const [isPaused, setIsPaused] = useState<boolean>(false);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [currentUser, setCurrentUser] = useState<string>("");
+
+    useEffect(() => {
+      const authenticated = AuthManager.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      if (authenticated) {
+        const user = AuthManager.getCurrentUser();
+        setCurrentUser(user?.email || userLogin);
+      }
+    }, [userLogin]);
+
+    const handleLoginSuccess = () => {
+      setIsAuthenticated(true);
+      const user = AuthManager.getCurrentUser();
+      setCurrentUser(user?.email || userLogin);
+      navigate('/');
+    };
+
+    const handleLogout = () => {
+      AuthManager.clearAuth();
+      setIsAuthenticated(false);
+      setCurrentUser("");
+      setLogs([]);
+      setLogCounts({});
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+      }
+    };
 
     const routes: RouteConfig[] = [
       {
@@ -45,6 +77,12 @@ export const App = registerCustomElement(
         component: () => <Dashboard />,
         label: 'Dashboard',
         icon: 'oj-ux-ico-dashboard'
+      },
+      {
+        path: '/login',
+        component: () => <Login loginSuccess={handleLoginSuccess} />,
+        label: 'Login',
+        icon: 'oj-ux-ico-login'
       }
     ];
 
