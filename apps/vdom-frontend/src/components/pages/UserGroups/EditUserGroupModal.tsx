@@ -110,7 +110,7 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
     } else {
       // Check for name uniqueness (case-insensitive), excluding current group
       const trimmedName = formData.name.trim().toLowerCase();
-      const isDuplicate = existingGroups.some(group => 
+      const isDuplicate = existingGroups.some(group =>
         group.name.toLowerCase() === trimmedName && group._id !== userGroup?._id
       );
       if (isDuplicate) {
@@ -132,7 +132,7 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
     if (formData.selectedUsers.length === 0) {
       newErrors.users = 'At least one user must be selected';
     }
-    
+
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -145,17 +145,17 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
     }
 
     setIsSubmitting(true);
-    
+
     try {
       console.log('Edit form submitted with data:', {
         groupId: userGroup?._id,
         ...formData
       });
-      
+
       if (onSubmit) {
         await onSubmit(formData);
       }
-      
+
       // Only close modal if onSubmit completed successfully without throwing an error
       // If we reach this point, it means onSubmit didn't throw an error
       handleClose();
@@ -172,19 +172,19 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
   const handleNameChange = (event: any) => {
     const value = event.detail.value;
     setFormData(prev => ({ ...prev, name: value }));
-    
+
     // Real-time validation for immediate feedback
     if (value.trim() && errors.name) {
       const newErrors = { ...errors };
-      
+
       // Check basic validation first
       if (value.trim().length >= 3 && value.trim().length <= 50 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
         // Check for name uniqueness (case-insensitive), excluding current group
         const trimmedName = value.trim().toLowerCase();
-        const isDuplicate = existingGroups.some(group => 
+        const isDuplicate = existingGroups.some(group =>
           group.name.toLowerCase() === trimmedName && group._id !== userGroup?._id
         );
-        
+
         if (!isDuplicate) {
           delete newErrors.name;
           setErrors(newErrors);
@@ -199,7 +199,7 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
   const handleDescriptionChange = (event: any) => {
     const value = event.detail.value;
     setFormData(prev => ({ ...prev, description: value }));
-    
+
     // Clear description error when user starts typing
     if (errors.description) {
       setErrors(prev => ({ ...prev, description: undefined }));
@@ -212,16 +212,16 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
   };
 
   const handleApplicationsChange = (selectedApps: string[]) => {
-    const selectedAppObjects = selectedApps.map(appId => 
+    const selectedAppObjects = selectedApps.map(appId =>
       applications.find(app => app._id === appId)
     ).filter((app): app is IApplication => app !== undefined);
-    
-    setFormData(prev => ({ 
-      ...prev, 
+
+    setFormData(prev => ({
+      ...prev,
       selectedApplications: selectedApps,
       selectedApplicationObjects: selectedAppObjects
     }));
-    
+
     // Clear applications error when user makes selection
     if (errors.applications) {
       setErrors(prev => ({ ...prev, applications: undefined }));
@@ -229,16 +229,16 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
   };
 
   const handleUsersChange = (selectedUsers: string[]) => {
-    const selectedUserObjects = selectedUsers.map(userId => 
+    const selectedUserObjects = selectedUsers.map(userId =>
       users.find(user => user._id === userId)
     ).filter((user): user is IUser => user !== undefined);
-    
-    setFormData(prev => ({ 
-      ...prev, 
+
+    setFormData(prev => ({
+      ...prev,
       selectedUsers: selectedUsers,
       selectedUserObjects: selectedUserObjects
     }));
-    
+
     // Clear users error when user makes selection
     if (errors.users) {
       setErrors(prev => ({ ...prev, users: undefined }));
@@ -291,7 +291,7 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
         </div>
 
         {/* Modal Body */}
-        <div class="oj-sm-padding-4x" style={{ 
+        <div class="oj-sm-padding-4x" style={{
           overflow: 'auto',
           flex: '1'
         }}>
@@ -343,14 +343,15 @@ export function EditUserGroupModal({ isOpen, userGroup, onClose, onSubmit, loadi
                 <oj-switch
                   id="groupStatus"
                   value={formData.active}
-                  disabled={true}
+                  onvalueChanged={handleStatusChange}
                   style={{ alignSelf: 'center' }}
                 />
                 <span class="oj-typography-body-sm oj-sm-margin-2x-start oj-text-color-secondary" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  New groups are created as Active by default
+                  {formData.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
+
 
             {/* Applications Selection */}
             <div>

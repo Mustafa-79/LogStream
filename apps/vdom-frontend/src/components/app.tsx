@@ -111,9 +111,9 @@ export const App = registerCustomElement(
     return (
       <div id="appContainer" class="oj-web-applayout-page">
         <Header appName={appName} userLogin={userLogin} />
-        <Applications logs={logs} logCounts={logCounts} />
+        {/* <Applications logs={logs} logCounts={logCounts} /> */}
          
-        {/* <UserGroups /> */}
+        <UserGroups />
         <Footer />
       </div>
     );

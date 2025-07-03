@@ -9,6 +9,9 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 
+// TODO: Unable to edit active toggle in edit modal
+// FIXME: Ensure active toggle works in edit modal
+
 export function UserGroups() {
   const [userGroups, setUserGroups] = useState<IGroup[]>([]);
   const [loading, setLoading] = useState(true);
