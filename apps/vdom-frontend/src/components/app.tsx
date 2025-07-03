@@ -2,12 +2,16 @@ import { registerCustomElement } from "ojs/ojvcomponent";
 import { h } from "preact";
 import { useEffect, useState, useRef } from "preact/hooks";
 import Context = require("ojs/ojcontext");
+
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
-import { Log } from "../utils/applicationUtils";
-
 import { UserGroups } from "./pages/UserGroups/UserGroups";
+import { Navigation } from "./Navigation";
+import { useRouter, RouteConfig } from "./router";
+import { Log } from "../utils/applicationUtils";
+import { Dashboard } from "./pages/Dashboard/index";
+import "oj-c/button";
 
 type Props = Readonly<{
   appName?: string;
@@ -22,6 +26,29 @@ export const App = registerCustomElement(
     const [isPaused, setIsPaused] = useState<boolean>(false);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
+    const routes: RouteConfig[] = [
+      {
+        path: '/applications',
+        component: () => <Applications logs={logs} logCounts={logCounts} />,
+        label: 'Applications',
+        icon: 'oj-ux-ico-application'
+      },
+      {
+        path: '/user-groups',
+        component: () => <UserGroups />,
+        label: 'User Groups',
+        icon: 'oj-ux-ico-group'
+      },
+      {
+        path: '/',
+        component: () => <Dashboard />,
+        label: 'Dashboard',
+        icon: 'oj-ux-ico-dashboard'
+      }
+    ];
+
+    const { currentPath, navigate, currentRoute } = useRouter(routes);
 
     const fetchNewLogs = async () => {
       try {
@@ -104,16 +131,28 @@ export const App = registerCustomElement(
       };
     }, [isPaused]);
 
-    const togglePause = () => {
-      setIsPaused(prev => !prev);
+    const getCurrentComponent = () => {
+      if (currentRoute && currentRoute.component) {
+        return currentRoute.component();
+      }
+      // Default to Dashboard if no route matches
+      return <Dashboard />;
     };
 
     return (
       <div id="appContainer" class="oj-web-applayout-page">
-        <Header appName={appName} userLogin={userLogin} />
-        {/* <Applications logs={logs} logCounts={logCounts} /> */}
-         
-        <UserGroups />
+        <Header appName={appName} userLogin={userLogin} />        
+        <div style="padding: 20px 40px 0 40px;">
+          <Navigation 
+            routes={routes} 
+            currentPath={currentPath}
+            onNavigate={navigate}
+          />
+        </div>
+        
+        <div style="transition: opacity 0.2s ease-in-out;">
+          {getCurrentComponent()}
+        </div>
         <Footer />
       </div>
     );
