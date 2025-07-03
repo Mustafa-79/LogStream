@@ -93,25 +93,28 @@ export const formatDate = (dateString: string): string => {
 };
 
 
-export const validateApplicationForm = (name: string, description: string): { isValid: boolean; error?: string } => {
-  if (!name.trim()) {
-    return { isValid: false, error: 'Application name is required' };
+export function validateApplicationForm(name: string, description: string): {
+  isValid: boolean;
+  errors: {
+    name?: string;
+    description?: string;
+  };
+} {
+  const errors: { name?: string; description?: string } = {};
+
+  if (name.trim().length < 3 || name.trim().length > 50) {
+    errors.name = 'Name must be between 3 and 50 characters.';
   }
-  
-  if (!description.trim()) {
-    return { isValid: false, error: 'Application description is required' };
+
+  if (description.trim().length < 5 || description.trim().length > 1000) {
+    errors.description = 'Description must be between 5 and 1000 characters.';
   }
-  
-  if (name.trim().length < 2) {
-    return { isValid: false, error: 'Application name must be at least 2 characters long' };
-  }
-  
-  if (description.trim().length < 10) {
-    return { isValid: false, error: 'Application description must be at least 10 characters long' };
-  }
-  
-  return { isValid: true };
-};
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
 
 
 export const filterApplications = (applications: Application[], searchQuery: string): Application[] => {
