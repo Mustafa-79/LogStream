@@ -44,35 +44,32 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
             <li><a href="#">User Groups</a></li>
           </ul>
         </oj-navigation-list> */}
-        {routes.map((routeItem) => {
-          const active = isActive(routeItem.path);
+        <oj-navigation-list selection={currentPath}>
+          <ul>
+            {routes.map((routeItem) => {
+              const active = isActive(routeItem.path);
 
-          return (
-            <oj-button
-              key={routeItem.path}
-              chroming={active ? "callToAction" : "outlined"}
-              onojAction={() => onNavigate(routeItem.path)}
-              style={`
-                  border-radius: 8px !important;
-                  padding: 8px 16px !important;
-                  font-family: 'Poppins', sans-serif !important;
-                  font-weight: 500 !important;
-                  ${active
-                  ? '--oj-button-bg-color: #6366f1 !important; --oj-button-text-color: white !important; border: none !important;'
-                  : '--oj-button-bg-color: transparent !important; --oj-button-text-color: #64748b !important; border: 1px solid transparent !important;'
-                }
-                  transition: all 0.2s ease !important;
-                `}
-            >
-              <span
-                slot="startIcon"
-                class={routeItem.icon}
-                style="margin-right: 6px;"
-              ></span>
-              {routeItem.label}
-            </oj-button>
-          );
-        })}
+              return (
+                <li
+                  key={routeItem.path}
+                >
+                  <a 
+                    href="#"
+                    class={`oj-navigationlist-item oj-navigationlist-item-label`}
+                    className={`oj-navigationlist-item oj-navigationlist-item-label`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate(routeItem.path);
+                    }}
+                  >
+                    {routeItem.label}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </oj-navigation-list>
+
       </div>
 
       {/* Main Content Area */}
