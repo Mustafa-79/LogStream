@@ -94,9 +94,8 @@ export const App = registerCustomElement(
 
     const fetchNewLogs = async () => {
       try {
-        const url = `http://localhost:3000/api/logs/new${
-          latestDateRef.current ? `?since=${encodeURIComponent(latestDateRef.current)}` : ''
-        }`;
+        const url = `http://localhost:3000/api/logs/new${latestDateRef.current ? `?since=${encodeURIComponent(latestDateRef.current)}` : ''
+          }`;
 
         const res = await fetch(url);
         if (!res.ok) {
@@ -119,7 +118,7 @@ export const App = registerCustomElement(
       }
     };
 
-    const computeLogCounts = (logsToProcess: Log[]) => {      
+    const computeLogCounts = (logsToProcess: Log[]) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -127,16 +126,16 @@ export const App = registerCustomElement(
 
       logsToProcess.forEach(log => {
         const sourceAppId = log.sourceApp;
-        
+
         if (!sourceAppId) {
           return;
         }
 
-        const logDate = new Date(log.date);  
+        const logDate = new Date(log.date);
         if (isNaN(logDate.getTime())) {
           return;
         }
-        
+
         logDate.setHours(0, 0, 0, 0);
 
         if (!counts[sourceAppId]) {
@@ -144,7 +143,7 @@ export const App = registerCustomElement(
         }
 
         counts[sourceAppId].logsToday++;
-    
+
         if (log.logLevel && log.logLevel.toLowerCase().includes('error')) {
           counts[sourceAppId].errors++;
         }
@@ -188,25 +187,26 @@ export const App = registerCustomElement(
     return (
       <div id="appContainer" class="oj-web-applayout-page">
         <Header appName={appName} userLogin={userLogin} onToggleDrawer={toggleDrawer} />
-        <div style="padding: 20px 40px 0 40px;">
-          <Navigation 
-            routes={routes} 
-            currentPath={currentPath}
-            onNavigate={navigate}
-          />
-        </div>
-        <div style="transition: opacity 0.2s ease-in-out;">
-          {getCurrentComponent()}
-        </div>
 
-        <Sidebar isOpen={isDrawerOpen}>
-          {/* <Applications logs={logs} logCounts={logCounts} /> */}
-          <UserGroups />
+
+        <Sidebar isOpen={isDrawerOpen}
+          routes={routes}
+          currentPath={currentPath}
+          onNavigate={navigate}
+        >
+          {/* <div style="padding: 20px 40px 0 40px;">
+            <Navigation
+              routes={routes}
+              currentPath={currentPath}
+              onNavigate={navigate}
+            />
+          </div> */}
+          <div style="transition: opacity 0.2s ease-in-out;">
+            {getCurrentComponent()}
+          </div>
         </Sidebar>
-        
-        
-        
-        
+
+
         <Footer />
       </div>
     );
