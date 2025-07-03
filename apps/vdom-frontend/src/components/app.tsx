@@ -10,7 +10,6 @@ import { Applications } from "./pages/Applications/index";
 import { Sidebar } from "./sidebar";
 
 import { UserGroups } from "./pages/UserGroups/UserGroups";
-import { Navigation } from "./Navigation";
 import { useRouter, RouteConfig } from "./router";
 import { Log } from "../utils/applicationUtils";
 import { Dashboard } from "./pages/Dashboard/index";
@@ -194,13 +193,7 @@ export const App = registerCustomElement(
           currentPath={currentPath}
           onNavigate={navigate}
         >
-          {/* <div style="padding: 20px 40px 0 40px;">
-            <Navigation
-              routes={routes}
-              currentPath={currentPath}
-              onNavigate={navigate}
-            />
-          </div> */}
+
           <div style="transition: opacity 0.2s ease-in-out;">
             {getCurrentComponent()}
           </div>
