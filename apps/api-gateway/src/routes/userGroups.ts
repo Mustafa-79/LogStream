@@ -10,7 +10,7 @@ const router = Router()
 // Apply authentication to all user group routes
 router.use(authenticateJWT);
 
-router.get('/', userGroupsController.getUserGroups)
+router.get('/', requireAdmin, userGroupsController.getUserGroups)
 
 router.post('/', requireAdmin, validate(userGroupValidation.createUserGroup), userGroupsController.createUserGroup)
 
@@ -18,15 +18,6 @@ router.put('/:id', requireAdmin, validate(userGroupValidation.updateUserGroup), 
 
 router.delete('/:id', requireAdmin, validate(userGroupValidation.deleteUserGroup), userGroupsController.deleteUserGroup)
 
-router.post('/add-member', requireAdmin, validate(userGroupValidation.addRemoveMember), userGroupsController.addMember)
-
-router.post('/remove-member', requireAdmin, validate(userGroupValidation.addRemoveMember), userGroupsController.removeMember)
-
-router.post('/add-application', requireAdmin, validate(userGroupValidation.addRemoveApplication), userGroupsController.addApplication)
-
-router.post('/remove-application', requireAdmin, validate(userGroupValidation.addRemoveApplication), userGroupsController.removeApplication)
-
-// TODO: add a restore delete route
 router.post('/:id/restore', validate(userGroupValidation.restoreUserGroup), userGroupsController.restoreUserGroup)
 
 export default router

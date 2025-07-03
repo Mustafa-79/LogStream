@@ -1,33 +1,45 @@
+import { AuthManager } from '../utils/auth';
 import { IGroup, CreateUserGroupPayload, IUser, IApplication } from '../components/pages/UserGroups/types';
 import { API_CONFIG } from '../config';
 
 export class UserGroupsAPI {
+  private static getAuthHeaders(): HeadersInit {
+    const token = AuthManager.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
   static async getUserGroups(): Promise<IGroup[]> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_GROUPS}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       return data.data as IGroup[];
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       console.error('Error fetching user groups:', error);
       throw error instanceof Error ? error : new Error('Failed to fetch user groups');
     }
@@ -37,28 +49,26 @@ export class UserGroupsAPI {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_GROUPS}/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       return data.data as IGroup;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       // Handle network/connection errors specifically
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
@@ -67,7 +77,7 @@ export class UserGroupsAPI {
           throw new Error('Network error occurred. Please check your connection and try again.');
         }
       }
-      
+
       console.error('Error deleting user group:', error);
       throw error instanceof Error ? error : new Error('Failed to delete user group');
     }
@@ -77,28 +87,27 @@ export class UserGroupsAPI {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_GROUPS}/${id}/restore`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
+
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       return data.data as IGroup;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       console.error('Error restoring user group:', error);
       throw error instanceof Error ? error : new Error('Failed to restore user group');
     }
@@ -108,21 +117,20 @@ export class UserGroupsAPI {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_GROUPS}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
+
         body: JSON.stringify(payload),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
-        
+
         try {
           const errorData = await response.json();
           if (errorData.message) {
@@ -132,7 +140,7 @@ export class UserGroupsAPI {
           } else if (errorData.details) {
             errorMessage = errorData.details;
           }
-          
+
           // Handle specific error types
           if (response.status === 409) {
             errorMessage = 'A group with this name already exists. Please choose a different name.';
@@ -147,17 +155,17 @@ export class UserGroupsAPI {
           // If we can't parse the error response, use the default message
           console.warn('Could not parse error response:', parseError);
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const data = await response.json();
       return data.data as IGroup;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       // Handle network/connection errors specifically
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
@@ -166,7 +174,7 @@ export class UserGroupsAPI {
           throw new Error('Network error occurred. Please check your connection and try again.');
         }
       }
-      
+
       console.error('Error creating user group:', error);
       throw error instanceof Error ? error : new Error('Failed to create user group');
     }
@@ -176,21 +184,20 @@ export class UserGroupsAPI {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}/user`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
+
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
-      
+
       const data = await response.json();
 
       return data.data as IUser[];
@@ -198,7 +205,7 @@ export class UserGroupsAPI {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       console.error('Error fetching users:', error);
       throw error instanceof Error ? error : new Error('Failed to fetch users');
     }
@@ -208,21 +215,20 @@ export class UserGroupsAPI {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}/application`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
+
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
-      
+
       const data = await response.json();
 
       return data.data as IApplication[];
@@ -230,7 +236,7 @@ export class UserGroupsAPI {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       console.error('Error fetching applications:', error);
       throw error instanceof Error ? error : new Error('Failed to fetch applications');
     }
@@ -240,21 +246,19 @@ export class UserGroupsAPI {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_GROUPS}/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(payload),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
-        
+
         try {
           const errorData = await response.json();
           if (errorData.message) {
@@ -264,7 +268,7 @@ export class UserGroupsAPI {
           } else if (errorData.details) {
             errorMessage = errorData.details;
           }
-          
+
           // Handle specific error types
           if (response.status === 409) {
             errorMessage = 'A group with this name already exists. Please choose a different name.';
@@ -278,17 +282,17 @@ export class UserGroupsAPI {
         } catch (parseError) {
           console.warn('Could not parse error response:', parseError);
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const data = await response.json();
       return data.data as IGroup;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
       }
-      
+
       console.error('Error updating user group:', error);
       throw error instanceof Error ? error : new Error('Failed to update user group');
     }
