@@ -4,13 +4,13 @@ export const applicationValidation = {
   createApplication: {
     body: Joi.object({
       name: Joi.string()
-        .min(2)
-        .max(50)
+        .min(5)
+        .max(20)
         .required()
         .label('Application Name'),
       description: Joi.string()
-        .min(5)
-        .max(1000)
+        .min(10)
+        .max(100)
         .required()
         .label('Application Description'),
     }),
@@ -25,13 +25,13 @@ export const applicationValidation = {
     }),
     body: Joi.object({
       name: Joi.string()
-        .min(2)
-        .max(50)
+        .min(5)
+        .max(20)
         .optional()
         .label('Application Name'),
       description: Joi.string()
-        .min(5)
-        .max(1000)
+        .min(10)
+        .max(100)
         .optional()
         .label('Application Description'),
       active: Joi.boolean()
