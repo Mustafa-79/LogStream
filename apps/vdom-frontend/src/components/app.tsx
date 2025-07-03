@@ -5,7 +5,9 @@ import Context = require("ojs/ojcontext");
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
-import { Log } from "src/utils/applicationUtils";
+import { Log } from "../utils/applicationUtils";
+
+import { UserGroups } from "./pages/UserGroups/UserGroups";
 
 type Props = Readonly<{
   appName?: string;
@@ -109,7 +111,9 @@ export const App = registerCustomElement(
     return (
       <div id="appContainer" class="oj-web-applayout-page">
         <Header appName={appName} userLogin={userLogin} />
-        <Applications logs={logs} logCounts={logCounts} />
+        {/* <Applications logs={logs} logCounts={logCounts} /> */}
+         
+        <UserGroups />
         <Footer />
       </div>
     );

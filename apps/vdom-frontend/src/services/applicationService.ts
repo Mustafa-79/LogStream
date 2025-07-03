@@ -8,6 +8,7 @@ interface CreateApplicationData {
 interface UpdateApplicationData {
   name?: string;
   description?: string;
+  active?: boolean;
 }
 
 interface UpdateThresholdData {
@@ -23,73 +24,132 @@ interface ApiResponse<T> {
 
 class ApplicationService {
   static async fetchAllApplications() {
-    const response = await fetch(ApiLinks.GET_ALL_APPLICATIONS);
-    const json: ApiResponse<any[]> = await response.json();
-    return json.data;
+    try {
+      const response = await fetch(ApiLinks.GET_ALL_APPLICATIONS);
+      const json: ApiResponse<any[]> = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || `Failed to fetch applications`);
+      }
+
+      return json.data;
+    } catch (error) {
+      console.error("Error in fetchAllApplications:", error);
+
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
+      }
+
+      throw error;
+    }
   }
 
   static async createApplication(applicationData: CreateApplicationData) {
-    const response = await fetch(ApiLinks.CREATE_APPLICATION, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(applicationData),
-    });
+    try {
+      const response = await fetch(ApiLinks.CREATE_APPLICATION, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(applicationData),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const json: ApiResponse<any> = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || `Failed to create application`);
+      }
+
+      return json.data;
+    } catch (error) {
+      console.error("Error in createApplication:", error);
+
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
+      }
+
+      throw error;
     }
-
-    const json: ApiResponse<any> = await response.json();
-    return json.data;
   }
 
   static async updateApplication(id: string, updateData: UpdateApplicationData) {
-    const response = await fetch(ApiLinks.UPDATE_APPLICATION(id), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updateData),
-    });
+    try {
+      const response = await fetch(ApiLinks.UPDATE_APPLICATION(id), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const json: ApiResponse<any> = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || `Failed to update application`);
+      }
+
+      return json.data;
+    } catch (error) {
+      console.error("Error in updateApplication:", error);
+
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
+      }
+
+      throw error;
     }
-
-    const json: ApiResponse<any> = await response.json();
-    return json.data;
   }
 
   static async deleteApplication(id: string) {
-    const response = await fetch(ApiLinks.DELETE_APPLICATION(id), {
-      method: 'DELETE',
-    });
+    try {
+      const response = await fetch(ApiLinks.DELETE_APPLICATION(id), {
+        method: 'DELETE',
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const json: ApiResponse<any> = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || `Failed to delete application`);
+      }
+
+      return json.data;
+    } catch (error) {
+      console.error("Error in deleteApplication:", error);
+      
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
+      }
+
+      throw error;
     }
-
-    const json: ApiResponse<any> = await response.json();
-    return json.data;
   }
 
   static async updateThresholdAndTimePeriod(id: string, thresholdData: UpdateThresholdData) {
-    const response = await fetch(ApiLinks.UPDATE_THRESHOLD_TIME_PERIOD(id), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(thresholdData),
-    });
+    try {
+      const response = await fetch(ApiLinks.UPDATE_THRESHOLD_TIME_PERIOD(id), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(thresholdData),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const json: ApiResponse<any> = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || `Failed to update threshold and time period`);
+      }
+
+      return json.data;
+    } catch (error) {
+      console.error("Error in updateThresholdAndTimePeriod:", error);
+
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
+      }
+
+      throw error;
     }
-
-    const json: ApiResponse<any> = await response.json();
-    return json.data;
   }
 }
 
