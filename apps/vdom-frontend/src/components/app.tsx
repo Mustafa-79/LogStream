@@ -31,8 +31,12 @@ export const App = registerCustomElement(
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [currentUser, setCurrentUser] = useState<string>("");
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => AuthManager.isAuthenticated());
+    const [currentUser, setCurrentUser] = useState<string>(() => {
+      const user = AuthManager.getCurrentUser();
+      return user?.email || userLogin;
+    });
+    const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
     useEffect(() => {
       const authenticated = AuthManager.isAuthenticated();
@@ -41,6 +45,7 @@ export const App = registerCustomElement(
         const user = AuthManager.getCurrentUser();
         setCurrentUser(user?.email || userLogin);
       }
+      setIsInitialized(true);
     }, [userLogin]);
 
     const handleLoginSuccess = () => {
@@ -243,6 +248,8 @@ export const App = registerCustomElement(
     }, [isPaused, isAuthenticated]);
 
     useEffect(() => {
+      if (!isInitialized) return;
+
       const authenticated = AuthManager.isAuthenticated();
       
       if (!authenticated && currentPath !== '/login') {
@@ -254,9 +261,13 @@ export const App = registerCustomElement(
         navigate('/');
         return;
       }
-    }, [isAuthenticated, currentPath, navigate]);
+    }, [isAuthenticated, currentPath, navigate, isInitialized]);
 
     const getCurrentComponent = () => {
+      if (!isInitialized) {
+        return <div>Loading...</div>;
+      }
+
       if (currentRoute && currentRoute.component) {
         return currentRoute.component();
       }
@@ -275,6 +286,16 @@ export const App = registerCustomElement(
     const toggleDrawer = () => {
       setIsDrawerOpen(prev => !prev);
     };
+
+    if (!isInitialized) {
+      return (
+        <div id="appContainer" class="oj-web-applayout-page">
+          <div class="oj-flex oj-justify-content-center oj-align-items-center" style="height: 100vh;">
+            <span>Loading...</span>
+          </div>
+        </div>
+      );
+    }
 
     if (!isAuthenticated) {
       return (

@@ -1,5 +1,5 @@
 import { h } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 
 export interface RouteConfig {
   path: string;
@@ -23,6 +23,10 @@ class SimpleRouter {
       this.currentPath = this.getPathFromHash();
       this.notifyListeners();
     });
+  }
+
+  public updateRoutes(routes: RouteConfig[]) {
+    this.routes = routes;
   }
 
   private getPathFromHash(): string {
@@ -76,6 +80,12 @@ class SimpleRouter {
 export function useRouter(routes: RouteConfig[]) {
   const [router] = useState(() => new SimpleRouter(routes));
   const [currentPath, setCurrentPath] = useState(router.getPath());
+  const routesRef = useRef(routes);
+
+  useEffect(() => {
+    routesRef.current = routes;
+    router.updateRoutes(routes);
+  }, [routes, router]);
 
   useEffect(() => {
     const unsubscribe = router.subscribe((path) => {
