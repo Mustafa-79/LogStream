@@ -225,24 +225,15 @@ services:
     ports:
       - "${FLUENT_BIT_APP3_PORT}:2020"
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: logstream-frontend
+  vdom-frontend:
+    build: ./vdom-frontend
     ports:
-      - "${FRONTEND_EXTERNAL_PORT}:5173"
+      - "${FRONTEND_EXTERNAL_PORT}:8000"
     environment:
       - NODE_ENV=${NODE_ENV}
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-    networks:
-      - logstream
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: ${FRONTEND_MEMORY_LIMIT}
-          cpus: '${FRONTEND_CPU_LIMIT}'
+      - API_URL=${API_BASE_URL}
+    depends_on:
+      - api-gateway
 
 volumes:
   redis_data:
