@@ -2,12 +2,16 @@ import { registerCustomElement } from "ojs/ojvcomponent";
 import { h } from "preact";
 import { useEffect, useState, useRef } from "preact/hooks";
 import Context = require("ojs/ojcontext");
+
 import { Footer } from "./footer";
 import { Header } from "./header";
 import { Applications } from "./pages/Applications/index";
-import { Login } from "./pages/Login/index";
+import { UserGroups } from "./pages/UserGroups/UserGroups";
+import { Navigation } from "./Navigation";
+import { useRouter, RouteConfig } from "./router";
 import { Log } from "../utils/applicationUtils";
-import { AuthManager } from "../utils/auth";
+import { Dashboard } from "./pages/Dashboard/index";
+import "oj-c/button";
 
 type Props = Readonly<{
   appName?: string;
@@ -17,65 +21,43 @@ type Props = Readonly<{
 export const App = registerCustomElement(
   "app-root",
   ({ appName = "App Name", userLogin = "john.hancock@oracle.com" }: Props) => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [currentUser, setCurrentUser] = useState<string>("");
     const [logs, setLogs] = useState<Log[]>([]);
     const [logCounts, setLogCounts] = useState<Record<string, { logsToday: number; errors: number }>>({});
     const [isPaused, setIsPaused] = useState<boolean>(false);
     const latestDateRef = useRef<string | null>(null);
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Check authentication status on component mount
-    useEffect(() => {
-      const authenticated = AuthManager.isAuthenticated();
-      setIsAuthenticated(authenticated);
-      if (authenticated) {
-        const user = AuthManager.getCurrentUser();
-        setCurrentUser(user?.email || userLogin);
+    const routes: RouteConfig[] = [
+      {
+        path: '/applications',
+        component: () => <Applications logs={logs} logCounts={logCounts} />,
+        label: 'Applications',
+        icon: 'oj-ux-ico-application'
+      },
+      {
+        path: '/user-groups',
+        component: () => <UserGroups />,
+        label: 'User Groups',
+        icon: 'oj-ux-ico-group'
+      },
+      {
+        path: '/',
+        component: () => <Dashboard />,
+        label: 'Dashboard',
+        icon: 'oj-ux-ico-dashboard'
       }
-    }, [userLogin]);
+    ];
 
-    const handleLoginSuccess = () => {
-      setIsAuthenticated(true);
-      const user = AuthManager.getCurrentUser();
-      setCurrentUser(user?.email || userLogin);
-    };
-
-    const handleLogout = () => {
-      AuthManager.clearAuth();
-      setIsAuthenticated(false);
-      setCurrentUser("");
-      setLogs([]);
-      setLogCounts({});
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current);
-      }
-    };
+    const { currentPath, navigate, currentRoute } = useRouter(routes);
 
     const fetchNewLogs = async () => {
-      if (!isAuthenticated) return;
-      
       try {
         const url = `http://localhost:3000/api/logs/new${
           latestDateRef.current ? `?since=${encodeURIComponent(latestDateRef.current)}` : ''
         }`;
 
-        const token = AuthManager.getToken();
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-        
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const res = await fetch(url, { headers });
+        const res = await fetch(url);
         if (!res.ok) {
-          if (res.status === 401) {
-            // Token expired or invalid, logout user
-            handleLogout();
-            return;
-          }
           throw new Error(`HTTP error! status: ${res.status}`);
         }
 
@@ -121,7 +103,7 @@ export const App = registerCustomElement(
 
         counts[sourceAppId].logsToday++;
     
-        if (log.logLevel?.toLowerCase().includes('error')) {
+        if (log.logLevel && log.logLevel.toLowerCase().includes('error')) {
           counts[sourceAppId].errors++;
         }
       });
@@ -130,8 +112,6 @@ export const App = registerCustomElement(
     };
 
     useEffect(() => {
-      if (!isAuthenticated) return;
-
       Context.getPageContext().getBusyContext().applicationBootstrapComplete();
 
       fetchNewLogs();
@@ -149,23 +129,33 @@ export const App = registerCustomElement(
           clearInterval(intervalIdRef.current);
         }
       };
-    }, [isPaused, isAuthenticated]);
+    }, [isPaused]);
+
+    const getCurrentComponent = () => {
+      if (currentRoute && currentRoute.component) {
+        return currentRoute.component();
+      }
+      // Default to Dashboard if no route matches
+      return <Dashboard />;
+    };
 
     return (
       <div id="appContainer" class="oj-web-applayout-page">
-        {!isAuthenticated ? (
-          <Login loginSuccess={handleLoginSuccess} />
-        ) : (
-          <>
-            <Header 
-              appName={appName} 
-              userLogin={currentUser || userLogin} 
-              onLogout={handleLogout}
-            />
-            <Applications logs={logs} logCounts={logCounts} />
-            <Footer />
-          </>
-        )}
+        <Header appName={appName} userLogin={userLogin} />
+        
+        <div style="padding: 20px 40px 0 40px;">
+          <Navigation 
+            routes={routes} 
+            currentPath={currentPath}
+            onNavigate={navigate}
+          />
+        </div>
+        
+        <div style="transition: opacity 0.2s ease-in-out;">
+          {getCurrentComponent()}
+        </div>
+        
+        <Footer />
       </div>
     );
   }

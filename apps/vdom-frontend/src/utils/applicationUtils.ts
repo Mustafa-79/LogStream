@@ -1,4 +1,4 @@
-type ApplicationStatus = 'active' | 'warning' | 'inactive';
+type ApplicationStatus = 'active' | 'inactive';
 
 export type Log = {
   _id: string;
@@ -65,15 +65,12 @@ export const getStatusBadge = (app: Application, errorCount: number): StatusBadg
   
   if (!app.active) {
     status = 'inactive';
-  } else if (errorCount > 5) {
-    status = 'warning';
   } else {
     status = 'active';
   }
 
   const statusConfig: Record<ApplicationStatus, StatusBadgeConfig> = {
     active: { class: 'oj-badge oj-badge-success', text: 'active' },
-    warning: { class: 'oj-badge oj-badge-warning', text: 'warning' },
     inactive: { class: 'oj-badge oj-badge-danger', text: 'inactive' }
   };
 
@@ -93,25 +90,37 @@ export const formatDate = (dateString: string): string => {
 };
 
 
-export const validateApplicationForm = (name: string, description: string): { isValid: boolean; error?: string } => {
-  if (!name.trim()) {
-    return { isValid: false, error: 'Application name is required' };
+export function validateApplicationForm(name: string, description: string): {
+  isValid: boolean;
+  errors: {
+    name?: string;
+    description?: string;
+  };
+} {
+  const errors: { name?: string; description?: string } = {};
+
+  const trimmedName = name.trim();
+  const trimmedDescription = description.trim();
+
+  const allowedPattern = /^[a-zA-Z0-9-_ ]+$/;
+
+  if (trimmedName.length < 5 || trimmedName.length > 20) {
+    errors.name = 'Name must be between 5 and 20 characters.';
+  } else if (!allowedPattern.test(trimmedName)) {
+    errors.name = 'Name can only contain letters, numbers, spaces, hyphens (-), and underscores (_).';
   }
-  
-  if (!description.trim()) {
-    return { isValid: false, error: 'Application description is required' };
+
+  if (trimmedDescription.length < 10 || trimmedDescription.length > 100) {
+    errors.description = 'Description must be between 10 and 100 characters.';
+  } else if (!allowedPattern.test(trimmedDescription)) {
+    errors.description = 'Description can only contain letters, numbers, spaces, hyphens (-), and underscores (_).';
   }
-  
-  if (name.trim().length < 2) {
-    return { isValid: false, error: 'Application name must be at least 2 characters long' };
-  }
-  
-  if (description.trim().length < 10) {
-    return { isValid: false, error: 'Application description must be at least 10 characters long' };
-  }
-  
-  return { isValid: true };
-};
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
 
 
 export const filterApplications = (applications: Application[], searchQuery: string): Application[] => {

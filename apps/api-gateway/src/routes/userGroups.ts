@@ -26,6 +26,9 @@ router.post('/add-application', requireAdmin, validate(userGroupValidation.addRe
 
 router.post('/remove-application', requireAdmin, validate(userGroupValidation.addRemoveApplication), userGroupsController.removeApplication)
 
+// TODO: add a restore delete route
+router.post('/:id/restore', validate(userGroupValidation.restoreUserGroup), userGroupsController.restoreUserGroup)
+
 export default router
 
 

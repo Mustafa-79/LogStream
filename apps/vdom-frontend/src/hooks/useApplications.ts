@@ -10,6 +10,7 @@ interface CreateApplicationData {
 interface UpdateApplicationData {
   name?: string;
   description?: string;
+  active?: boolean;
 }
 
 export const useApplications = () => {

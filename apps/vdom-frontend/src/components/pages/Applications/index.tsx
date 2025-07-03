@@ -2,12 +2,16 @@ import { h } from "preact";
 import { useState } from "preact/hooks";
 import { useApplications, useCreateApplication, useUpdateApplication, useDeleteApplication } from "../../../hooks/useApplications";
 import { getLastLogTime, getStatusBadge, Log, validateApplicationForm } from "../../../utils/applicationUtils";
+import { ApplicationModal } from "./ApplicationModal";
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import "oj-c/button";
+import { RouteProps } from "preact-router";
 
-interface ApplicationsProps {
+
+export type ApplicationsProps = {
   logs: Log[];
   logCounts: Record<string, { logsToday: number; errors: number }>;
-}
+};
 
 export function Applications({ logs, logCounts }: ApplicationsProps) {
   const { applications, setApplications, loading } = useApplications();
@@ -19,47 +23,61 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [newAppName, setNewAppName] = useState<string>('');
   const [newAppDescription, setNewAppDescription] = useState<string>('');
+  const [newAppActive, setNewAppActive] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editingAppId, setEditingAppId] = useState<string | null>(null);
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [deletingAppId, setDeletingAppId] = useState<string | null>(null);
 
+  const [formError, setFormError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const handleAddApplication = () => {
     setShowModal(true);
     setNewAppName('');
     setNewAppDescription('');
+    setNewAppActive(true); 
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setNewAppName('');
     setNewAppDescription('');
+    setNewAppActive(true);
     setEditingAppId(null);
     setIsEditing(false);
+    setFormError(null);
+    setNameError(null);
+    setDescriptionError(null);
   };
 
   const handleSaveApplication = async () => {
-    const validation = validateApplicationForm(newAppName, newAppDescription);
+    setNameError(null);
+    setDescriptionError(null);
+    setFormError(null);
+
+    const { isValid, errors } = validateApplicationForm(newAppName, newAppDescription);
     
-    if (!validation.isValid) {
-      alert(validation.error);
-      return;
-    }
+    setNameError(errors.name || null);
+    setDescriptionError(errors.description || null);
+
+    if (!isValid) return;
 
     try {
       if (isEditing && editingAppId) {
-        // Update existing application
         const updatedApp = await updateApplication(editingAppId, {
           name: newAppName.trim(),
           description: newAppDescription.trim(),
+          active: newAppActive, 
         });
 
         setApplications(prev =>
           prev.map(app => (app._id === editingAppId ? { ...app, ...updatedApp } : app))
         );
       } else {
-        // Create new application
         const newApp = await createApplication({
           name: newAppName.trim(),
           description: newAppDescription.trim(),
@@ -69,8 +87,9 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
       }
 
       handleCloseModal();
-    } catch (error) {
-      alert('Failed to save application. Please try again.');
+    } catch (error: unknown) {
+      const message = (error as Error)?.message || 'Failed to save application. Please try again.';
+      setFormError(message);
     }
   };
 
@@ -81,6 +100,7 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
     setEditingAppId(appId);
     setNewAppName(app.name);
     setNewAppDescription(app.description);
+    setNewAppActive(app.active ?? true); 
     setIsEditing(true);
     setShowModal(true);
   };
@@ -93,10 +113,12 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirm(false);
     setDeletingAppId(null);
+    setDeleteError(null);
   };
 
   const handleConfirmDelete = async () => {
     if (!deletingAppId) return;
+    setDeleteError(null);
 
     try {
       await deleteApplication(deletingAppId);
@@ -105,7 +127,8 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
       
       handleCloseDeleteConfirm();
     } catch (error) {
-      alert('Failed to delete application. Please try again.');
+      const message = (error as Error)?.message || 'Failed to delete application. Please try again.';
+      setDeleteError(message);
     }
   };
 
@@ -190,12 +213,13 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
                     <span slot="startIcon" class="oj-ux-ico-settings"></span>
                   </oj-button>
                   <oj-button
-                    display="icons"
-                    chroming="borderless"
+                    display='icons'
+                    chroming='borderless'
                     onojAction={() => handleDeleteApplication(appId)}
                     title="Delete Application"
+                    disabled={isDeleting}
                   >
-                    <span slot="startIcon" class="oj-ux-ico-trash" style="color: #ef4444;"></span>
+                    <span slot='startIcon' class='oj-ux-ico-trash'></span>
                   </oj-button>
                 </div>
               </div>
@@ -210,7 +234,7 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
                 </span>
               </div>
 
-              <div style="border-top: 1px solid #f3f4f6; padding-top: 16px;">
+              {app.active && <div style="border-top: 1px solid #f3f4f6; padding-top: 16px;">
                 <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="margin-bottom: 8px; width: 100%;">
                   <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Logs today:</span>
                   <span style="color: #6366f1; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
@@ -223,7 +247,7 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
                     {appLogCounts.errors}
                   </span>
                 </div>
-              </div>
+              </div>}
             </div>
           );
         })}
@@ -238,153 +262,32 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
         </div>
       )}
 
-      {/* Add/Edit Application Modal */}
-      {showModal && (
-        <div class="modal-overlay" style="
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-        ">
-          <div class="modal-content oj-panel" style="
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            width: 500px;
-            max-width: 90vw;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-          ">
-            <div style="margin-bottom: 20px;">
-              <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #111827; font-family: 'Poppins', sans-serif;">
-                {isEditing ? 'Edit Application' : 'Add New Application'}
-              </h2>
-              <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 0.875rem; font-family: 'Poppins', sans-serif;">
-                {isEditing ? 'Update the application details' : 'Enter the details for your new application'}
-              </p>
-            </div>
+      <ApplicationModal
+        showModal={showModal}
+        isEditing={isEditing}
+        newAppName={newAppName}
+        newAppDescription={newAppDescription}
+        newAppActive={newAppActive}
+        nameError={nameError}
+        descriptionError={descriptionError}
+        formError={formError}
+        isProcessing={isProcessing}
+        isCreating={isCreating}
+        isUpdating={isUpdating}
+        onClose={handleCloseModal}
+        onSave={handleSaveApplication}
+        onNameChange={setNewAppName}
+        onDescriptionChange={setNewAppDescription}
+        onActiveChange={setNewAppActive}
+      />
 
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif;">
-                Application Name *
-              </label>
-              <input
-                type="text"
-                value={newAppName}
-                onInput={(e) => setNewAppName((e.target as HTMLInputElement).value)}
-                placeholder="Enter application name"
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid #d1d5db;
-                  border-radius: 6px;
-                  font-size: 0.875rem;
-                  font-family: 'Poppins', sans-serif;
-                  box-sizing: border-box;
-                "
-              />
-            </div>
-
-            <div style="margin-bottom: 24px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif;">
-                Description *
-              </label>
-              <textarea
-                value={newAppDescription}
-                onInput={(e) => setNewAppDescription((e.target as HTMLTextAreaElement).value)}
-                placeholder="Enter application description"
-                rows={3}
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid #d1d5db;
-                  border-radius: 6px;
-                  font-size: 0.875rem;
-                  font-family: 'Poppins', sans-serif;
-                  resize: vertical;
-                  box-sizing: border-box;
-                "
-              />
-            </div>
-
-            <div class="oj-flex oj-justify-content-flex-end" style="gap: 12px;">
-              <oj-button
-                onojAction={handleCloseModal}
-                disabled={isProcessing}
-                style="border: 1px solid #d1d5db; color: #374151;"
-              >
-                Cancel
-              </oj-button>
-              <oj-button
-                class="oj-button-primary"
-                onojAction={handleSaveApplication}
-                disabled={isProcessing}
-                style="--oj-button-bg-color: #6366f1; --oj-button-text-color: white; border: none;"
-              >
-                {isEditing
-                  ? isUpdating ? 'Updating...' : 'Update Application'
-                  : isCreating ? 'Creating...' : 'Create Application'}
-              </oj-button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div class="modal-overlay" style="
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-        ">
-          <div class="modal-content oj-panel" style="
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            width: 400px;
-            max-width: 90vw;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-          ">
-            <div style="margin-bottom: 20px;">
-              <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #111827; font-family: 'Poppins', sans-serif;">
-                Delete Application
-              </h2>
-              <p style="margin: 16px 0 0 0; color: #6b7280; font-size: 0.875rem; font-family: 'Poppins', sans-serif;">
-                Are you sure you want to delete this application? This action cannot be undone and will permanently remove all associated data.
-              </p>
-            </div>
-
-            <div class="oj-flex oj-justify-content-flex-end" style="gap: 12px;">
-              <oj-button
-                onojAction={handleCloseDeleteConfirm}
-                disabled={isDeleting}
-                style="border: 1px solid #d1d5db; color: #374151;"
-              >
-                Cancel
-              </oj-button>
-              <oj-button
-                onojAction={handleConfirmDelete}
-                disabled={isDeleting}
-                style="--oj-button-bg-color: #ef4444; --oj-button-text-color: white; border: none;"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Application'}
-              </oj-button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        showDeleteConfirm={showDeleteConfirm}
+        deleteError={deleteError}
+        isDeleting={isDeleting}
+        onClose={handleCloseDeleteConfirm}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
