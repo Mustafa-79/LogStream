@@ -1,4 +1,5 @@
 import ApiLinks from "../network/apiLinks";
+import { AuthManager } from "../utils/auth";
 
 interface CreateApplicationData {
   name: string;
@@ -23,25 +24,31 @@ interface ApiResponse<T> {
 }
 
 class ApplicationService {
-  static async fetchAllApplications() {
-    try {
-      const response = await fetch(ApiLinks.GET_ALL_APPLICATIONS);
-      const json: ApiResponse<any[]> = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.message || `Failed to fetch applications`);
-      }
-
-      return json.data;
-    } catch (error) {
-      console.error("Error in fetchAllApplications:", error);
-
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
-      }
-
-      throw error;
+  // Helper function to get authenticated headers
+  private static getAuthHeaders(): HeadersInit {
+    const token = AuthManager.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    return headers;
+  }
+
+  static async fetchAllApplications() {
+    const response = await fetch(ApiLinks.GET_ALL_APPLICATIONS, {
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const json: ApiResponse<any[]> = await response.json();
+    return json.data;
   }
 
   static async createApplication(applicationData: CreateApplicationData) {
@@ -76,9 +83,7 @@ class ApplicationService {
     try {
       const response = await fetch(ApiLinks.UPDATE_APPLICATION(id), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(updateData),
       });
 
@@ -104,6 +109,7 @@ class ApplicationService {
     try {
       const response = await fetch(ApiLinks.DELETE_APPLICATION(id), {
         method: 'DELETE',
+        headers: this.getAuthHeaders(),
       });
 
       const json: ApiResponse<any> = await response.json();
@@ -128,9 +134,7 @@ class ApplicationService {
     try {
       const response = await fetch(ApiLinks.UPDATE_THRESHOLD_TIME_PERIOD(id), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(thresholdData),
       });
 

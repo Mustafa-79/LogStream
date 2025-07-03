@@ -14,10 +14,11 @@ import "ojs/ojbutton";
 
 type Props = Readonly<{
   appName: string,
-  userLogin: string
+  userLogin: string,
+  onLogout?: () => void
 }>;
 
-export function Header({ appName, userLogin }: Props) {
+export function Header({ appName, userLogin, onLogout }: Props) {
   const mediaQueryRef = useRef<MediaQueryList>(window.matchMedia(ResponsiveUtils.getFrameworkQuery("sm-only")!));
   
   const [isSmallWidth, setIsSmallWidth] = useState(mediaQueryRef.current.matches);
@@ -39,6 +40,13 @@ export function Header({ appName, userLogin }: Props) {
     return (isSmallWidth ? "oj-icon demo-appheader-avatar" : "oj-component-icon oj-button-menu-dropdown-icon");
   }
 
+  function handleMenuAction(event: any) {
+    const value = event.detail.selectedValue;
+    if (value === 'out' && onLogout) {
+      onLogout();
+    }
+  }
+
   return (
     <header role="banner" class="oj-web-applayout-header">
       <div class="oj-web-applayout-max-width oj-flex-bar oj-sm-align-items-center">
@@ -57,7 +65,7 @@ export function Header({ appName, userLogin }: Props) {
           <oj-menu-button id="userMenu" display={getDisplayType()} chroming="borderless">
             <span>{userLogin}</span>
             <span slot="endIcon" class={getEndIconClass()}></span>
-            <oj-menu id="menu1" slot="menu">
+            <oj-menu id="menu1" slot="menu" onojMenuAction={handleMenuAction}>
               <oj-option id="pref" value="pref">Preferences</oj-option>
               <oj-option id="help" value="help">Help</oj-option>
               <oj-option id="about" value="about">About</oj-option>
