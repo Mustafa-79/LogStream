@@ -88,10 +88,10 @@ export function CreateUserGroupModal({ isOpen, onClose, onSubmit, loading = fals
     // Required name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Group name is required';
-    } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Group name must be at least 3 characters long';
-    } else if (formData.name.trim().length > 50) {
-      newErrors.name = 'Group name must be less than 50 characters';
+    } else if (formData.name.trim().length < 5) {
+      newErrors.name = 'Group name must be at least 5 characters long';
+    } else if (formData.name.trim().length > 20) {
+      newErrors.name = 'Group name must be less than 20 characters';
     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(formData.name.trim())) {
       newErrors.name = 'Group name can only contain letters, numbers, spaces, hyphens, and underscores';
     } else {
@@ -106,8 +106,12 @@ export function CreateUserGroupModal({ isOpen, onClose, onSubmit, loading = fals
     }
 
     // Description validation (if provided)
-    if (formData.description && formData.description.length > 500) {
-      newErrors.description = 'Description must be less than 500 characters';
+    if (formData.description) {
+      if (formData.description.length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+      } else if (formData.description.length > 100) {
+      newErrors.description = 'Description must be less than 100 characters';
+      }
     }
 
     // Optional: Validate at least one application selected
@@ -163,7 +167,7 @@ export function CreateUserGroupModal({ isOpen, onClose, onSubmit, loading = fals
       const newErrors = { ...errors };
 
       // Check basic validation first
-      if (value.trim().length >= 3 && value.trim().length <= 50 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
+      if (value.trim().length >= 5 && value.trim().length <= 20 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
         // Check for name uniqueness (case-insensitive)
         const trimmedName = value.trim().toLowerCase();
         const isDuplicate = existingGroups.some(group =>
@@ -296,11 +300,11 @@ export function CreateUserGroupModal({ isOpen, onClose, onSubmit, loading = fals
 
             {/* Description Field */}
             <div>
-              <oj-label for="groupDescription">Description</oj-label>
+              <oj-label for="groupDescription">Description *</oj-label>
               <oj-input-text
                 id="groupDescription"
                 value={formData.description}
-                placeholder="Enter group description (optional)"
+                placeholder="Enter group description (10-100 characters)"
                 onrawValueChanged={handleDescriptionChange}
                 class={errors.description ? 'oj-invalid' : ''}
                 aria-describedby={errors.description ? 'groupDescriptionError' : undefined}
@@ -312,7 +316,7 @@ export function CreateUserGroupModal({ isOpen, onClose, onSubmit, loading = fals
               )}
               {/* Character count display */}
               <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
-                {formData.description.length}/500 characters
+                {formData.description.length}/100 characters
               </div>
             </div>
 

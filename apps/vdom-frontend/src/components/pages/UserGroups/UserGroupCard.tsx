@@ -53,8 +53,8 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
     if (!group.name || group.name.trim() === '') {
       setDeleteError('Invalid group: missing name');
       return;
-    }   
-    
+    }
+
     setIsDeleting(true);
     setDeleteError(null);
 
@@ -63,10 +63,10 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
       setShowDeleteDialog(false);
     } catch (error) {
       console.error('Error deleting group:', error);
-      
+
       // Extract meaningful error message
       let errorMessage = 'Failed to delete user group';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -84,10 +84,10 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
         errorMessage = 'This group cannot be deleted because it has active dependencies.';
       } else if (errorMessage.includes('timeout')) {
         errorMessage = 'The request timed out. Please check your connection and try again.';
-      } else if (errorMessage.includes('Unable to connect to server') || 
-                 errorMessage.includes('Failed to fetch') || 
-                 errorMessage.includes('ERR_CONNECTION_REFUSED') ||
-                 errorMessage.includes('Network error')) {
+      } else if (errorMessage.includes('Unable to connect to server') ||
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('ERR_CONNECTION_REFUSED') ||
+        errorMessage.includes('Network error')) {
         errorMessage = 'Unable to connect to server. Please check your connection and try again.';
       }
 
@@ -122,8 +122,8 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
             </div>
 
             <div>
-              <oj-button 
-                display='icons' 
+              <oj-button
+                display='icons'
                 chroming='borderless'
                 onojAction={handleEditClick}
               >
@@ -151,11 +151,25 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
             <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Members ({group.members?.length || 0})</h3>
           </div>
 
-          <div class="oj-flex oj-sm-flex-items-center ">
+          <div class="oj-flex oj-sm-flex-items-center">
             {group.members?.map(member => (
-              <oj-avatar size='sm' initials={getUserInitials(member)} class="oj-sm-margin-1x-end oj-sm-padding-1x" />
+              <div
+                class="oj-sm-margin-1x-end oj-sm-padding-2x-horizontal oj-flex oj-sm-align-items-center"
+                style={{
+                  backgroundColor: '#f0f0f0',  // Adjust background as needed
+                  borderRadius: '16px',
+                }}
+              >
+                <oj-avatar
+                  size="sm"
+                  initials={getUserInitials(member)}
+                  class="oj-sm-margin-1x-end"
+                />
+                <span class="oj-typography-body-sm">{member.username}</span>
+              </div>
             ))}
           </div>
+
           <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Application Access ({group.applications?.length || 0})</h3>
           <div class="oj-flex oj-sm-flex-wrap oj-sm-flex-items-center oj-sm-margin-1x-top oj-sm-margin-0" style={{ gap: '8px' }}>
             {group.applications?.map(app => (
@@ -200,7 +214,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
               <p class="oj-typography-body-md oj-sm-margin-2x-bottom">
                 Are you sure you want to delete the user group <strong>"{group.name}"</strong>?
               </p>
-              
+
               {/* Error Display */}
               {deleteError && (
                 <div class="oj-flex oj-sm-flex-items-center oj-sm-margin-2x-bottom oj-sm-padding-2x" style={{
@@ -213,7 +227,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
                   <span class="oj-typography-body-sm">{deleteError}</span>
                 </div>
               )}
-              
+
               <div class="oj-flex oj-sm-justify-content-flex-end" style={{ gap: '8px' }}>
                 <oj-button
                   chroming="outlined"
