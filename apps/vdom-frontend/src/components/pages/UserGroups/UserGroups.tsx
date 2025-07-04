@@ -36,7 +36,9 @@ export function UserGroups() {
       const backendResponse = await UserGroupsAPI.getUserGroups();
       console.log('Fetched user groups from API:', backendResponse);
 
-      setUserGroups(backendResponse);
+      // Sort the groups alphabetically by name
+      const sortedGroups = backendResponse.sort((a, b) => a.name.localeCompare(b.name));
+      setUserGroups(sortedGroups);
     } catch (err) {
       console.error('Error fetching user groups from API:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch user groups');
@@ -107,7 +109,7 @@ export function UserGroups() {
         await UserGroupsAPI.restoreUserGroup(deletedGroup._id);
         console.log(`User group "${deletedGroup.name}" restored from API`);
 
-        // Restore the group to the list
+        // Restore the group to the list and sort alphabetically
         setUserGroups(prev => [...prev, deletedGroup].sort((a, b) => a.name.localeCompare(b.name)));
 
         // Clear the deleted group

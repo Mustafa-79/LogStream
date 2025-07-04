@@ -20,7 +20,9 @@ export const getAllUserGroups = async (): Promise<Array<Omit<IGroup, keyof Docum
       }
     })
   )
-  return result
+  
+  // Sort the groups alphabetically by name
+  return result.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 interface CreateUserGroupInput extends Partial<IGroup> {
