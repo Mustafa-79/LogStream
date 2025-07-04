@@ -23,15 +23,15 @@ interface UserGroupFormModalProps {
   existingGroups?: IGroup[];
 }
 
-export function UserGroupFormModal({ 
-  mode, 
-  isOpen, 
-  userGroup, 
-  onClose, 
-  onSubmit, 
-  loading = false, 
-  error = null, 
-  existingGroups = [] 
+export function UserGroupFormModal({
+  mode,
+  isOpen,
+  userGroup,
+  onClose,
+  onSubmit,
+  loading = false,
+  error = null,
+  existingGroups = []
 }: UserGroupFormModalProps) {
   const [formData, setFormData] = useState<CreateUserGroupFormData>({
     name: '',
@@ -51,7 +51,7 @@ export function UserGroupFormModal({
 
   // Check if the current group is the "Administrators" group (only for edit mode)
   const isAdministratorsGroup = mode === 'edit' && (
-    userGroup?.name?.toLowerCase() === 'administrators' || 
+    userGroup?.name?.toLowerCase() === 'administrators' ||
     userGroup?.name?.toLowerCase() === 'admins'
   );
 
@@ -150,24 +150,26 @@ export function UserGroupFormModal({
         const isCurrentGroup = mode === 'edit' && group._id === userGroup?._id;
         return isSameName && !isCurrentGroup;
       });
-      
+
       if (isDuplicate) {
         newErrors.name = 'A group with this name already exists';
       }
     }
 
-    // Description validation (if provided)
-    if (formData.description) {
-      if (formData.description.length < 10) {
-        newErrors.description = 'Description must be at least 10 characters';
-      } else if (formData.description.length > 100) {
-        newErrors.description = 'Description must be less than 100 characters';
-      }
+    // Description validation 
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    } else if (formData.description.length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+    } else if (formData.description.length > 100) {
+      newErrors.description = 'Description must be less than 100 characters';
     }
+
+
 
     // Applications validation
     if (formData.selectedApplications.length === 0) {
-      newErrors.applications = mode === 'create' 
+      newErrors.applications = mode === 'create'
         ? 'Please select at least one application'
         : 'At least one application must be selected';
     }
@@ -423,7 +425,7 @@ export function UserGroupFormModal({
                   disabled={mode === 'create' || isAdministratorsGroup}
                 />
                 <span class="oj-typography-body-sm oj-sm-margin-2x-start oj-text-color-secondary" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  {mode === 'create' 
+                  {mode === 'create'
                     ? 'New groups are created as Active by default'
                     : (formData.active ? 'Active' : 'Inactive')
                   }
