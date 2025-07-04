@@ -8,6 +8,9 @@ class ApiLinks {
   static DELETE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;
   static UPDATE_THRESHOLD_TIME_PERIOD = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}/threshold-time`;
 
+   // Log APIs
+  static GET_LOGS: string = `${ApiLinks.API_BASE_URL}/logs/new`;
+
 }
 
 export default ApiLinks;
