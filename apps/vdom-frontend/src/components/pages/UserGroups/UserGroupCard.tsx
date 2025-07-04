@@ -18,6 +18,9 @@ import "ojs/ojlistview";
 import "ojs/ojlistitemlayout";
 import "ojs/ojactioncard";
 import "ojs/ojtoolbar";
+import "ojs/ojpopup";
+
+
 
 interface UserGroupCardProps {
   group: IGroup;
@@ -30,6 +33,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+
   const handleEditClick = () => {
     if (onEdit) {
       onEdit(group);
@@ -37,6 +41,10 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
   };
 
   const handleDeleteClick = () => {
+    // Prevent deletion of administrators group
+    if (group.name?.toLowerCase() === 'administrators') {
+      return;
+    }
     setShowDeleteDialog(true);
     setDeleteError(null); // Clear any previous errors
   };
@@ -118,10 +126,24 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
               ></span>
               <h2 class="oj-typography-heading-lg" style={{ margin: '8px' }} >
                 {group.name}
+                {group.name?.toLowerCase() === 'administrators' && (
+                  <span 
+                    class="oj-ux-ico-shield"
+                    style={{ 
+                      fontSize: '2rem', 
+                      margin: '8px', 
+                      color: '#4A90E2',
+                    }}
+                    title="Protected group - cannot be deleted"
+                  ></span>
+                )}
               </h2>
             </div>
 
-            <div>
+            <div class="oj-flex oj-sm-flex-items-center oj-sm-align-items-center" style={{ gap: '4px', alignItems: 'center' }}>
+              <span class={`oj-badge ${group.active ? 'oj-badge-success' : 'oj-badge-danger'}`} style={{ alignSelf: 'center' }}>
+                {group.active ? 'Active' : 'Inactive'}
+              </span>
               <oj-button
                 display='icons'
                 chroming='borderless'
@@ -133,7 +155,8 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
                 display='icons'
                 chroming='borderless'
                 onojAction={handleDeleteClick}
-                disabled={isDeleting}
+                disabled={isDeleting || group.name?.toLowerCase() === 'administrators'}
+                title={group.name?.toLowerCase() === 'administrators' ? 'Administrators group cannot be deleted' : 'Delete group'}
               >
                 <span slot='startIcon' class='oj-ux-ico-trash'></span>
               </oj-button>
@@ -141,19 +164,14 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
           </div>
           <p class="oj-typography-body-sm">{group.description}</p>
 
-          <div class="oj-flex oj-sm-flex-items-center oj-sm-margin-1x-vertical ">
-            <span class={`oj-badge ${group.active ? 'oj-badge-success' : 'oj-badge-danger'}`}>
-              {group.active ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-
           <div class="oj-flex oj-sm-flex-items-center">
             <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Members ({group.members?.length || 0})</h3>
           </div>
 
           <div class="oj-flex oj-sm-flex-items-center">
-            {group.members?.map(member => (
+            {group.members?.slice(0, 4).map((member, index) => (
               <div
+                key={member._id || index}
                 class="oj-sm-margin-1x-end oj-sm-padding-2x-horizontal oj-flex oj-sm-align-items-center"
                 style={{
                   backgroundColor: '#f0f0f0',  // Adjust background as needed
@@ -168,14 +186,56 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
                 <span class="oj-typography-body-sm">{member.username}</span>
               </div>
             ))}
+
+
+            {group.members && group.members.length > 4 && (
+              <>
+                <span
+                  id={`more-members-${group._id}`}
+                  class="oj-sm-margin-1x-end oj-sm-padding-2x-horizontal oj-flex oj-sm-align-items-center"
+                  style={{
+                    backgroundColor: '#f0f0f0',
+                    borderRadius: '16px',
+                    cursor: 'pointer'
+                  }}
+                  onMouseOver={() => {
+                    const popup = document.getElementById(`popup-${group._id}`) as any;
+                    popup.open(`#more-members-${group._id}`, {
+                      launcher: `#more-members-${group._id}`,
+                      position: { my: 'start top', at: 'end bottom' }
+                    });
+                  }}
+                  onMouseOut={() => {
+                    const popup = document.getElementById(`popup-${group._id}`) as any;
+                    popup.close();
+                  }}
+                >
+                  + {group.members.length - 4} more
+                </span>
+
+                <oj-popup id={`popup-${group._id}`} auto-dismiss="none">
+                  <ul style={{ margin: 0, padding: '8px', listStyle: 'none' }}>
+                    {group.members.slice(4).map((member) => (
+                      <li key={member.username}>{member.username}</li>
+                    ))}
+                  </ul>
+                </oj-popup>
+              </>
+            )}
           </div>
 
           <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Application Access ({group.applications?.length || 0})</h3>
           <div class="oj-flex oj-sm-flex-wrap oj-sm-flex-items-center oj-sm-margin-1x-top oj-sm-margin-0" style={{ gap: '8px' }}>
-            {group.applications?.map(app => (
-              <span class="oj-badge oj-badge-info">{app.name}</span>
+            {group.applications?.map((app, index) => (
+              <span
+                key={app._id || index}
+                class={`oj-badge ${app.active ? 'oj-badge-success' : 'oj-badge-danger'}`}
+              >
+                {app.name}
+              </span>
             ))}
           </div>
+
 
           <hr class="oj-sm-margin-2x-vertical" style={{ border: 'none', borderTop: '1px solid #e0e0e0', opacity: '0.5' }} />
 

@@ -491,7 +491,7 @@ export function UserGroupFormModal({
               Cancel
             </oj-button>
             <oj-button
-              chroming={formData.name.trim() ? "solid" : "outlined"}
+              chroming={"outlined"}
               onojAction={handleSubmit}
               disabled={loading || isSubmitting}
             >
