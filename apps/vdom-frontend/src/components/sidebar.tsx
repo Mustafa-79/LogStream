@@ -37,6 +37,7 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
               return (
                 <li
                   key={routeItem.path}
+                  style="padding-left: 10px;"
                 >
                   <a 
                     href="#"
@@ -46,7 +47,7 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
                       e.preventDefault();
                       onNavigate(routeItem.path);
                     }}
-                    style="display: flex; align-items: center; gap: 12px;"
+                    style="display: flex; align-items: center; justify-content: left; padding: 0;"
                   >
                     {routeItem.icon && (
                       <span class={`oj-navigationlist-item-icon ${routeItem.icon}`}></span>
