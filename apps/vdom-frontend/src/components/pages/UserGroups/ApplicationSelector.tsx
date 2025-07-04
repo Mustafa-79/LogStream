@@ -11,14 +11,16 @@ interface ApplicationSelectorProps {
   onSelectionChange: (selectedApps: string[]) => void;
   error?: string;
   disabled?: boolean;
+  currentApplications?: IApplication[]; // Optional prop for current applications in edit mode
 }
 
-export function ApplicationSelector({ applications, selectedApplications, onSelectionChange, error, disabled = false }: ApplicationSelectorProps) {
+export function ApplicationSelector({ applications, selectedApplications, onSelectionChange, error, disabled = false, currentApplications }: ApplicationSelectorProps) {
 
   const [selectAllChecked, setSelectAllChecked] = useState(false);
 
-  // Filter out deleted applications and only show active ones
-  const activeApplications = applications.filter(app => app.active && !app.deleted);
+
+  const activeApplications = applications.filter(app => !app.deleted && (app.active || currentApplications?.some(currApp => currApp._id === app._id)));
+
 
   useEffect(() => {
     // Update select all state based on current selection
@@ -41,18 +43,7 @@ export function ApplicationSelector({ applications, selectedApplications, onSele
     setSelectAllChecked(newSelection.length === activeApplications.length && activeApplications.length > 0);
   };
 
-  // const handleApplicationToggle = (appId: string) => {
-  //   const isSelected = selectedApplications.includes(appId);
-  //   let newSelection: string[];
 
-  //   if (isSelected) {
-  //     newSelection = selectedApplications.filter(id => id !== appId);
-  //   } else {
-  //     newSelection = [...selectedApplications, appId];
-  //   }
-
-  //   onSelectionChange(newSelection);
-  // };
 
   return (
     <div class={`application-selector ${disabled ? 'oj-disabled' : ''}`}>
