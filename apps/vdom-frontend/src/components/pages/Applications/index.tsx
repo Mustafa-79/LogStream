@@ -5,8 +5,8 @@ import { getLastLogTime, getStatusBadge, Log, validateApplicationForm } from "..
 import { ApplicationModal } from "./ApplicationModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import "oj-c/button";
-import { RouteProps } from "preact-router";
-
+import "ojs/ojbutton";
+import "oj-c/progress-circle";
 
 export type ApplicationsProps = {
   logs: Log[];
@@ -34,6 +34,9 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
   const [nameError, setNameError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deletedApplication, setDeletedApplication] = useState<{ name: string } | null>(null);
 
   const handleAddApplication = () => {
     setShowModal(true);
@@ -77,6 +80,8 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
         setApplications(prev =>
           prev.map(app => (app._id === editingAppId ? { ...app, ...updatedApp } : app))
         );
+        
+        setSuccessMessage(`Application "${newAppName.trim()}" has been updated successfully.`);
       } else {
         const newApp = await createApplication({
           name: newAppName.trim(),
@@ -84,6 +89,8 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
         });
 
         setApplications(prev => [...prev, newApp]);
+        
+        setSuccessMessage(`Application "${newAppName.trim()}" has been created successfully.`);
       }
 
       handleCloseModal();
@@ -121,9 +128,15 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
     setDeleteError(null);
 
     try {
+      const appToDelete = applications.find(app => app._id === deletingAppId);
+      
       await deleteApplication(deletingAppId);
       
       setApplications(prev => prev.filter(app => app._id !== deletingAppId));
+      
+      if (appToDelete) {
+        setDeletedApplication({ name: appToDelete.name });
+      }
       
       handleCloseDeleteConfirm();
     } catch (error) {
@@ -136,16 +149,82 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
 
   if (loading) {
     return (
-      <div class="oj-web-applayout-page" style="padding: 40px;">
-        <div class="oj-flex oj-justify-content-center oj-align-items-center" style="height: 200px;">
-          <span>Loading applications...</span>
+      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading Applications...</div>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <oj-c-progress-circle
+              class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
+              aria-labelledby="lgLabel indetLabel"
+              size="lg"
+              value={-1}
+            ></oj-c-progress-circle>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div class="oj-web-applayout-page" style="padding: 40px;">
+    <div class="oj-web-applayout-page" style="padding: 40px; padding-top: 20px;">
+      {/* Success Message */}
+      {successMessage && (
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
+          <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
+            backgroundColor: '#d4edda',
+            border: '1px solid #c3e6cb',
+            borderRadius: '8px',
+            color: '#155724',
+            minWidth: '400px',
+            maxWidth: '600px',
+            width: '100%'
+          }}>
+            <div class="oj-flex oj-sm-flex-items-center" style={{ alignItems: 'center' }}>
+              <span class="oj-ux-ico-checkmark-s oj-sm-margin-2x-end" style={{ fontSize: '18px', color: '#28a745' }}></span>
+              <span class="oj-typography-body-md">{successMessage}</span>
+            </div>
+            <oj-button
+              display="icons"
+              chroming="borderless"
+              onojAction={() => setSuccessMessage(null)}
+              style={{ color: '#155724' }}
+            >
+              <span slot='startIcon' class='oj-ux-ico-close'></span>
+            </oj-button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Notification */}
+      {deletedApplication && (
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
+          <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
+            backgroundColor: '#d4edda',
+            border: '1px solid #c3e6cb',
+            borderRadius: '8px',
+            color: '#155724',
+            minWidth: '400px',
+            maxWidth: '600px',
+            width: '100%'
+          }}>
+            <div class="oj-flex oj-sm-flex-items-center" style={{ alignItems: 'center' }}>
+              <span class="oj-ux-ico-checkmark-s oj-sm-margin-2x-end" style={{ fontSize: '18px', color: '#28a745' }}></span>
+              <span class="oj-typography-body-md">
+                Application <strong>"{deletedApplication.name}"</strong> has been deleted.
+              </span>
+            </div>
+            <oj-button
+              display="icons"
+              chroming="borderless"
+              onojAction={() => setDeletedApplication(null)}
+              style={{ color: '#155724' }}
+            >
+              <span slot='startIcon' class='oj-ux-ico-close'></span>
+            </oj-button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
         <div style="flex: 1;">
@@ -233,13 +312,13 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
               {app.active && <div style="border-top: 1px solid #f3f4f6; padding-top: 16px;">
                 <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="margin-bottom: 8px; width: 100%;">
                   <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Logs today:</span>
-                  <span style="color: #6366f1; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
+                  <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
                     {appLogCounts.logsToday}
                   </span>
                 </div>
                 <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="width: 100%;">
                   <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Errors:</span>
-                  <span style="color: #ef4444; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
+                  <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
                     {appLogCounts.errors}
                   </span>
                 </div>
