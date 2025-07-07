@@ -165,6 +165,64 @@ export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
   return restored
 }
 
+export const addUserToGroup = async (groupId: string, userId: string): Promise<IGroup | null> => {
+  // First check if the group exists
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.');
+  }
+
+  // Check if user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.');
+  }
+
+  // Check if user is already in the group
+  const memberIdStrings = group.memberIDs.map(id => id.toString());
+  if (memberIdStrings.includes(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User is already a member of this group.');
+  }
+
+  // Add user to group
+  const updatedGroup = await Group.findByIdAndUpdate(
+    groupId,
+    { $push: { memberIDs: userId } },
+    { new: true }
+  );
+
+  return updatedGroup;
+};
+
+export const removeUserFromGroup = async (groupId: string, userId: string): Promise<IGroup | null> => {
+  // First check if the group exists
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.');
+  }
+
+  // Check if user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.');
+  }
+
+  // Check if user is in the group
+  const memberIdStrings = group.memberIDs.map(id => id.toString());
+  if (!memberIdStrings.includes(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User is not a member of this group.');
+  }
+
+  // Remove user from group
+  const updatedGroup = await Group.findByIdAndUpdate(
+    groupId,
+    { $pull: { memberIDs: userId } },
+    { new: true }
+  );
+
+  return updatedGroup;
+};
+
 
 
 

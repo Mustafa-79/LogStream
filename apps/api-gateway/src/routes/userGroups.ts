@@ -20,6 +20,10 @@ router.delete('/:id', requireAdmin, validate(userGroupValidation.deleteUserGroup
 
 router.post('/:id/restore', validate(userGroupValidation.restoreUserGroup), userGroupsController.restoreUserGroup)
 
+router.post('/:id/add-member', requireAdmin, userGroupsController.addUserToGroup)
+
+router.post('/:id/remove-member', requireAdmin, userGroupsController.removeUserFromGroup)
+
 export default router
 
 
