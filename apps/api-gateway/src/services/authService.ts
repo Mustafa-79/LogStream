@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 // Example Mongoose models (replace with your actual model imports)
 const User = mongoose.model("User");
-const UsersGroups = mongoose.model("GroupUser");
+// const UsersGroups = mongoose.model("GroupUser");
 const Group = mongoose.model("Group");
 
 
@@ -12,13 +12,13 @@ export async function isAdmin(email: string): Promise<boolean> {
   const user = await User.findOne({ email });
   if (!user) return false;
 
-  // 2. Find group IDs for this user
-  const userGroups = await UsersGroups.find({ userId: user._id, active: true });
-  const groupIds = userGroups.map((ug: any) => ug.groupId);
-
-  if (groupIds.length === 0) return false;
-
-  // 3. Check if any group has name "administrator"
-  const adminGroup = await Group.findOne({ _id: { $in: groupIds }, name: "Administrators", active: true });
-  return !!adminGroup;
+  // 2. Find user groups and check if any group is named "administrator"
+  const isAdmin = await Group.exists({
+    memberIDs: user._id,
+    name: "Administrators",
+    active: true,
+    deleted: false,
+  });
+  
+  return !!isAdmin;
 }
