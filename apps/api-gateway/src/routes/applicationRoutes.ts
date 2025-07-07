@@ -18,7 +18,7 @@ router
 router
   .route('/')
   .post(
-    requireAdmin, // Only admins can create applications
+    requireAdmin, 
     validate(applicationValidation.createApplication),
     applicationController.createApplication
   );
@@ -26,7 +26,7 @@ router
 router
   .route('/:id')
   .put(
-    requireAdmin, // Only admins can update applications
+    requireAdmin,
     validate(applicationValidation.updateApplication),
     applicationController.updateApplication
   );
@@ -34,7 +34,7 @@ router
 router
   .route('/:id')
   .delete(
-    requireAdmin, // Only admins can delete applications
+    requireAdmin,
     validate(applicationValidation.deleteApplication),
     applicationController.deleteApplication
   );
@@ -42,7 +42,7 @@ router
 router
   .route('/:id/threshold-time')
   .put(
-    requireAdmin, // Only admins can update thresholds
+    requireAdmin,
     validate(applicationValidation.updateThresholdAndTimePeriod),
     applicationController.updateThresholdAndTimePeriod
   );
