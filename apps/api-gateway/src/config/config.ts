@@ -8,6 +8,10 @@ interface EnvVars {
   PORT: number
   MONGODB_URL: string
   JWT_SECRET: string
+  GOOGLE_CLIENT_ID: string
+  GOOGLE_CLIENT_SECRET: string
+  BACKEND_URL: string
+  FRONTEND_URL: string
 }
 
 // Define Joi schema for validation
@@ -16,6 +20,10 @@ const envVarsSchema = Joi.object<EnvVars>()
     PORT: Joi.number().default(3000),
     MONGODB_URL: Joi.string().required().description('Mongo DB URL'),
     JWT_SECRET: Joi.string().required().description('JWT Secret for token signing'),
+    GOOGLE_CLIENT_ID: Joi.string().required().description('Google OAuth Client ID'),
+    GOOGLE_CLIENT_SECRET: Joi.string().required().description('Google OAuth Client Secret'),
+    BACKEND_URL: Joi.string().required().description('Backend URL'),
+    FRONTEND_URL: Joi.string().required().description('Frontend URL'),
   })
   .unknown()
 
@@ -30,7 +38,13 @@ if (error) {
 const config = {
   port: envVars.PORT,
   mongoose: envVars.MONGODB_URL,
-  jwtSecret: envVars.JWT_SECRET
+  jwtSecret: envVars.JWT_SECRET,
+  google: {
+    clientId: envVars.GOOGLE_CLIENT_ID,
+    clientSecret: envVars.GOOGLE_CLIENT_SECRET
+  },
+  backendUrl: envVars.BACKEND_URL,
+  frontendUrl: envVars.FRONTEND_URL
 }
 
 export default config

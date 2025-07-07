@@ -7,10 +7,10 @@ const Group = mongoose.model("Group");
 
 
 // Returns true if user is in a group named "administrator"
-export async function isAdmin(email: string): Promise<boolean> {
+export async function isAdmin(email: string): Promise<{ isAdmin: boolean; userId: mongoose.Types.ObjectId | null }> {
   // 1. Find user by email
   const user = await User.findOne({ email });
-  if (!user) return false;
+  if (!user) return { isAdmin: false, userId: null };
 
   // 2. Find user groups and check if any group is named "administrator"
   const isAdmin = await Group.exists({
@@ -20,5 +20,5 @@ export async function isAdmin(email: string): Promise<boolean> {
     deleted: false,
   });
   
-  return !!isAdmin;
+  return { isAdmin, userId: user._id };
 }

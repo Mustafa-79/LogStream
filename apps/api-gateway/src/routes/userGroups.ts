@@ -1,4 +1,3 @@
-//// filepath: /home/mustafaabbas/Work/Probation/LogStream/LogStream/apps/api-gateway/src/routes/userGroups.ts
 import { Router } from 'express'
 import { authenticateJWT, requireAdmin } from '../middlewares/auth'
 import * as userGroupsController from '../controllers/userGroups.controller'
