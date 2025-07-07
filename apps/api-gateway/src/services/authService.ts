@@ -20,5 +20,5 @@ export async function isAdmin(email: string): Promise<{ isAdmin: boolean; userId
     deleted: false,
   });
   
-  return { isAdmin, userId: user._id };
+  return { isAdmin: !!isAdmin, userId: user._id };
 }
