@@ -151,8 +151,8 @@ export function UserGroups() {
         name: formData.name.trim(),
         description: formData.description.trim(),
         active: formData.active,
-        members: formData.selectedUsers.length > 0 ? formData.selectedUsers : undefined,
-        applications: formData.selectedApplications.length > 0 ? formData.selectedApplications : undefined,
+        memberIDs: formData.selectedUsers.length > 0 ? formData.selectedUsers : undefined,
+        applicationIDs: formData.selectedApplications.length > 0 ? formData.selectedApplications : undefined,
       };
 
       console.log('Creating user group with payload:', payload);
@@ -234,8 +234,8 @@ export function UserGroups() {
         name: formData.name,
         description: formData.description,
         active: formData.active,
-        members: formData.selectedUsers,
-        applications: formData.selectedApplications
+        memberIDs: formData.selectedUsers,
+        applicationIDs: formData.selectedApplications
       };
 
       console.log('Updating user group with payload:', payload);

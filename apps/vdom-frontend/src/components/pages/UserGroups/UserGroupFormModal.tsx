@@ -48,6 +48,7 @@ export function UserGroupFormModal({
   const [applications, setApplications] = useState<IApplication[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentApplications, setCurrentApplications] = useState<IApplication[]>([]);
 
   // Check if the current group is the "Administrators" group (only for edit mode)
   const isAdministratorsGroup = mode === 'edit' && (
@@ -106,6 +107,9 @@ export function UserGroupFormModal({
           selectedUserObjects: userGroup.members || [],
           selectedApplicationObjects: userGroup.applications || []
         });
+
+        // Set current applications for edit mode
+        setCurrentApplications(userGroup.applications || []);
       }
       setErrors({});
       setIsSubmitting(false);
@@ -447,6 +451,7 @@ export function UserGroupFormModal({
                 onSelectionChange={handleApplicationsChange}
                 error={errors.applications}
                 disabled={isAdministratorsGroup}
+                currentApplications={currentApplications}
               />
             </div>
 

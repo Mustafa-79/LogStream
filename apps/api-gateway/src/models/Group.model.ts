@@ -3,6 +3,8 @@ import { Schema, model, Document } from 'mongoose'
 export interface IGroup extends Document {
   name: string
   description: string
+  memberIDs: Schema.Types.ObjectId[]
+  applicationIDs: Schema.Types.ObjectId[]
   active: boolean
   deleted: boolean
 }
@@ -22,6 +24,14 @@ const GroupSchema = new Schema<IGroup>({
     maxlength: 100,
     trim: true,
   },
+  memberIDs: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  applicationIDs: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Application',
+  }],
   active: {
     type: Boolean,
     default: true,
