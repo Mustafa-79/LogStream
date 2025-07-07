@@ -53,8 +53,8 @@ export interface CreateUserGroupPayload {
   name: string;
   description: string;
   active: boolean;
-  members?: string[];
-  applications?: string[];
+  memberIDs?: string[];
+  applicationIDs?: string[];
 }
 
 // Form validation

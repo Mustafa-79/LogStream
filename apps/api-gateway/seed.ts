@@ -6,8 +6,7 @@ dotenv.config()
 import Group from './src/models/Group.model'
 import User from './src/models/User.model'
 import Application from './src/models/Application.model'
-import Group_User from './src/models/GroupUser.model'
-import Group_Application from './src/models/GroupApplication.model'
+import { Log } from './src/models/Log.model'
 
 import config from './src/config/config'
 
@@ -17,8 +16,7 @@ const flushDatabase = async () => {
   await Group.deleteMany({})
   await User.deleteMany({})
   await Application.deleteMany({})
-  await Group_User.deleteMany({})
-  await Group_Application.deleteMany({})
+  await Log.deleteMany({})
   console.log('Database flushed.')
 }
 
@@ -27,68 +25,175 @@ const populateDummyData = async () => {
 
   // Create Users
   const users = await User.insertMany([
-    { username: 'alice', email: 'alice@example.com' },
-    { username: 'bob', email: 'bob@example.com' },
-    { username: 'charlie', email: 'charlie@example.com' },
+    { username: 'alice_admin', email: 'alice@example.com', active: true },
+    { username: 'bob_dev', email: 'bob@example.com', active: true },
+    { username: 'charlie_qa', email: 'charlie@example.com', active: true },
+    { username: 'diana_ops', email: 'diana@example.com', active: true },
+    { username: 'eve_support', email: 'eve@example.com', active: false },
   ])
-  console.log('Users created:', users)
+  console.log('Users created:', users.length)
 
-  // Create Groups
-  const groups = await Group.insertMany([
-    { name: 'Admins', description: 'Administrators group' },
-    { name: 'Editors', description: 'Editors group' },
-  ])
-  console.log('Groups created:', groups)
-
-  // Force-feed Application data
+  // Create Applications
   const applications = await Application.insertMany([
     {
-      // _id: new mongoose.Types.ObjectId('685a8328b93040684ee3bdd1'),
-      name: "Test App 1",
-      description: "Testing create application pt2",
+      name: "E-Commerce API",
+      description: "Main e-commerce backend API service",
+      threshold: 50,
+      timePeriod: 10,
+      active: true,
     },
     {
-      // _id: new mongoose.Types.ObjectId('685a846d78c060b88efa791b'),
-      name: "Test App 2",
-      description: "Testing create application pt1",
+      name: "Payment Service",
+      description: "Payment processing microservice",
+      threshold: 25,
+      timePeriod: 5,
+      active: true,
     },
     {
-      // _id: new mongoose.Types.ObjectId('685a847278c060b88efa791d'),
-      name: "Test App 3",
-      description: "Testing create application pt1",
+      name: "User Management",
+      description: "User authentication and management service",
+      threshold: 30,
+      timePeriod: 15,
+      active: true,
+    },
+    {
+      name: "Analytics Dashboard",
+      description: "Business analytics and reporting dashboard",
+      threshold: 100,
+      timePeriod: 30,
+      active: true,
+    },
+    {
+      name: "Legacy System",
+      description: "Legacy system being phased out",
+      threshold: 10,
+      timePeriod: 5,
+      active: false,
     }
   ])
-  console.log('Applications created:', applications)
+  console.log('Applications created:', applications.length)
 
-  // Add Users to Groups (Group_User)
-  // Assume: alice and bob are admins, charlie is editor
-  const adminGroup = groups[0]
-  const editorGroup = groups[1]
-  const alice = users.find((user) => user.username === 'alice')
-  const bob = users.find((user) => user.username === 'bob')
-  const charlie = users.find((user) => user.username === 'charlie')
+  // Create Groups with member and application assignments
+  const groups = await Group.insertMany([
+    { 
+      name: 'Administrators',
+      description: 'System administrators with full access to all applications',
+      memberIDs: [users[0]._id, users[3]._id], // alice_admin, diana_ops
+      applicationIDs: applications.map(app => app._id), // Access to all apps
+      active: true,
+    },
+    { 
+      name: 'Developers',
+      description: 'Development team with access to core services',
+      memberIDs: [users[1]._id, users[2]._id], // bob_dev, charlie_qa
+      applicationIDs: [applications[0]._id, applications[1]._id, applications[2]._id], // E-Commerce, Payment, User Management
+      active: true,
+    },
+    { 
+      name: 'Analytics Team',
+      description: 'Business analysts and data scientists',
+      memberIDs: [users[2]._id], // charlie_qa
+      applicationIDs: [applications[3]._id], // Analytics Dashboard
+      active: true,
+    },
+    { 
+      name: 'Support Team',
+      description: 'Customer support and maintenance team',
+      memberIDs: [users[4]._id], // eve_support
+      applicationIDs: [applications[0]._id, applications[2]._id], // E-Commerce, User Management
+      active: true,
+    },
+    { 
+      name: 'Legacy Maintainers',
+      description: 'Team maintaining legacy systems',
+      memberIDs: [],
+      applicationIDs: [applications[4]._id], // Legacy System
+      active: false,
+    }
+  ])
+  console.log('Groups created:', groups.length)
 
-  const Group_UsersData = [
-    { groupId: adminGroup._id, userId: alice?._id },
-    { groupId: adminGroup._id, userId: bob?._id },
-    { groupId: editorGroup._id, userId: charlie?._id },
+  // Generate sample log entries
+  const logLevels = ['INFO', 'WARNING', 'ERROR', 'DEBUG'] as const
+  const sampleMessages = [
+    'User login successful',
+    'Database connection established',
+    'Payment processed successfully',
+    'Invalid authentication token',
+    'Server response time exceeded threshold',
+    'Cache miss for user data',
+    'API rate limit exceeded',
+    'Database query executed',
+    'File upload completed',
+    'Memory usage warning',
+    'Service health check passed',
+    'Configuration loaded',
+    'Session expired',
+    'Data validation failed',
+    'Backup completed successfully'
   ]
-  const Group_Users = await Group_User.insertMany(Group_UsersData)
-  console.log('Groups-User relations created:', Group_Users)
 
-  // Add Applications to Groups (Group_Application)
-  // For this example, assume:
-  // - Admins have access to Test App 1 and Test App 2
-  // - Editors have access to Test App 3
-  const groupApplicationsData = [
-    { groupId: adminGroup._id, applicationId: applications[0]._id },
-    { groupId: adminGroup._id, applicationId: applications[1]._id },
-    { groupId: editorGroup._id, applicationId: applications[2]._id },
+  const logs: Array<{
+    message: string;
+    logLevel: 'INFO' | 'WARNING' | 'ERROR' | 'DEBUG';
+    traceId: string;
+    sourceApp: mongoose.Types.ObjectId;
+    date: Date;
+  }> = []
+  const now = new Date()
+  
+  // Generate logs for each application
+  for (const app of applications.slice(0, 4)) { // Only for active applications
+    for (let i = 0; i < 20; i++) { // 20 logs per application
+      const randomHoursAgo = Math.floor(Math.random() * 72) // Within last 3 days
+      const logDate = new Date(now.getTime() - (randomHoursAgo * 60 * 60 * 1000))
+      
+      logs.push({
+        message: sampleMessages[Math.floor(Math.random() * sampleMessages.length)],
+        logLevel: logLevels[Math.floor(Math.random() * logLevels.length)],
+        traceId: `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        sourceApp: app._id as mongoose.Types.ObjectId,
+        date: logDate,
+      })
+    }
+  }
+
+  // Add some specific error scenarios for demonstration
+  const errorLogs = [
+    {
+      message: 'Database connection timeout',
+      logLevel: 'ERROR' as const,
+      traceId: `trace-${Date.now()}-error-001`,
+      sourceApp: applications[0]._id as mongoose.Types.ObjectId, // E-Commerce API
+      date: new Date(now.getTime() - (2 * 60 * 60 * 1000)), // 2 hours ago
+    },
+    {
+      message: 'Payment gateway returned error 500',
+      logLevel: 'ERROR' as const, 
+      traceId: `trace-${Date.now()}-error-002`,
+      sourceApp: applications[1]._id as mongoose.Types.ObjectId, // Payment Service
+      date: new Date(now.getTime() - (1 * 60 * 60 * 1000)), // 1 hour ago
+    },
+    {
+      message: 'High memory usage detected: 95%',
+      logLevel: 'WARNING' as const,
+      traceId: `trace-${Date.now()}-warn-001`,
+      sourceApp: applications[2]._id as mongoose.Types.ObjectId, // User Management
+      date: new Date(now.getTime() - (30 * 60 * 1000)), // 30 minutes ago
+    }
   ]
-  const groupApplications = await Group_Application.insertMany(groupApplicationsData)
-  console.log('Group-Applications relations created:', groupApplications)
+
+  logs.push(...errorLogs)
+  
+  const createdLogs = await Log.insertMany(logs)
+  console.log('Log entries created:', createdLogs.length)
 
   console.log('Dummy data population complete.')
+  console.log('Summary:')
+  console.log(`- ${users.length} users created`)
+  console.log(`- ${applications.length} applications created`)
+  console.log(`- ${groups.length} groups created`)
+  console.log(`- ${createdLogs.length} log entries created`)
 }
 
 const main = async () => {
