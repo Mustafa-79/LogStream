@@ -1,11 +1,11 @@
 import express, { Router } from 'express';
-// import { authenticateJWT } from '../middlewares/auth'; // Uncomment when authentication is needed
+import { authenticateJWT } from '../middlewares/auth'; 
 import { getAnalytics } from '../controllers/analyticsController';
 
 const router: Router = express.Router();
 
 // Apply authentication to all analytics routes when needed
-// router.use(authenticateJWT);
+router.use(authenticateJWT);
 
 /**
  * @route GET /analytics
