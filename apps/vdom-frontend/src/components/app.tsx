@@ -32,7 +32,7 @@ export const App = registerCustomElement(
             requireAuth={true}
             onRedirect={appState.actions.handleRedirect}
           >
-            <Dashboard />
+            <Dashboard logs={appState.logs} />
           </ProtectedRoute>
         ),
         label: 'Dashboard',
@@ -130,7 +130,7 @@ export const App = registerCustomElement(
                 requireAuth={true} 
                 onRedirect={appState.actions.handleRedirect}
               >
-                <Dashboard />
+                <Dashboard logs={appState.logs} />
               </ProtectedRoute>
             )}
           </div>
