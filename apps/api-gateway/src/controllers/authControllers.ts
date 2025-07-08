@@ -1,9 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from "express";
 import config from '../config/config';
-import { isAdmin } from '../services/authService'; // Adjust the import path as necessary
-
-
+import { isAdmin } from '../services/authService';
 
 export const authRoute = async (req: Request, res: Response): Promise<void> => {
   const { access_token } = req.body;
@@ -32,7 +30,6 @@ export const authRoute = async (req: Request, res: Response): Promise<void> => {
       userId: userId
     };
     const jwtToken = jwt.sign(jwtPayload, config.jwtSecret, { expiresIn: '1h' });
-    console.log("JWT Token generated:", jwtToken);
 
     res.json({ jwt: jwtToken });
   } catch {
