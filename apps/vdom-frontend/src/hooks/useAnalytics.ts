@@ -45,11 +45,18 @@ export const useAnalytics = () => {
 
   const refetch = () => fetchAnalytics(true);
 
+  // Extract applications from analytics data
+  const applications = analyticsData?.applicationCounts?.map(app => ({
+    value: app._id,
+    label: app.applicationName
+  })) || [];
+
   return {
     analyticsData,
     loading,
     refetching,
     error,
-    refetch
+    refetch,
+    applications
   };
 };

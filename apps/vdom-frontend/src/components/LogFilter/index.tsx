@@ -12,29 +12,14 @@ import "ojs/ojformlayout";
 import "ojs/ojbutton";
 import "ojs/ojlabel";
 
-// Dummy data as requested
-const APPLICATIONS = ["app1", "app2", "app3", "app4", "app5", "app6", "app7", "app8", "app9", "app10"];
+// Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
 
 // Create data for ArrayDataProvider - following the sample pattern
-const applicationsData = APPLICATIONS.map((app) => ({
-  value: app,
-  label: app
-}));
-
 const logLevelsData = LOG_LEVELS.map((level) => ({
   value: level,
   label: level
 }));
-
-// Create ArrayDataProviders
-const applicationsDP = new ArrayDataProvider(applicationsData, {
-  keyAttributes: 'value'
-});
-
-const logLevelsDP = new ArrayDataProvider(logLevelsData, {
-  keyAttributes: 'value'
-});
 
 // Create time converter
 const timeFullConverter = new IntlDateTimeConverter({
@@ -46,12 +31,21 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit'
 });
 
-const LogFilter = ({ onFilterChange, initialFilters = {}, className = "" }: LogFilterProps) => {
+const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [] }: LogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
     logLevels: initialFilters.logLevels || [],
     fromDate: initialFilters.fromDate || null,
     toDate: initialFilters.toDate || null,
+  });
+
+  // Create ArrayDataProviders dynamically based on props
+  const applicationsDP = new ArrayDataProvider(applications, {
+    keyAttributes: 'value'
+  });
+
+  const logLevelsDP = new ArrayDataProvider(logLevelsData, {
+    keyAttributes: 'value'
   });
 
   // Convert arrays to Sets for oj-c-select-multiple (as per Oracle JET requirements)
@@ -100,9 +94,9 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "" }: LogF
 
   // Select all applications
   const selectAllApplications = () => {
-    const allAppsSet = new Set(APPLICATIONS);
+    const allAppsSet = new Set(applications.map(app => app.value));
     setApplicationsValue(allAppsSet);
-    const newFilters = { ...filters, applications: [...APPLICATIONS] };
+    const newFilters = { ...filters, applications: applications.map(app => app.value) };
     setFilters(newFilters);
     onFilterChange(newFilters);
   };
