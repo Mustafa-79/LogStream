@@ -1,15 +1,30 @@
 import { h } from "preact";
-import { useMemo } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { AnalyticsData } from "./types";
 import PieChart from "./LogLevelPieChart";
 import ApplicationBarChart from "./ApplicationBarChart";
 import VolumeLineChart from "./VolumeLineChart";
 import { useAnalytics } from "../../../hooks/useAnalytics";
+import LogFilter from "../../LogFilter/index";
+import { FilterState } from "../../LogFilter/types";
 import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 export const Analytics = () => {
   const { analyticsData, loading, refetching, error, refetch } = useAnalytics();
+  const [filters, setFilters] = useState<FilterState>({
+    applications: [],
+    logLevels: [],
+    fromDate: null,
+    toDate: null,
+  });
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    // TODO: Apply filters to analytics data
+    console.log('Analytics filters changed:', newFilters);
+  };
 
   // Simple memoization to prevent unnecessary chart re-renders when data hasn't changed
   const memoizedChartData = useMemo(() => {
@@ -95,6 +110,12 @@ export const Analytics = () => {
           </oj-button>
         </div>
       </div>
+
+      {/* Log Filter Component */}
+      <LogFilter 
+        onFilterChange={handleFilterChange}
+        initialFilters={filters}
+      />
 
       
       {/* Charts Section */}

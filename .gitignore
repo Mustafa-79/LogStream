@@ -6,3 +6,4 @@ build/
 *.env.*
 
 apps/fluent-bit/storage/
+apps/api-gateway/service-account.json

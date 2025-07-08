@@ -54,6 +54,9 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
     <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
       This chart displays the trend of log volumes over time.
     </p>
+      {/* TODO: make this an oj-c-line-chart
+      https://www.oracle.com/webfolder/technetwork/jet/jetCookbook.html?component=lineChartCorepack&demo=lineTypes
+       */}
       <oj-chart
         id="volumeLineChart"
         type="line"
@@ -62,7 +65,9 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
         animationOnDataChange="auto"
         hoverBehavior="dim"
         class="oj-sm-margin-2x-top"
-        style="height: 300px; width: 100%;">
+        style="height: 300px; width: 100%;"
+        line-type="curved">
+        
         <template slot="itemTemplate" render={chartItem}></template>
       </oj-chart>
     </div>
