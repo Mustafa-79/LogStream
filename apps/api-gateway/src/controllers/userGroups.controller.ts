@@ -57,3 +57,47 @@ export const restoreUserGroup = async (req: Request, res: Response, next: NextFu
         next(error)
     }
 }
+
+export const addUserToGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { id } = req.params; // group ID
+        const { userId } = req.body;
+
+        if (!userId) {
+            res.status(400).json(
+                createResponse(400, 'User ID is required', null)
+            );
+            return;
+        }
+
+        const group = await userGroupService.addUserToGroup(id, userId);
+        res.status(200).json(
+            createResponse(200, 'User added to group successfully', group)
+        );
+    } catch (error) {
+        console.error('Error adding user to group:', error);
+        next(error);
+    }
+}
+
+export const removeUserFromGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { id } = req.params; // group ID
+        const { userId } = req.body;
+
+        if (!userId) {
+            res.status(400).json(
+                createResponse(400, 'User ID is required', null)
+            );
+            return;
+        }
+
+        const group = await userGroupService.removeUserFromGroup(id, userId);
+        res.status(200).json(
+            createResponse(200, 'User removed from group successfully', group)
+        );
+    } catch (error) {
+        console.error('Error removing user from group:', error);
+        next(error);
+    }
+};

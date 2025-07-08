@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { CreateUserGroupFormData, FormValidationErrors, IUser, IApplication, IGroup } from './types';
-import { UserGroupsAPI } from '../../../services/userGroupService';
+import { UserGroupsAPI, GoogleDirectoryUser } from '../../../services/userGroupService';
 import { UserSelector } from './UserSelector';
 import { ApplicationSelector } from './ApplicationSelector';
 import "ojs/ojbutton";
@@ -17,7 +17,7 @@ interface UserGroupFormModalProps {
   isOpen: boolean;
   userGroup?: IGroup | null;
   onClose: () => void;
-  onSubmit?: (formData: CreateUserGroupFormData) => void | Promise<void>;
+  onSubmit?: (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[], usersToRemove?: string[]) => void | Promise<void>;
   loading?: boolean;
   error?: string | null;
   existingGroups?: IGroup[];
@@ -49,6 +49,9 @@ export function UserGroupFormModal({
   const [loadingData, setLoadingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentApplications, setCurrentApplications] = useState<IApplication[]>([]);
+  const [selectedGoogleUsers, setSelectedGoogleUsers] = useState<GoogleDirectoryUser[]>([]);
+  const [clearGoogleUsers, setClearGoogleUsers] = useState(false);
+  const [usersToRemove, setUsersToRemove] = useState<string[]>([]);
 
   // Check if the current group is the "Administrators" group (only for edit mode)
   const isAdministratorsGroup = mode === 'edit' && (
@@ -178,8 +181,14 @@ export function UserGroupFormModal({
         : 'At least one application must be selected';
     }
 
-    // Users validation
-    if (formData.selectedUsers.length === 0) {
+    // Users validation - check both existing users and Google Directory users
+    console.log('Validating users:', {
+      selectedUsers: formData.selectedUsers.length,
+      selectedGoogleUsers: selectedGoogleUsers.length,
+      mode
+    });
+    
+    if (formData.selectedUsers.length === 0 && selectedGoogleUsers.length === 0) {
       newErrors.users = mode === 'create'
         ? 'Please select at least one user'
         : 'At least one user must be selected';
@@ -200,11 +209,19 @@ export function UserGroupFormModal({
     try {
       console.log(`${mode} form submitted with data:`, {
         ...(mode === 'edit' && { groupId: userGroup?._id }),
-        ...formData
+        ...formData,
+        googleUsers: selectedGoogleUsers,
+        usersToRemove: usersToRemove
       });
 
       if (onSubmit) {
-        await onSubmit(formData);
+        await onSubmit(formData, selectedGoogleUsers, usersToRemove);
+      }
+
+      // Clear the selected Google users and users to remove after successful processing
+      if (selectedGoogleUsers.length > 0 || usersToRemove.length > 0) {
+        setClearGoogleUsers(true);
+        setTimeout(() => setClearGoogleUsers(false), 100);
       }
 
       // Only close modal if onSubmit completed successfully without throwing an error
@@ -463,6 +480,11 @@ export function UserGroupFormModal({
                 selectedUsers={formData.selectedUsers}
                 onSelectionChange={handleUsersChange}
                 error={errors.users}
+                mode={mode}
+                groupId={mode === 'edit' ? userGroup?._id : undefined}
+                onGoogleUsersChange={setSelectedGoogleUsers}
+                clearGoogleUsers={clearGoogleUsers}
+                onUsersToRemoveChange={setUsersToRemove}
               />
             </div>
           </oj-form-layout>

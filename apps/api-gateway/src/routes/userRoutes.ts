@@ -12,6 +12,17 @@ router
   .get(
     requireAdmin,
     userController.getAllUsers
+  )
+  .post(
+    requireAdmin, // Only admins can create users
+    userController.createUser
+  );
+
+router
+  .route('/search-directory')
+  .get(
+    requireAdmin, // Only admins can search directory
+    userController.searchGoogleDirectory
   );
 
 export default router;
