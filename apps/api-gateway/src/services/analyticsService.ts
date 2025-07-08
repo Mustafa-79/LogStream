@@ -149,12 +149,12 @@ export class AnalyticsService {
     const results = await Log.aggregate([
       { $match: matchStage },
       {
-        $group: {
-          _id: '$logLevel',
-          count: { $sum: 1 }
-        }
+      $group: {
+        _id: '$logLevel',
+        count: { $sum: 1 }
+      }
       },
-      { $sort: { count: -1 } }
+      { $sort: { _id: 1 } }
     ]);
 
     // Calculate percentages
@@ -188,7 +188,7 @@ export class AnalyticsService {
           count: { $sum: 1 }
         }
       },
-      { $sort: { count: -1 } }
+      { $sort: { applicationName: 1 } }
     ]);
   }
 
