@@ -5,6 +5,7 @@ import applicationRoute from './applicationRoutes'
 import logRoutes from './logRoutes'
 import userGroupsRoute from './userGroups'
 import userRoute from './userRoutes'
+import analyticsRoute from './analyticsRoutes'
 
 const router: Router = express.Router()
 
@@ -14,6 +15,7 @@ const defaultRoutes: { path: string; route: Router }[] = [
   { path: '/application', route: applicationRoute },
   { path: '/user-groups', route: userGroupsRoute },
   { path: '/logs', route: logRoutes },
+  { path: '/analytics', route: analyticsRoute },
 ]
 
 defaultRoutes.forEach(({ path, route }) => {
