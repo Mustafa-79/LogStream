@@ -31,6 +31,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       setError(null);
       
       const newLogs = await LogService.fetchNewLogs(latestDateRef.current || undefined);
+      console.log("newLogs: ", newLogs)
       
       if (newLogs.length > 0) {
         setLogs(prevLogs => {
