@@ -9,6 +9,7 @@ import { Applications } from "./pages/Applications/index";
 import { Sidebar } from "./sidebar";
 import { UserGroups } from "./pages/UserGroups/UserGroups";
 import { Dashboard } from "./pages/Dashboard/index";
+import { Analytics } from "./pages/Analytics/index";
 import { Login } from "./pages/Login/index";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { useAppState } from "../hooks/useAppState";
@@ -51,6 +52,20 @@ export const App = registerCustomElement(
         ),
         label: 'Applications',
         icon: 'oj-ux-ico-applications',
+        requireAuth: true
+      },
+      {
+        path: '/analytics',
+        component: () => (
+          <ProtectedRoute 
+            requireAuth={true}
+            onRedirect={appState.actions.handleRedirect}
+          >
+            <Analytics />
+          </ProtectedRoute>
+        ),
+        label: 'Analytics',
+        icon: 'oj-ux-ico-analytics',
         requireAuth: true
       },
       {

@@ -38,4 +38,12 @@ const logSchema: Schema<ILog> = new Schema(
   }
 );
 
+// Add indexes for analytics queries optimization
+logSchema.index({ date: -1, sourceApp: 1 }); // For time-based filtering with app
+logSchema.index({ date: -1, logLevel: 1 }); // For time-based filtering with log level
+logSchema.index({ sourceApp: 1, logLevel: 1, date: -1 }); // For combined filters
+logSchema.index({ date: -1 }); // For general time-based queries
+logSchema.index({ logLevel: 1 }); // For log level aggregation
+logSchema.index({ sourceApp: 1 }); // For application-based queries
+
 export const Log: Model<ILog> = mongoose.model<ILog>('Log', logSchema);
