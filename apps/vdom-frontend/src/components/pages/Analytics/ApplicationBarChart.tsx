@@ -62,7 +62,7 @@ const ApplicationBarChart = ({ data }: { data: ApplicationCount[] }) => {
         animationOnDataChange="auto"
         hoverBehavior="dim"
         orientation="vertical"
-        class="oj-sm-margin-2x-top chartStyle">
+        class="oj-sm-margin-2x-top">
         <template slot="itemTemplate" render={chartItem}></template>
       </oj-chart>
     </div>

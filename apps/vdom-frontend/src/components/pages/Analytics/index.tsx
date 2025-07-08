@@ -86,19 +86,17 @@ export const Analytics = () => (
       Analytics Dashboard
     </h1>
     
-    {/* First Row: Pie Chart and Bar Chart side by side */}
     <div class="oj-flex oj-sm-flex-direction-row oj-sm-margin-4x-bottom">
-      <div class="oj-flex-item oj-panel oj-sm-margin-2x-end oj-sm-margin-2x-bottom">
+      <div class="oj-flex-item oj-panel oj-sm-margin-2x-end oj-sm-margin-2x-bottom oj-panel-shadow-md">
         <PieChart data={dummyAnalyticsData.logLevelDistribution} />
       </div>
       
-      <div class="oj-flex-item oj-panel oj-sm-margin-2x-start oj-sm-margin-2x-bottom">
+      <div class="oj-flex-item oj-panel oj-sm-margin-2x-start oj-sm-margin-2x-bottom oj-panel-shadow-md">
         <ApplicationBarChart data={dummyAnalyticsData.applicationCounts} />
       </div>
     </div>
 
-    {/* Second Row: Line Chart full width */}
-    <div class="oj-panel">
+    <div class="oj-panel oj-panel-shadow-md">
       <VolumeLineChart data={dummyAnalyticsData.volumeTrend} />
     </div>
   </div>
