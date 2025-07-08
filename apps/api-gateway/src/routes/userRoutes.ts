@@ -10,7 +10,7 @@ router.use(authenticateJWT);
 router
   .route('/')
   .get(
-    requireAdmin, // Only admins can view all users
+    requireAdmin,
     userController.getAllUsers
   )
   .post(
