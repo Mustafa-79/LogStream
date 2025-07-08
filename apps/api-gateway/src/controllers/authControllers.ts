@@ -1,9 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from "express";
 import config from '../config/config';
-import { isAdmin } from '../services/authService'; // Adjust the import path as necessary
-
-
+import { isAdmin } from '../services/authService';
 
 export const authRoute = async (req: Request, res: Response): Promise<void> => {
   const { access_token } = req.body;
@@ -18,19 +16,18 @@ export const authRoute = async (req: Request, res: Response): Promise<void> => {
     if (profile.email.endsWith('@gosaas.io') === false) {
          const msg = `Unauthorized email domain: ${profile.email}`;
          res.status(403).json({ message: msg });
-         res.locals.errorMessage = msg; // Set error message for error handler
+         res.locals.errorMessage = msg; 
          return;
     }   
 
-    // 2. Check if user is admin (custom logic)
-    const isAdminFlag = await isAdmin(profile.email);
+    const { isAdmin: isAdminFlag, userId } = await isAdmin(profile.email);
 
     // 3. Generate JWT
     const jwtPayload = {
       email: profile.email,
       name: profile.name,
       isAdmin: isAdminFlag,
-      // ...other fields...
+      userId: userId
     };
     const jwtToken = jwt.sign(jwtPayload, config.jwtSecret, { expiresIn: '1h' });
 

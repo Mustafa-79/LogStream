@@ -2,6 +2,18 @@ import { AuthManager } from '../utils/auth';
 import { IGroup, CreateUserGroupPayload, IUser, IApplication } from '../components/pages/UserGroups/types';
 import { API_CONFIG } from '../config';
 
+export interface GoogleDirectoryUser {
+  id: string;
+  primaryEmail: string;
+  name: {
+    fullName: string;
+    givenName?: string;
+    familyName?: string;
+  };
+  suspended: boolean;
+  orgUnitPath: string;
+}
+
 interface ApiRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   endpoint: string;
@@ -148,5 +160,62 @@ export class UserGroupsAPI {
       method: 'GET',
       endpoint: '/application'
     });
+  }
+
+  static async searchGoogleDirectory(query: string): Promise<GoogleDirectoryUser[]> {
+    return this.makeApiRequest<GoogleDirectoryUser[]>({
+      method: 'GET',
+      endpoint: `/user/search-directory?query=${encodeURIComponent(query)}`
+    });
+  }
+
+  static async createUser(userData: { username: string; email: string }): Promise<IUser> {
+    return this.makeApiRequest<IUser>({
+      method: 'POST',
+      endpoint: '/user',
+      body: userData
+    });
+  }
+
+  static async addUserToGroup(groupId: string, userId: string): Promise<IGroup> {
+    return this.makeApiRequest<IGroup>({
+      method: 'POST',
+      endpoint: `${API_CONFIG.ENDPOINTS.USER_GROUPS}/${groupId}/add-member`,
+      body: { userId }
+    });
+  }
+
+  static async removeUserFromGroup(groupId: string, userId: string): Promise<IGroup> {
+    return this.makeApiRequest<IGroup>({
+      method: 'POST',
+      endpoint: `${API_CONFIG.ENDPOINTS.USER_GROUPS}/${groupId}/remove-member`,
+      body: { userId }
+    });
+  }
+
+  // Helper function to process Google Directory users
+  static async processGoogleDirectoryUsers(googleUsers: GoogleDirectoryUser[], groupId?: string): Promise<IUser[]> {
+    const createdUsers: IUser[] = [];
+    
+    for (const googleUser of googleUsers) {
+      try {
+        // Create or get user in the system
+        const createdUser = await this.createUser({
+          username: googleUser.name.fullName,
+          email: googleUser.primaryEmail
+        });
+        createdUsers.push(createdUser);
+
+        // If groupId is provided, add user to the group
+        if (groupId) {
+          await this.addUserToGroup(groupId, createdUser._id);
+        }
+      } catch (error) {
+        console.error(`Failed to process user ${googleUser.name.fullName}:`, error);
+        // Continue processing other users even if one fails
+      }
+    }
+    
+    return createdUsers;
   }
 }

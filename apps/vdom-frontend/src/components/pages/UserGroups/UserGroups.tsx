@@ -1,6 +1,5 @@
-import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
-import { UserGroupsAPI } from '../../../services/userGroupService';
+import { UserGroupsAPI, GoogleDirectoryUser } from '../../../services/userGroupService';
 import { CreateUserGroupFormData, IGroup, CreateUserGroupPayload, IUser, IApplication } from './types';
 import { UserGroupCard } from './UserGroupCard';
 import { CreateUserGroupModal } from './CreateUserGroupModal';
@@ -37,7 +36,7 @@ export function UserGroups() {
       console.log('Fetched user groups from API:', backendResponse);
 
       // Sort the groups alphabetically by name
-      const sortedGroups = backendResponse.sort((a, b) => a.name.localeCompare(b.name));
+      const sortedGroups = [...backendResponse].sort((a, b) => a.name.localeCompare(b.name));
       setUserGroups(sortedGroups);
     } catch (err) {
       console.error('Error fetching user groups from API:', err);
@@ -141,7 +140,7 @@ export function UserGroups() {
   };
 
   // Handle create group form submission
-  const handleCreateGroupSubmit = async (formData: CreateUserGroupFormData) => {
+  const handleCreateGroupSubmit = async (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[]) => {
     try {
       setCreateGroupLoading(true);
       setCreateGroupError(null);
@@ -161,28 +160,49 @@ export function UserGroups() {
       const createdGroup = await UserGroupsAPI.createUserGroup(payload);
       console.log('User group created successfully:', createdGroup);
 
-      // Create an IGroup with the member and application objects for display
-      const groupWithDetails: IGroup = {
-        ...createdGroup,
-        members: formData.selectedUsers.map(userId =>
-          availableUsers.find(u => u._id === userId)
-        ).filter((user): user is IUser => user !== undefined),
-        applications: formData.selectedApplications.map(appId =>
-          availableApplications.find(a => a._id === appId)
-        ).filter((app): app is IApplication => app !== undefined)
-      };
+      // Process Google Directory users if any were selected
+      if (googleUsers && googleUsers.length > 0) {
+        console.log('Processing Google Directory users:', googleUsers);
+        try {
+          await UserGroupsAPI.processGoogleDirectoryUsers(googleUsers, createdGroup._id);
+          console.log('Google Directory users processed successfully');
+        } catch (error) {
+          console.error('Error processing Google Directory users:', error);
+        }
+      }
 
-      setUserGroups(prev => [groupWithDetails, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+      // Refetch groups to get the latest data including newly added users
+      const refreshedGroups = await UserGroupsAPI.getUserGroups();
+      const refreshedGroup = refreshedGroups.find(g => g._id === createdGroup._id);
+
+      if (refreshedGroup) {
+        setUserGroups(prev => [refreshedGroup, ...prev.filter(g => g._id !== createdGroup._id)].sort((a, b) => a.name.localeCompare(b.name)));
+        
+        // Refresh available users to include any newly created ones
+        await loadReferenceData();
+      } else {
+        // Fallback if we can't find the refreshed group
+        const groupWithDetails: IGroup = {
+          ...createdGroup,
+          members: formData.selectedUsers.map(userId =>
+            availableUsers.find(u => u._id === userId)
+          ).filter((user): user is IUser => user !== undefined),
+          applications: formData.selectedApplications.map(appId =>
+            availableApplications.find(a => a._id === appId)
+          ).filter((app): app is IApplication => app !== undefined)
+        };
+        setUserGroups(prev => [groupWithDetails, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+      }
 
       // Close the modal
       setIsCreateModalOpen(false);
       setCreateGroupError(null);
 
       // Show success message
-      setSuccessMessage(`User group "${groupWithDetails.name}" was created successfully`);
+      setSuccessMessage(`User group "${createdGroup.name}" was created successfully`);
       setTimeout(() => setSuccessMessage(null), 5000); // Clear after 5 seconds
 
-      console.log(`User group "${groupWithDetails.name}" created and added to list`);
+      console.log(`User group "${createdGroup.name}" created and added to list`);
 
     } catch (error) {
       console.error('Error creating user group:', error);
@@ -222,7 +242,7 @@ export function UserGroups() {
   };
 
   // Handle edit group form submission
-  const handleEditGroupSubmit = async (formData: CreateUserGroupFormData) => {
+  const handleEditGroupSubmit = async (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[], usersToRemove?: string[]) => {
     if (!selectedGroupForEdit) return;
 
     try {
@@ -244,35 +264,55 @@ export function UserGroups() {
       const updatedGroup = await UserGroupsAPI.updateUserGroup(selectedGroupForEdit._id, payload);
       console.log('User group updated successfully:', updatedGroup);
 
-      // Create an IGroup with the member and application objects for display
-      const groupWithDetails: IGroup = {
-        ...updatedGroup,
-        members: formData.selectedUsers.map(userId =>
-          availableUsers.find(u => u._id === userId)
-        ).filter((user): user is IUser => user !== undefined),
-        applications: formData.selectedApplications.map(appId =>
-          availableApplications.find(a => a._id === appId)
-        ).filter((app): app is IApplication => app !== undefined)
-      };
+      // Process Google Directory users if any were selected
+      if (googleUsers && googleUsers.length > 0) {
+        console.log('Processing Google Directory users:', googleUsers);
+        try {
+          await UserGroupsAPI.processGoogleDirectoryUsers(googleUsers, updatedGroup._id);
+          console.log('Google Directory users processed successfully');
+        } catch (error) {
+          console.error('Error processing Google Directory users:', error);
+        }
+      }
 
-      console.log('Group with details:', groupWithDetails);
+      // Remove users from group if any were marked for removal
+      if (usersToRemove && usersToRemove.length > 0) {
+        console.log('Removing users from group:', usersToRemove);
+        for (const userId of usersToRemove) {
+          try {
+            await UserGroupsAPI.removeUserFromGroup(updatedGroup._id, userId);
+            console.log(`User ${userId} removed from group successfully`);
+          } catch (error) {
+            console.error(`Error removing user ${userId} from group:`, error);
+          }
+        }
+      }
 
-      // Update the group in the list
-      setUserGroups(prev =>
-        prev.map(group =>
-          group._id === selectedGroupForEdit._id ? groupWithDetails : group
-        ).sort((a, b) => a.name.localeCompare(b.name))
-      );
+      // Refetch the updated group to get the latest data
+      const refreshedGroups = await UserGroupsAPI.getUserGroups();
+      const refreshedGroup = refreshedGroups.find(g => g._id === updatedGroup._id);
+
+      if (refreshedGroup) {
+        // Update the group in the list with fresh data
+        setUserGroups(prev =>
+          prev.map(group =>
+            group._id === selectedGroupForEdit._id ? refreshedGroup : group
+          ).sort((a, b) => a.name.localeCompare(b.name))
+        );
+
+        // Also refresh available users to include any newly created ones
+        await loadReferenceData();
+      }
 
       // Close the modal
       setIsEditModalOpen(false);
       setSelectedGroupForEdit(null);
 
       // Show success message
-      setSuccessMessage(`User group "${groupWithDetails.name}" was updated successfully`);
+      setSuccessMessage(`User group "${updatedGroup.name}" was updated successfully`);
       setTimeout(() => setSuccessMessage(null), 5000); // Clear after 5 seconds
 
-      console.log(`User group "${groupWithDetails.name}" updated successfully`);
+      console.log(`User group "${updatedGroup.name}" updated successfully`);
 
     } catch (error) {
       console.error('Error updating user group:', error);

@@ -1,4 +1,3 @@
-//// filepath: /home/mustafaabbas/Work/Probation/LogStream/LogStream/apps/api-gateway/src/routes/userGroups.ts
 import { Router } from 'express'
 import { authenticateJWT, requireAdmin } from '../middlewares/auth'
 import * as userGroupsController from '../controllers/userGroups.controller'
@@ -19,6 +18,10 @@ router.put('/:id', requireAdmin, validate(userGroupValidation.updateUserGroup), 
 router.delete('/:id', requireAdmin, validate(userGroupValidation.deleteUserGroup), userGroupsController.deleteUserGroup)
 
 router.post('/:id/restore', validate(userGroupValidation.restoreUserGroup), userGroupsController.restoreUserGroup)
+
+router.post('/:id/add-member', requireAdmin, userGroupsController.addUserToGroup)
+
+router.post('/:id/remove-member', requireAdmin, userGroupsController.removeUserFromGroup)
 
 export default router
 
