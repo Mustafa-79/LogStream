@@ -5,6 +5,7 @@ import { FilterState } from "../components/LogFilter/types";
 
 export const useAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [initialApplications, setInitialApplications] = useState<Array<{ value: string; label: string }>>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refetching, setRefetching] = useState<boolean>(false);
   const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
@@ -32,6 +33,16 @@ export const useAnalytics = () => {
       const response = await AnalyticsService.fetchAnalytics(filters);
       setAnalyticsData(response.data);
       setCurrentFilters(filters);
+      
+      // Store initial applications list only on first load (no filters)
+      if (!filters && response.data.applicationCounts) {
+        const apps = response.data.applicationCounts.map(app => ({
+          value: app._id,
+          label: app.applicationName
+        }));
+        setInitialApplications(apps);
+      }
+      
       // Clear error on successful fetch
       setError(null);
     } catch (err) {
@@ -62,11 +73,8 @@ export const useAnalytics = () => {
     fetchAnalytics(filters, false, true);
   };
 
-  // Extract applications from analytics data
-  const applications = analyticsData?.applicationCounts?.map(app => ({
-    value: app._id,
-    label: app.applicationName
-  })) || [];
+  // Use initial applications list for dropdown (not filtered data)
+  const applications = initialApplications;
 
   return {
     analyticsData,

@@ -92,36 +92,40 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setFilters(newFilters);
   };
 
-  // Select all applications
-  const selectAllApplications = () => {
-    const allAppsSet = new Set(applications.map(app => app.value));
-    setApplicationsValue(allAppsSet);
-    const newFilters = { ...filters, applications: applications.map(app => app.value) };
-    setFilters(newFilters);
+  // Toggle all applications
+  const toggleAllApplications = () => {
+    const allSelected = applicationsValue.size === applications.length;
+    if (allSelected) {
+      // Clear all
+      const emptySet = new Set<string>();
+      setApplicationsValue(emptySet);
+      const newFilters = { ...filters, applications: [] };
+      setFilters(newFilters);
+    } else {
+      // Select all
+      const allAppsSet = new Set(applications.map(app => app.value));
+      setApplicationsValue(allAppsSet);
+      const newFilters = { ...filters, applications: applications.map(app => app.value) };
+      setFilters(newFilters);
+    }
   };
 
-  // Clear all applications
-  const clearAllApplications = () => {
-    const emptySet = new Set<string>();
-    setApplicationsValue(emptySet);
-    const newFilters = { ...filters, applications: [] };
-    setFilters(newFilters);
-  };
-
-  // Select all log levels
-  const selectAllLogLevels = () => {
-    const allLevelsSet = new Set(LOG_LEVELS);
-    setLogLevelsValue(allLevelsSet);
-    const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
-    setFilters(newFilters);
-  };
-
-  // Clear all log levels
-  const clearAllLogLevels = () => {
-    const emptySet = new Set<string>();
-    setLogLevelsValue(emptySet);
-    const newFilters = { ...filters, logLevels: [] };
-    setFilters(newFilters);
+  // Toggle all log levels
+  const toggleAllLogLevels = () => {
+    const allSelected = logLevelsValue.size === LOG_LEVELS.length;
+    if (allSelected) {
+      // Clear all
+      const emptySet = new Set<string>();
+      setLogLevelsValue(emptySet);
+      const newFilters = { ...filters, logLevels: [] };
+      setFilters(newFilters);
+    } else {
+      // Select all
+      const allLevelsSet = new Set(LOG_LEVELS);
+      setLogLevelsValue(allLevelsSet);
+      const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
+      setFilters(newFilters);
+    }
   };
 
   // Clear all filters
@@ -173,34 +177,29 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
         </div>
       </div>
 
-      {/* Filters in a single row (responsive) */}
       <div class="oj-flex oj-flex-wrap oj-sm-align-items-stretch oj-sm-flex-direction-row">
         {/* Applications Filter */}
         <div class="oj-flex-item oj-sm-12 oj-md-3 oj-sm-padding-2x-horizontal oj-sm-padding-2x-bottom">
           <oj-label for="applications-filter">
             Applications
           </oj-label>
-          <oj-c-select-multiple
-            id="applications-filter"
-            label-hint="Select applications..."
-            label-edge="inside"
-            data={applicationsDP}
-            value={applicationsValue}
-            onvalueChanged={handleApplicationChange}
-            item-text="label"
-          />
-          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-2x-top">
+          <div class="oj-flex oj-sm-align-items-center">
+            <oj-c-select-multiple
+              id="applications-filter"
+              label-hint="Select applications..."
+              label-edge="inside"
+              data={applicationsDP}
+              value={applicationsValue}
+              onvalueChanged={handleApplicationChange}
+              item-text="label"
+              style="flex: 1; margin-right: 8px;"
+            />
             <oj-button
-              class="oj-button-sm"
-              onojAction={selectAllApplications}
+              class="oj-button-sm oj-button-outlined-chrome"
+              onojAction={toggleAllApplications}
+              title={applicationsValue.size === applications.length ? "Clear All Applications" : "Select All Applications"}
             >
-              Select All
-            </oj-button>
-            <oj-button
-              class="oj-button-sm"
-              onojAction={clearAllApplications}
-            >
-              Clear All
+              <span slot="startIcon" class={applicationsValue.size === applications.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
             </oj-button>
           </div>
         </div>
@@ -210,27 +209,23 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
           <oj-label for="log-levels-filter">
             Log Levels
           </oj-label>
-          <oj-c-select-multiple
-            id="log-levels-filter"
-            label-hint="Select log levels..."
-            label-edge="inside"
-            data={logLevelsDP}
-            value={logLevelsValue}
-            onvalueChanged={handleLogLevelChange}
-            item-text="label"
-          />
-          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-2x-top">
+          <div class="oj-flex oj-sm-align-items-center">
+            <oj-c-select-multiple
+              id="log-levels-filter"
+              label-hint="Select log levels..."
+              label-edge="inside"
+              data={logLevelsDP}
+              value={logLevelsValue}
+              onvalueChanged={handleLogLevelChange}
+              item-text="label"
+              style="flex: 1; margin-right: 8px;"
+            />
             <oj-button
-              class="oj-button-sm"
-              onojAction={selectAllLogLevels}
+              class="oj-button-sm oj-button-outlined-chrome"
+              onojAction={toggleAllLogLevels}
+              title={logLevelsValue.size === LOG_LEVELS.length ? "Clear All Log Levels" : "Select All Log Levels"}
             >
-              Select All
-            </oj-button>
-            <oj-button
-              class="oj-button-sm"
-              onojAction={clearAllLogLevels}
-            >
-              Clear All
+              <span slot="startIcon" class={logLevelsValue.size === LOG_LEVELS.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
             </oj-button>
           </div>
         </div>
