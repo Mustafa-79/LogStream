@@ -15,7 +15,7 @@ export class AnalyticsController {
    */
   static async getAnalytics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user?.userId || req.user?.userId;
+      const userId = req.user?.userId;
       
       if (!userId) {
         res.status(401).json(

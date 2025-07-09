@@ -11,7 +11,7 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 export const Analytics = () => {
-  const { analyticsData, loading, refetching, error, refetch, applications } = useAnalytics();
+  const { analyticsData, loading, refetching, applyingFilters, error, refetch, applyFilters, applications } = useAnalytics();
   const [filters, setFilters] = useState<FilterState>({
     applications: [],
     logLevels: [],
@@ -22,8 +22,8 @@ export const Analytics = () => {
   // Handle filter changes
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
-    // TODO: Apply filters to analytics data
-    console.log('Analytics filters changed:', newFilters);
+    // Apply filters to analytics data by calling the API
+    applyFilters(newFilters);
   };
 
   // Simple memoization to prevent unnecessary chart re-renders when data hasn't changed
@@ -116,6 +116,7 @@ export const Analytics = () => {
         onFilterChange={handleFilterChange}
         initialFilters={filters}
         applications={applications}
+        applyingFilters={applyingFilters}
       />
 
 

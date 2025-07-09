@@ -10,6 +10,7 @@ export interface LogFilterProps {
   initialFilters?: Partial<FilterState>;
   className?: string;
   applications?: DropdownOption[];
+  applyingFilters?: boolean;
 }
 
 export interface DropdownOption {

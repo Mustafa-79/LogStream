@@ -31,7 +31,7 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit'
 });
 
-const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [] }: LogFilterProps) => {
+const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [], applyingFilters = false }: LogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
     logLevels: initialFilters.logLevels || [],
@@ -60,7 +60,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const selectedApps = Array.from(selectedKeys);
       const newFilters = { ...filters, applications: selectedApps };
       setFilters(newFilters);
-      onFilterChange(newFilters);
     }
   };
 
@@ -72,24 +71,25 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const selectedLevels = Array.from(selectedKeys);
       const newFilters = { ...filters, logLevels: selectedLevels };
       setFilters(newFilters);
-      onFilterChange(newFilters);
     }
   };
 
   // Handle from date change
   const handleFromDateChange = (event: any) => {
     const fromDate = event.detail.value;
-    const newFilters = { ...filters, fromDate };
+    // Convert to ISO string if it's a valid date
+    const isoFromDate = fromDate ? new Date(fromDate).toISOString() : null;
+    const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Handle to date change
   const handleToDateChange = (event: any) => {
     const toDate = event.detail.value;
-    const newFilters = { ...filters, toDate };
+    // Convert to ISO string if it's a valid date
+    const isoToDate = toDate ? new Date(toDate).toISOString() : null;
+    const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Select all applications
@@ -98,7 +98,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setApplicationsValue(allAppsSet);
     const newFilters = { ...filters, applications: applications.map(app => app.value) };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Clear all applications
@@ -107,7 +106,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setApplicationsValue(emptySet);
     const newFilters = { ...filters, applications: [] };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Select all log levels
@@ -116,7 +114,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setLogLevelsValue(allLevelsSet);
     const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Clear all log levels
@@ -125,7 +122,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setLogLevelsValue(emptySet);
     const newFilters = { ...filters, logLevels: [] };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Clear all filters
@@ -168,9 +164,10 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             class="oj-button-sm oj-button-primary"
             onojAction={applyFilters}
             style="margin-left: 8px;"
+            disabled={applyingFilters}
           >
-            <span slot="startIcon" class="oj-ux-ico-filter"></span>
-            Apply Filters
+            <span slot="startIcon" class={applyingFilters ? "oj-ux-ico-clock" : "oj-ux-ico-filter"}></span>
+            {applyingFilters ? "Applying..." : "Apply Filters"}
           </oj-button>
 
         </div>
