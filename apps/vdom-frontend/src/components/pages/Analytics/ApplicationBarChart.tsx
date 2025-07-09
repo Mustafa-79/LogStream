@@ -49,7 +49,7 @@ const ApplicationBarChart = ({ data }: { data: ApplicationCount[] }) => {
   return (
     <div class="oj-md-margin-4x-horizontal">
       <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
-        Application Counts
+        Log Counts
       </h3>
       <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
         This chart displays the number of logs per application.
