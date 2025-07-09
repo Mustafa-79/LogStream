@@ -17,12 +17,15 @@ type ChartProps = ComponentProps<"oj-chart"> & {
 };
 
 const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
+
+  console.log("📊 Volume line chart rendered with:", data);
+
   // Transform the analytics data to chart format
   const chartData = useMemo(() => {
     return data.map((item, index) => ({
       id: index,
       series: "Log Volume",
-      quarter: new Date(item.timestamp).toLocaleDateString(),
+      quarter: item._id,
       value: item.count
     }));
   }, [data]);
@@ -90,7 +93,7 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
         data={chartDataProvider}
         hoverBehavior="dim"
         class="oj-sm-margin-2x-top"
-        style="height: 300px; width: 100%;">
+        style="width: 100%;">
 
         <template slot="seriesTemplate" render={chartSeries}></template>
         <template slot="itemTemplate" render={chartItem}></template>

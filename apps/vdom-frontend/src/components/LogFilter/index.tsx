@@ -3,7 +3,7 @@ import { useState, useEffect } from "preact/hooks";
 import { FilterState, LogFilterProps } from "./types";
 import ArrayDataProvider = require("ojs/ojarraydataprovider");
 import { IntlDateTimeConverter } from "ojs/ojconverter-datetime";
-import "oj-c/select-multiple";
+  import "oj-c/select-multiple";
 import "ojs/ojinputtext";
 // import "ojs/ojinputdatetime";
 import 'ojs/ojdatetimepicker';
@@ -31,6 +31,9 @@ const timeFullConverter = new IntlDateTimeConverter({
   minute: '2-digit',
   second: '2-digit'
 });
+
+
+// TODO: Choose 1 app -> unchoose -> Summary still shows 1 app selected
 
 /**
  * LogFilter Component
