@@ -11,7 +11,7 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 export const Analytics = () => {
-  const { analyticsData, loading, refetching, error, refetch, applications } = useAnalytics();
+  const { analyticsData, loading, refetching, applyingFilters, error, refetch, applyFilters, applications, defaultDates } = useAnalytics();
   const [filters, setFilters] = useState<FilterState>({
     applications: [],
     logLevels: [],
@@ -22,14 +22,14 @@ export const Analytics = () => {
   // Handle filter changes
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
-    // TODO: Apply filters to analytics data
-    console.log('Analytics filters changed:', newFilters);
+    // Apply filters to analytics data by calling the API
+    applyFilters(newFilters);
   };
 
   // Simple memoization to prevent unnecessary chart re-renders when data hasn't changed
   const memoizedChartData = useMemo(() => {
     if (!analyticsData) return null;
-    
+
     return {
       logLevelDistribution: analyticsData.logLevelDistribution,
       applicationCounts: analyticsData.applicationCounts,
@@ -91,9 +91,9 @@ export const Analytics = () => {
       {/* Page Header */}
       <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
         <div style="flex: 1;">
-          <h1 style="color: #6366f1; margin: 0; font-size: 2rem; font-weight: 600; font-family: 'Poppins', sans-serif;">
+            <h1 class="oj-typography-heading-lg" style="margin: 0;">
             Analytics Dashboard
-          </h1>
+            </h1>
           <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
             Visualize log patterns, application performance, and system insights.
           </p>
@@ -112,19 +112,21 @@ export const Analytics = () => {
       </div>
 
       {/* Log Filter Component */}
-      <LogFilter 
+      <LogFilter
         onFilterChange={handleFilterChange}
         initialFilters={filters}
         applications={applications}
+        applyingFilters={applyingFilters}
+        defaultDates={defaultDates}
       />
 
-      
+
       {/* Charts Section */}
       <div class="oj-flex oj-sm-flex-direction-row oj-sm-margin-4x-bottom">
         <div class="oj-flex-item oj-panel oj-sm-margin-2x-end oj-sm-margin-2x-bottom oj-panel-shadow-md">
           <PieChart data={memoizedChartData?.logLevelDistribution || []} />
         </div>
-        
+
         <div class="oj-flex-item oj-panel oj-sm-margin-2x-start oj-sm-margin-2x-bottom oj-panel-shadow-md">
           <ApplicationBarChart data={memoizedChartData?.applicationCounts || []} />
         </div>

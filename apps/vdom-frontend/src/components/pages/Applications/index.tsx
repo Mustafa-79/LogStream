@@ -228,7 +228,7 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
       {/* Header */}
       <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
         <div style="flex: 1;">
-          <h1 class="oj-header-page-title" style="color: #6366f1; margin: 0; font-size: 2rem; font-weight: 600; font-family: 'Poppins', sans-serif;">
+          <h1 class="oj-typography-heading-lg" style="margin: 0;">
             Applications
           </h1>
           <div class="oj-flex oj-align-items-center" style="margin-top: 4px; gap: 8px;">

@@ -11,6 +11,7 @@ import 'ojs/ojdatetimepicker';
 import "ojs/ojformlayout";
 import "ojs/ojbutton";
 import "ojs/ojlabel";
+import { getDefaultDateFilters } from "../../utils/dateUtils";
 
 // Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
@@ -31,12 +32,37 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit'
 });
 
-const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [] }: LogFilterProps) => {
+/**
+ * LogFilter Component
+ * 
+ * @param onFilterChange - Callback function called when filters change
+ * @param initialFilters - Initial filter values (optional)
+ * @param className - Additional CSS classes (optional)
+ * @param applications - List of available applications for filtering (optional)
+ * @param applyingFilters - Whether filters are currently being applied (optional)
+ * @param defaultDates - Default date range for from/to inputs (optional)
+ *                      If not provided, date inputs will be empty initially
+ * 
+ * Usage examples:
+ * 
+ * // With default dates (7 days ago to now)
+ * <LogFilter defaultDates={getDefaultDateFilters()} />
+ * 
+ * // With custom default dates
+ * <LogFilter defaultDates={{
+ *   fromDate: new Date('2025-01-01').toISOString(),
+ *   toDate: new Date().toISOString()
+ * }} />
+ * 
+ * // Without default dates (empty inputs)
+ * <LogFilter />
+ */
+const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [], applyingFilters = false, defaultDates }: LogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
     logLevels: initialFilters.logLevels || [],
-    fromDate: initialFilters.fromDate || null,
-    toDate: initialFilters.toDate || null,
+    fromDate: initialFilters.fromDate || (defaultDates?.fromDate || null),
+    toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
 
   // Create ArrayDataProviders dynamically based on props
@@ -60,7 +86,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const selectedApps = Array.from(selectedKeys);
       const newFilters = { ...filters, applications: selectedApps };
       setFilters(newFilters);
-      onFilterChange(newFilters);
     }
   };
 
@@ -72,60 +97,69 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const selectedLevels = Array.from(selectedKeys);
       const newFilters = { ...filters, logLevels: selectedLevels };
       setFilters(newFilters);
-      onFilterChange(newFilters);
     }
   };
 
   // Handle from date change
   const handleFromDateChange = (event: any) => {
     const fromDate = event.detail.value;
-    const newFilters = { ...filters, fromDate };
+    let isoFromDate = null;
+    if (fromDate) {
+      const dateObj = new Date(fromDate);
+      dateObj.setMilliseconds(0); // Set milliseconds to 0
+      isoFromDate = dateObj.toISOString();
+    }
+    const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
   // Handle to date change
   const handleToDateChange = (event: any) => {
     const toDate = event.detail.value;
-    const newFilters = { ...filters, toDate };
+    let isoToDate = null;
+    if (toDate) {
+      const dateObj = new Date(toDate);
+      dateObj.setMilliseconds(0); // Set milliseconds to 0
+      isoToDate = dateObj.toISOString();
+    }
+    const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
-  // Select all applications
-  const selectAllApplications = () => {
-    const allAppsSet = new Set(applications.map(app => app.value));
-    setApplicationsValue(allAppsSet);
-    const newFilters = { ...filters, applications: applications.map(app => app.value) };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+  // Toggle all applications
+  const toggleAllApplications = () => {
+    const allSelected = applicationsValue.size === applications.length;
+    if (allSelected) {
+      // Clear all
+      const emptySet = new Set<string>();
+      setApplicationsValue(emptySet);
+      const newFilters = { ...filters, applications: [] };
+      setFilters(newFilters);
+    } else {
+      // Select all
+      const allAppsSet = new Set(applications.map(app => app.value));
+      setApplicationsValue(allAppsSet);
+      const newFilters = { ...filters, applications: applications.map(app => app.value) };
+      setFilters(newFilters);
+    }
   };
 
-  // Clear all applications
-  const clearAllApplications = () => {
-    const emptySet = new Set<string>();
-    setApplicationsValue(emptySet);
-    const newFilters = { ...filters, applications: [] };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  // Select all log levels
-  const selectAllLogLevels = () => {
-    const allLevelsSet = new Set(LOG_LEVELS);
-    setLogLevelsValue(allLevelsSet);
-    const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  // Clear all log levels
-  const clearAllLogLevels = () => {
-    const emptySet = new Set<string>();
-    setLogLevelsValue(emptySet);
-    const newFilters = { ...filters, logLevels: [] };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+  // Toggle all log levels
+  const toggleAllLogLevels = () => {
+    const allSelected = logLevelsValue.size === LOG_LEVELS.length;
+    if (allSelected) {
+      // Clear all
+      const emptySet = new Set<string>();
+      setLogLevelsValue(emptySet);
+      const newFilters = { ...filters, logLevels: [] };
+      setFilters(newFilters);
+    } else {
+      // Select all
+      const allLevelsSet = new Set(LOG_LEVELS);
+      setLogLevelsValue(allLevelsSet);
+      const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
+      setFilters(newFilters);
+    }
   };
 
   // Clear all filters
@@ -133,11 +167,15 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     const emptySet = new Set<string>();
     setApplicationsValue(emptySet);
     setLogLevelsValue(emptySet);
+    
+    // Reset to default date values using the same utility
+    const defaultDates = getDefaultDateFilters();
+    
     const newFilters: FilterState = {
       applications: [],
       logLevels: [],
-      fromDate: null,
-      toDate: null,
+      fromDate: defaultDates?.fromDate || null,
+      toDate: defaultDates?.toDate || null,
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
@@ -168,42 +206,38 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             class="oj-button-sm oj-button-primary"
             onojAction={applyFilters}
             style="margin-left: 8px;"
+            disabled={applyingFilters}
           >
-            <span slot="startIcon" class="oj-ux-ico-filter"></span>
-            Apply Filters
+            <span slot="startIcon" class={applyingFilters ? "oj-ux-ico-clock" : "oj-ux-ico-filter"}></span>
+            {applyingFilters ? "Applying..." : "Apply Filters"}
           </oj-button>
 
         </div>
       </div>
 
-      {/* Filters in a single row (responsive) */}
       <div class="oj-flex oj-flex-wrap oj-sm-align-items-stretch oj-sm-flex-direction-row">
         {/* Applications Filter */}
         <div class="oj-flex-item oj-sm-12 oj-md-3 oj-sm-padding-2x-horizontal oj-sm-padding-2x-bottom">
           <oj-label for="applications-filter">
             Applications
           </oj-label>
-          <oj-c-select-multiple
-            id="applications-filter"
-            label-hint="Select applications..."
-            label-edge="inside"
-            data={applicationsDP}
-            value={applicationsValue}
-            onvalueChanged={handleApplicationChange}
-            item-text="label"
-          />
-          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-2x-top">
+          <div class="oj-flex oj-sm-align-items-center">
+            <oj-c-select-multiple
+              id="applications-filter"
+              label-hint="Select applications..."
+              label-edge="inside"
+              data={applicationsDP}
+              value={applicationsValue}
+              onvalueChanged={handleApplicationChange}
+              item-text="label"
+              style="flex: 1; margin-right: 8px;"
+            />
             <oj-button
-              class="oj-button-sm"
-              onojAction={selectAllApplications}
+              class="oj-button-sm oj-button-outlined-chrome"
+              onojAction={toggleAllApplications}
+              title={applicationsValue.size === applications.length ? "Clear All Applications" : "Select All Applications"}
             >
-              Select All
-            </oj-button>
-            <oj-button
-              class="oj-button-sm"
-              onojAction={clearAllApplications}
-            >
-              Clear All
+              <span slot="startIcon" class={applicationsValue.size === applications.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
             </oj-button>
           </div>
         </div>
@@ -213,27 +247,23 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
           <oj-label for="log-levels-filter">
             Log Levels
           </oj-label>
-          <oj-c-select-multiple
-            id="log-levels-filter"
-            label-hint="Select log levels..."
-            label-edge="inside"
-            data={logLevelsDP}
-            value={logLevelsValue}
-            onvalueChanged={handleLogLevelChange}
-            item-text="label"
-          />
-          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-2x-top">
+          <div class="oj-flex oj-sm-align-items-center">
+            <oj-c-select-multiple
+              id="log-levels-filter"
+              label-hint="Select log levels..."
+              label-edge="inside"
+              data={logLevelsDP}
+              value={logLevelsValue}
+              onvalueChanged={handleLogLevelChange}
+              item-text="label"
+              style="flex: 1; margin-right: 8px;"
+            />
             <oj-button
-              class="oj-button-sm"
-              onojAction={selectAllLogLevels}
+              class="oj-button-sm oj-button-outlined-chrome"
+              onojAction={toggleAllLogLevels}
+              title={logLevelsValue.size === LOG_LEVELS.length ? "Clear All Log Levels" : "Select All Log Levels"}
             >
-              Select All
-            </oj-button>
-            <oj-button
-              class="oj-button-sm"
-              onojAction={clearAllLogLevels}
-            >
-              Clear All
+              <span slot="startIcon" class={logLevelsValue.size === LOG_LEVELS.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
             </oj-button>
           </div>
         </div>
