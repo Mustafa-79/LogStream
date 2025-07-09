@@ -4,12 +4,18 @@ import "ojs/ojswitch";
 import "ojs/ojselectsingle";
 import "ojs/ojinputtext";
 import ArrayDataProvider = require("ojs/ojarraydataprovider");
+import { AuthManager } from "../../../utils/auth";
 
 export function Settings() {
   const [enableAlerts, setEnableAlerts] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
   const [alertThreshold, setAlertThreshold] = useState("");
   const [timePeriod, setTimePeriod] = useState("");
+  
+  // Check if current user is admin using AuthManager
+  const currentUser = AuthManager.getCurrentUser();
+  const isAdmin = currentUser?.isAdmin || false;
+  const [dataRetentionPeriod, setDataRetentionPeriod] = useState("30days");
 
   // Static data for applications
   const applications = [
@@ -28,9 +34,19 @@ export function Settings() {
     { value: "1hr", label: "1 hour" }
   ];
 
+  const retentionPeriods = [
+    { value: "7days", label: "7 days" },
+    { value: "30days", label: "30 days" },
+    { value: "90days", label: "90 days" },
+    { value: "180days", label: "180 days" },
+    { value: "1year", label: "1 year" },
+    { value: "2years", label: "2 years" }
+  ];
+
   // Create data providers for Oracle JET components
   const applicationsDataProvider = new ArrayDataProvider(applications, { keyAttributes: "value" });
   const timePeriodsDataProvider = new ArrayDataProvider(timePeriods, { keyAttributes: "value" });
+  const retentionPeriodsDataProvider = new ArrayDataProvider(retentionPeriods, { keyAttributes: "value" });
 
   // Application status data as state
   const [applicationStatus, setApplicationStatus] = useState([
@@ -128,6 +144,10 @@ export function Settings() {
     updateApplicationStatus(undefined, periodDisplay);
   };
 
+  const handleDataRetentionChange = (event: any) => {
+    setDataRetentionPeriod(event.detail.value);
+  };
+
   const getTimePeriodDisplay = (period: string): string => {
     const periodMap: Record<string, string> = {
       "5 minutes": "5 min",
@@ -166,7 +186,7 @@ export function Settings() {
       </div>
 
       {/* Notifications Block */}
-      <div class="notifications-block" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+      <div class="notifications-block oj-sm-shadow" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; rgba(0, 0, 0, 0.1);">
         {/* Notifications Header */}
         <div style="display: flex; align-items: center; margin-bottom: 20px;">
           <div style="display: flex; align-items: center; gap: 12px;">
@@ -297,6 +317,44 @@ export function Settings() {
         </div>
       </div>
 
+      {/* Data Retention Block - Admin Only */}
+      {isAdmin && (
+        <div class="data-retention-block" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+          {/* Data Retention Layout */}
+          <div class="data-retention-grid">
+            {/* Left Side - Header */}
+            <div>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6"></path>
+                    <path d="m21 12-6-3-6 3-6-3"></path>
+                  </svg>
+                </div>
+                <h3 style="margin: 0; color: #111827; font-size: 1.125rem; font-weight: 600;">Data Retention</h3>
+              </div>
+              <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Configure how long data is stored in the system</p>
+            </div>
+
+            {/* Right Side - Dropdown */}
+            <div>
+              <label htmlFor="retention-period" style="display: block; margin-bottom: 8px; color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+                Retention Period
+              </label>
+              <oj-select-single
+                id="retention-period"
+                data={retentionPeriodsDataProvider}
+                value={dataRetentionPeriod}
+                onvalueChanged={handleDataRetentionChange}
+                placeholder="Select retention period..."
+                style="width: 100%; min-width: 200px;"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         /* Grid Layout */
         .notifications-grid {
@@ -314,8 +372,28 @@ export function Settings() {
           overflow: hidden;
         }
 
+        /* Data Retention Grid */
+        .data-retention-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+          align-items: start;
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+        }
+
         /* Notifications Block */
         .notifications-block {
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+          padding: 16px !important;
+        }
+
+        /* Data Retention Block */
+        .data-retention-block {
           width: 100%;
           max-width: 100%;
           box-sizing: border-box;
@@ -341,7 +419,8 @@ export function Settings() {
 
         /* Responsive Breakpoints */
         @media (min-width: 768px) {
-          .notifications-block {
+          .notifications-block,
+          .data-retention-block {
             padding: 24px !important;
           }
         }
@@ -372,6 +451,11 @@ export function Settings() {
 
           .notifications-grid {
             gap: 20px !important;
+          }
+
+          .data-retention-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
           }
         }
         
