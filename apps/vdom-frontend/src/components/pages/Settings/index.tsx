@@ -35,12 +35,12 @@ export function Settings() {
   ];
 
   const retentionPeriods = [
-    { value: "7days", label: "7 days" },
-    { value: "30days", label: "30 days" },
-    { value: "90days", label: "90 days" },
-    { value: "180days", label: "180 days" },
-    { value: "1year", label: "1 year" },
-    { value: "2years", label: "2 years" }
+    { value: "7", label: "7 days" },
+    { value: "10", label: "10 days" },
+    { value: "15", label: "15 days" },
+    { value: "20", label: "20 days" },
+    { value: "25", label: "25 days" },
+    { value: "30", label: "30 days" },
   ];
 
   // Create data providers for Oracle JET components
@@ -158,18 +158,18 @@ export function Settings() {
   };
 
   return (
-    <div class="oj-web-applayout-page" style="padding: 40px; padding-top: 20px;">
+    <div class="oj-web-applayout-page oj-sm-padding-8x">
       {/* Header */}
-      <div class="header-container" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
-        <div>
-          <h1 class="oj-header-page-title" style="margin: 0; font-size: 2rem; font-weight: 600; color: #1f2937;">
+      <div class="oj-flex oj-justify-content-space-between oj-align-items-start oj-sm-margin-6x-bottom">
+        <div class="oj-flex-item">
+          <h1 class="oj-typography-heading-lg" style="color:rgb(0, 0, 0); margin: 0; font-family: 'Poppins', sans-serif;">
             Settings
           </h1>
-          <p style="color: #6b7280; margin: 0; font-size: 1rem; line-height: 1.5;">
+          <p class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-2x-top">
             Customize your logging dashboard experience and preferences.
           </p>
         </div>
-        <div class="header-buttons" style="display: flex; align-items: center; gap: 12px;">
+        <div class="oj-flex oj-sm-margin-4x-start" style="gap: 12px;">
           <oj-c-button 
             label="Reset"
             chroming="outlined"
@@ -185,30 +185,30 @@ export function Settings() {
         </div>
       </div>
 
-      {/* Notifications Block */}
-      <div class="notifications-block oj-sm-shadow" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; rgba(0, 0, 0, 0.1);">
+      {/* Notifications Card */}
+      <div class="oj-panel oj-panel-shadow-sm oj-sm-margin-4x-bottom oj-sm-padding-6x" style="background: white; border-radius: 8px;">
         {/* Notifications Header */}
-        <div style="display: flex; align-items: center; margin-bottom: 20px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+        <div class="oj-flex oj-sm-align-items-center oj-sm-margin-4x-bottom">
+          <div class="oj-flex oj-sm-align-items-center" style="gap: 12px;">
+            <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-center" style="width: 24px; height: 24px;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
             </div>
             <div>
-              <h3 style="margin: 0; color: #111827; font-size: 1.125rem; font-weight: 600;">Notifications</h3>
-              <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Configure alert settings and thresholds for your applications</p>
+              <h3 class="oj-typography-heading-sm oj-text-color-primary" style="margin: 0;">Notifications</h3>
+              <p class="oj-typography-body-sm oj-text-color-secondary" style="margin: 0;">Configure alert settings and thresholds for your applications</p>
             </div>
           </div>
         </div>
 
         {/* Enable Alerts Toggle */}
-        <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="oj-sm-margin-4x-bottom oj-sm-padding-6x" style="border-bottom: 1px solid #d5d7db;">
+          <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
             <div>
-              <h4 style="margin: 0; color: #374151; font-size: 1rem; font-weight: 500;">Enable Alerts</h4>
-              <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Receive notifications when log thresholds are exceeded</p>
+              <h4 class="oj-typography-body-md oj-text-color-primary" style="margin: 0; font-weight: 500;">Enable Alerts</h4>
+              <p class="oj-typography-body-sm oj-text-color-secondary" style="margin: 0;">Receive notifications when log thresholds are exceeded</p>
             </div>
             <oj-switch
               value={enableAlerts}
@@ -217,14 +217,14 @@ export function Settings() {
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div class="notifications-grid">
+        {/* Two Column Layout using Oracle JET Flex */}
+        <div class="oj-flex oj-flex-wrap oj-sm-margin-8x-horizontal" style="gap: 32px;">
           {/* Left Column - Configure Application */}
-          <div>
-            <h4 style="margin: 0 0 16px 0; color: #374151; font-size: 1rem; font-weight: 500;">Configure Application</h4>
+          <div class="oj-flex oj-sm-flex-direction-column oj-flex-item" style="min-width: 300px;">
+            <h4 class="oj-typography-body-md oj-text-color-primary oj-sm-margin-4x-bottom" style="margin: 0; font-weight: 500;">Configure Application</h4>
             
-            <div style="margin-bottom: 20px;">
-              <label htmlFor="app-select" style="display: block; margin-bottom: 8px; color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+            <div class="oj-sm-margin-4x-bottom">
+              <label htmlFor="app-select" class="oj-label oj-text-color-secondary">
                 Select Application
               </label>
               <oj-select-single
@@ -233,12 +233,12 @@ export function Settings() {
                 value={selectedApplication}
                 onvalueChanged={handleApplicationChange}
                 placeholder="Choose an application..."
-                style="width: 100%;"
+                class="oj-form-control-full-width"
               />
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <label htmlFor="alert-threshold" style="display: block; margin-bottom: 8px; color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+            <div class="oj-sm-margin-4x-bottom">
+              <label htmlFor="alert-threshold" class="oj-label oj-text-color-secondary">
                 Alert Threshold (logs/period)
               </label>
               <oj-input-text
@@ -246,12 +246,12 @@ export function Settings() {
                 value={alertThreshold}
                 onvalueChanged={handleThresholdChange}
                 placeholder="e.g., 100"
-                style="width: 100%;"
+                class="oj-form-control-full-width"
               />
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <label htmlFor="time-period" style="display: block; margin-bottom: 8px; color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+            <div class="oj-sm-margin-4x-bottom">
+              <label htmlFor="time-period" class="oj-label oj-text-color-secondary">
                 Time Period
               </label>
               <oj-select-single
@@ -260,34 +260,34 @@ export function Settings() {
                 value={timePeriod}
                 onvalueChanged={handleTimePeriodChange}
                 placeholder="Select time period..."
-                style="width: 100%;"
+                class="oj-form-control-full-width"
               />
             </div>
           </div>
 
           {/* Right Column - Application Status */}
-          <div>
-            <h4 style="margin: 0 0 16px 0; color: #374151; font-size: 1rem; font-weight: 500;">Application Status</h4>
+          <div class="oj-flex oj-sm-flex-direction-column oj-flex-item" style="min-width: 400px;">
+            <h4 class="oj-typography-body-md oj-text-color-primary oj-sm-margin-4x-bottom" style="margin: 0; font-weight: 500;">Application Status</h4>
             
-            <div class="status-table" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
-              {/* Table Header */}
-              <div class="status-table-inner" style="display: grid; grid-template-columns: 2fr 1fr 1fr 80px; gap: 8px; padding: 12px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                <div style="color: #6b7280; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Application</div>
-                <div style="color: #6b7280; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Threshold</div>
-                <div style="color: #6b7280; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Period</div>
-                <div style="color: #6b7280; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Status</div>
+              <div class="oj-flex oj-sm-padding-4x" style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);">
+                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary" style="flex: 2; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Application</div>
+                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary oj-text-align-center" style="flex: 1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Threshold</div>
+                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary oj-text-align-center" style="flex: 1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Period</div>
+                <div class="oj-typography-body-xs oj-text-color-secondary oj-text-align-center" style="width: 80px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Status</div>
               </div>
+            <div class="oj-panel oj-panel-shadow-sm" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; max-height: 400px; overflow-y: auto;">
+              {/* Table Header */}
 
               {/* Table Body */}
               {applicationStatus.map((app) => (
-                <div key={app.id} class="status-table-inner" style="display: grid; grid-template-columns: 2fr 1fr 1fr 80px; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; align-items: center;">
-                  <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <div key={app.id} class="oj-flex oj-sm-align-items-center oj-sm-padding-4x" style="border-bottom: 1px solid #e5e7eb;">
+                  <div class="oj-flex oj-sm-align-items-center oj-flex-item" style="flex: 2; gap: 8px; min-width: 0;">
                     <div style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%; flex-shrink: 0;"></div>
-                    <span style="color: #374151; font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{app.name}</span>
+                    <span class="oj-typography-body-sm" style="color: #374151; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{app.name}</span>
                   </div>
-                  <div style="color: #6b7280; font-size: 0.875rem; text-align: center;">{app.threshold}</div>
-                  <div style="color: #6b7280; font-size: 0.875rem; text-align: center;">{getTimePeriodDisplay(app.timePeriod)}</div>
-                  <div style="display: flex; justify-content: center;">
+                  <div class="oj-flex-item oj-typography-body-sm oj-text-color-secondary oj-text-align-center" style="flex: 1;">{app.threshold}</div>
+                  <div class="oj-flex-item oj-typography-body-sm oj-text-color-secondary oj-text-align-center" style="flex: 1;">{getTimePeriodDisplay(app.timePeriod)}</div>
+                  <div class="oj-flex oj-sm-justify-content-center" style="width: 80px;">
                     <oj-switch
                       value={app.enabled}
                       onvalueChanged={(event: any) => handleStatusToggle(app.name, event.detail.value)}
@@ -300,46 +300,47 @@ export function Settings() {
         </div>
 
         {/* Info Note */}
-        <div style="margin-top: 20px; padding: 12px 16px; background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 6px; display: flex; align-items: flex-start; gap: 8px;">
-          <div style="width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; margin-top: 2px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 16v-4"></path>
-              <path d="M12 8h.01"></path>
-            </svg>
-          </div>
-          <div>
-            <p style="margin: 0; color: #0c4a6e; font-size: 0.875rem; line-height: 1.4;">
-              <strong>Note:</strong> Changes to alert configurations will take effect within 5 minutes. 
-              You'll receive notifications via email and in-app alerts when thresholds are exceeded.
-            </p>
+        <div class="oj-panel oj-panel-shadow-sm oj-sm-margin-4x-top oj-sm-padding-4x" style="background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 6px;">
+          <div class="oj-flex oj-sm-align-items-flex-start" style="gap: 8px;">
+            <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-center" style="width: 16px; height: 16px; margin-top: 2px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="oj-typography-body-sm" style="margin: 0; color: #0c4a6e; line-height: 1.4;">
+                <strong>Note:</strong> You'll receive notifications via email alerts when thresholds are exceeded.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Data Retention Block - Admin Only */}
+      {/* Data Retention Card - Admin Only */}
       {isAdmin && (
-        <div class="data-retention-block" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
-          {/* Data Retention Layout */}
-          <div class="data-retention-grid">
+        <div class="oj-panel oj-panel-shadow-sm oj-sm-margin-4x-bottom oj-sm-padding-6x" style="background: white; border-radius: 8px;">
+          {/* Data Retention Layout using Oracle JET Flex */}
+          <div class="oj-flex oj-flex-wrap oj-sm-align-items-start" style="gap: 32px;">
             {/* Left Side - Header */}
-            <div>
-              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
+            <div class="oj-flex oj-sm-flex-direction-column oj-flex-item" style="min-width: 300px;">
+              <div class="oj-flex oj-sm-align-items-center oj-sm-margin-2x-bottom" style="gap: 12px;">
+                <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-center" style="width: 24px; height: 24px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M12 1v6m0 6v6"></path>
                     <path d="m21 12-6-3-6 3-6-3"></path>
                   </svg>
                 </div>
-                <h3 style="margin: 0; color: #111827; font-size: 1.125rem; font-weight: 600;">Data Retention</h3>
+                <h3 class="oj-typography-heading-sm oj-text-color-primary" style="margin: 0;">Data Retention</h3>
               </div>
-              <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Configure how long data is stored in the system</p>
+              <p class="oj-typography-body-sm oj-text-color-secondary" style="margin: 0;">Configure how long data is stored in the system</p>
             </div>
 
             {/* Right Side - Dropdown */}
-            <div>
-              <label htmlFor="retention-period" style="display: block; margin-bottom: 8px; color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+            <div class="oj-flex oj-sm-flex-direction-column oj-flex-item" style="min-width: 250px;">
+              <label htmlFor="retention-period" class="oj-label oj-text-color-secondary">
                 Retention Period
               </label>
               <oj-select-single
@@ -348,7 +349,7 @@ export function Settings() {
                 value={dataRetentionPeriod}
                 onvalueChanged={handleDataRetentionChange}
                 placeholder="Select retention period..."
-                style="width: 100%; min-width: 200px;"
+                class="oj-form-control-full-width"
               />
             </div>
           </div>
@@ -356,147 +357,31 @@ export function Settings() {
       )}
 
       <style>{`
-        /* Grid Layout */
-        .notifications-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
+        /* Minimal custom styles - mostly using OJET classes now */
+        .oj-flex[style*="gap: 32px"] {
           gap: 32px;
-          width: 100%;
-          max-width: 100%;
-          overflow: hidden;
         }
-
-        .notifications-grid > div {
-          min-width: 0;
-          max-width: 100%;
-          overflow: hidden;
+        
+        .oj-flex[style*="gap: 12px"] {
+          gap: 12px;
         }
-
-        /* Data Retention Grid */
-        .data-retention-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 32px;
-          align-items: start;
-          width: 100%;
-          max-width: 100%;
-          overflow: hidden;
+        
+        .oj-flex[style*="gap: 8px"] {
+          gap: 8px;
         }
-
-        /* Notifications Block */
-        .notifications-block {
-          width: 100%;
-          max-width: 100%;
-          box-sizing: border-box;
-          overflow: hidden;
-          padding: 16px !important;
-        }
-
-        /* Data Retention Block */
-        .data-retention-block {
-          width: 100%;
-          max-width: 100%;
-          box-sizing: border-box;
-          overflow: hidden;
-          padding: 16px !important;
-        }
-
-        /* Form Elements */
-        oj-select-single,
-        oj-input-text {
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          box-sizing: border-box !important;
-        }
-
-        .notifications-grid label,
-        .notifications-grid div[style*="margin-bottom"] {
-          width: 100%;
-          max-width: 100%;
-          box-sizing: border-box;
-        }
-
-        /* Responsive Breakpoints */
-        @media (min-width: 768px) {
-          .notifications-block,
-          .data-retention-block {
-            padding: 24px !important;
-          }
-        }
-
-        @media (max-width: 1024px) {
-          .notifications-grid {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-          }
-        }
-
+        
         @media (max-width: 768px) {
-          .oj-web-applayout-page {
-            padding: 16px !important;
-            padding-top: 12px !important;
-          }
-          
-          .header-container {
+          .oj-flex[style*="gap: 32px"] {
             flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 16px !important;
-          }
-          
-          .header-buttons {
-            width: 100% !important;
-            justify-content: flex-end !important;
-          }
-
-          .notifications-grid {
-            gap: 20px !important;
-          }
-
-          .data-retention-grid {
-            grid-template-columns: 1fr !important;
             gap: 16px !important;
           }
         }
         
         @media (max-width: 640px) {
-          .oj-web-applayout-page {
-            padding: 12px !important;
-            padding-top: 8px !important;
-          }
-
-          .notifications-grid {
-            gap: 16px !important;
-          }
-          
-          .status-table {
-            overflow-x: auto;
-          }
-          
-          .status-table-inner {
-            min-width: 350px;
-            grid-template-columns: 2fr 70px 70px 60px !important;
-            gap: 6px !important;
-            font-size: 0.8rem !important;
-          }
-          
-          .header-buttons {
+          .oj-flex[style*="gap: 12px"] {
             flex-direction: column !important;
-            width: 100% !important;
+            align-items: flex-start !important;
             gap: 8px !important;
-          }
-          
-          .header-buttons oj-c-button {
-            width: 100% !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .status-table-inner {
-            min-width: 320px;
-            grid-template-columns: 2fr 60px 60px 50px !important;
-            gap: 4px !important;
-            padding: 8px 12px !important;
           }
         }
       `}</style>
