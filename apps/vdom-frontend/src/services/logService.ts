@@ -22,6 +22,13 @@ interface ApiResponse<T> {
   data: T;
 }
 
+interface LogFilters {
+  applications?: string[];
+  logLevels?: string[];
+  fromDate?: string;
+  toDate?: string;
+}
+
 class LogService {
   private static readonly FETCH_INTERVAL = 5000;
 
@@ -38,7 +45,12 @@ class LogService {
     return headers;
   }
 
-  static async fetchLogs(since?: string, page: number = 1, limit: number = 25): Promise<LogsResponse> {
+  static async fetchLogs(
+    since?: string, 
+    page: number = 1, 
+    limit: number = 25,
+    filters?: LogFilters
+  ): Promise<LogsResponse> {
     if (!AuthManager.isAuthenticated()) {
       throw new Error('User not authenticated');
     }
@@ -52,6 +64,22 @@ class LogService {
       
       params.append('page', page.toString());
       params.append('limit', limit.toString());
+
+      if (filters?.applications && filters.applications.length > 0) {
+        params.append('applications', filters.applications.join(','));
+      }
+
+      if (filters?.logLevels && filters.logLevels.length > 0) {
+        params.append('logLevels', filters.logLevels.join(','));
+      }
+
+      if (filters?.fromDate) {
+        params.append('fromDate', filters.fromDate);
+      }
+
+      if (filters?.toDate) {
+        params.append('toDate', filters.toDate);
+      }
 
       const url = `${ApiLinks.GET_LOGS}?${params.toString()}`;
 
@@ -74,14 +102,35 @@ class LogService {
     }
   }
 
-  static async fetchLogStats() {
-
+  static async fetchLogStats(filters?: LogFilters) {
     if (!AuthManager.isAuthenticated()) {
       throw new Error('User not authenticated');
     }
 
     try {
-      const response = await fetch(ApiLinks.GET_LOG_STATS, {
+      const params = new URLSearchParams();
+
+      if (filters?.applications && filters.applications.length > 0) {
+        params.append('applications', filters.applications.join(','));
+      }
+
+      if (filters?.logLevels && filters.logLevels.length > 0) {
+        params.append('logLevels', filters.logLevels.join(','));
+      }
+
+      if (filters?.fromDate) {
+        params.append('fromDate', filters.fromDate);
+      }
+
+      if (filters?.toDate) {
+        params.append('toDate', filters.toDate);
+      }
+
+      const url = params.toString() 
+        ? `${ApiLinks.GET_LOG_STATS}?${params.toString()}`
+        : ApiLinks.GET_LOG_STATS;
+
+      const response = await fetch(url, {
         headers: this.getAuthHeaders(),
       });
 

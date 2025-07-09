@@ -17,9 +17,15 @@ interface Pagination {
   limit: number;
 }
 
+interface LogFilters {
+  applications?: string[];
+  logLevels?: string[];
+  fromDate?: string;
+  toDate?: string;
+}
+
 export const useLogs = (options: UseLogsOptions = {}) => {
   const { onUnauthorized, pageSize = 25 } = options;
-
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +40,9 @@ export const useLogs = (options: UseLogsOptions = {}) => {
   const [logStats, setLogStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<LogFilters>({});
 
-  const fetchLogs = async (page: number = 1, since?: string) => {
+  const fetchLogs = async (page: number = 1, since?: string, filters?: LogFilters) => {
     if (!AuthManager.isAuthenticated()) {
       return;
     }
@@ -44,10 +51,16 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       setLoading(true);
       setError(null);
 
-      const response = await LogService.fetchLogs(since, page, pageSize);
+      const filtersToUse = filters !== undefined ? filters : currentFilters;
+      
+      const response = await LogService.fetchLogs(since, page, pageSize, filtersToUse);
 
       setLogs(response.logs);
       setPagination(response.pagination);
+      
+      if (filters !== undefined) {
+        setCurrentFilters(filters);
+      }
     } catch (err) {
       console.error("Error fetching logs:", err);
 
@@ -62,6 +75,10 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchLogsWithFilters = async (filters: LogFilters) => {
+    await fetchLogs(1, undefined, filters);
   };
 
   const goToPage = async (page: number) => {
@@ -106,8 +123,8 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     try {
       setStatsLoading(true);
       setStatsError(null);
+      
       const stats = await LogService.fetchLogStats();
-      console.log('Log stats fetched:', stats);
       setLogStats(stats);
     } catch (error) {
       console.error('Error fetching log stats:', error);
@@ -125,9 +142,14 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     logStats,
     statsLoading,
     statsError,
+    currentFilters,
     actions: {
       fetchLogs: () => fetchLogs(1),
-      fetchLogStats,
+      fetchLogsWithFilters: async (filters: LogFilters) => {
+        await fetchLogsWithFilters(filters);
+        await fetchLogStats();
+      },
+      fetchLogStats: () => fetchLogStats(),
       refetch: refreshCurrentPage,
       goToPage,
       goToNextPage,
