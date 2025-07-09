@@ -33,6 +33,30 @@ const PieChart = ({ data }: { data: LogLevelDistribution[] }) => {
     [chartData]
   );
 
+  // Handle empty data case
+  if (!data || data.length === 0) {
+    return (
+      <div class="oj-md-margin-4x-horizontal">
+        <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
+          Log Level Distribution
+        </h3>
+        <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
+          This chart shows the distribution of log entries by their log level.
+        </p>
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="height: 300px; width: 100%; border: 1px dashed #d1d5db; border-radius: 8px; background-color: #f9fafb;">
+          <div class="oj-flex oj-sm-flex-direction-column oj-sm-align-items-center">
+            <div class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-2x-bottom">
+              No data available
+            </div>
+            <p class="oj-typography-body-sm oj-text-color-secondary">
+              No log level data found for the selected time period.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // --- Chart Item Template ---
   const chartItem = (
     item: ojChart.ItemTemplateContext<ChartItem["id"], ChartItem>

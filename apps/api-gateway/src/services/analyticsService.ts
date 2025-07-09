@@ -1,4 +1,5 @@
 import { Log } from '../models/Log.model';
+import Group from '../models/Group.model';
 import mongoose from 'mongoose';
 
 export interface LogLevelDistribution {
@@ -40,13 +41,33 @@ export interface AnalyticsResponse {
 
 export class AnalyticsService {
   /**
-   * Get comprehensive analytics data for dashboard
+   * Get comprehensive analytics data filtered by user's accessible applications
    */
-  static async getAnalytics(filters: AnalyticsFilters = {}): Promise<AnalyticsResponse> {
-    // Set default values
-    const defaultFilters = AnalyticsService.applyDefaults(filters);
-    const matchStage = AnalyticsService.buildMatchStage(defaultFilters);
-    const granularity = AnalyticsService.determineGranularity(defaultFilters.from!, defaultFilters.to!);
+  static async getAnalytics(userId: string, filters: AnalyticsFilters = {}): Promise<AnalyticsResponse> {
+    const userApplicationIds = await AnalyticsService.getUserAccessibleApplications(userId);
+
+    // If user has no access to any applications, return empty analytics
+    if (userApplicationIds.length === 0) {
+      return AnalyticsService.getEmptyAnalytics(filters);
+    }
+
+    // Filter applications based on user access
+    const userFilters: AnalyticsFilters = {
+      ...filters,
+      applicationIDs: AnalyticsService.filterUserApplications(
+        filters.applicationIDs,
+        userApplicationIds
+      )
+    };
+
+    // Apply defaults and build query
+    const processedFilters = AnalyticsService.applyDefaults(userFilters);
+    const matchStage = AnalyticsService.buildMatchStage(processedFilters);
+    const granularity = AnalyticsService.determineGranularity(processedFilters.from, processedFilters.to);
+
+    console.log('🔧 Processed filters:', processedFilters);
+    console.log('🔍 Match stage:', matchStage);
+    console.log('⏱ Granularity:', granularity);
 
     // Execute all aggregations in parallel
     const [
@@ -55,16 +76,9 @@ export class AnalyticsService {
       applicationCounts,
       volumeTrend
     ] = await Promise.all([
-      // Total count
       Log.countDocuments(matchStage),
-      
-      // Log level distribution for pie chart
       AnalyticsService.getLogLevelDistribution(matchStage),
-      
-      // Application counts for bar chart
       AnalyticsService.getApplicationCounts(matchStage),
-      
-      // Volume trend for line chart
       AnalyticsService.getVolumeTrend(matchStage, granularity)
     ]);
 
@@ -74,10 +88,94 @@ export class AnalyticsService {
       volumeTrend,
       totalLogs,
       period: {
-        from: defaultFilters.from!,
-        to: defaultFilters.to!,
+        from: processedFilters.from,
+        to: processedFilters.to,
         granularity
       }
+    };
+  }
+
+  /**
+   * Get application IDs that a user has access to through their group memberships
+   */
+  private static async getUserAccessibleApplications(userId: string): Promise<mongoose.Types.ObjectId[]> {
+    try {
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
+      const result = await Group.aggregate([
+        // Stage 1: Find groups where user is a member
+        {
+          $match: {
+            memberIDs: userObjectId,
+            active: true,
+            deleted: false
+          }
+        },
+        // Stage 2: Unwind applicationIDs array to work with individual app IDs
+        {
+          $unwind: "$applicationIDs"
+        },
+        // Stage 3: Group by null to collect all unique application IDs
+        {
+          $group: {
+            _id: null,
+            applicationIds: { $addToSet: "$applicationIDs" }
+          }
+        }
+      ]);
+
+      return result.length > 0 ? result[0].applicationIds : [];
+    } catch (error) {
+      console.error('Error fetching user accessible applications:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Filter application IDs based on user access
+   */
+  private static filterUserApplications(
+    requestedAppIds: string[] | undefined,
+    userAccessibleAppIds: mongoose.Types.ObjectId[]
+  ): string[] {
+    const userAccessibleStrings = userAccessibleAppIds.map(id => id.toString());
+
+    if (!requestedAppIds || requestedAppIds.length === 0) {
+      return userAccessibleStrings;
+    }
+
+    return requestedAppIds.filter(id => userAccessibleStrings.includes(id));
+  }
+
+  /**
+   * Get empty analytics response with proper date defaults
+   */
+  private static getEmptyAnalytics(filters: AnalyticsFilters): AnalyticsResponse {
+    const { from, to } = AnalyticsService.getDefaultDateRange(filters);
+
+    return {
+      logLevelDistribution: [],
+      applicationCounts: [],
+      volumeTrend: [],
+      totalLogs: 0,
+      period: {
+        from,
+        to,
+        granularity: AnalyticsService.determineGranularity(from, to)
+      }
+    };
+  }
+
+  /**
+   * Get default date range
+   */
+  private static getDefaultDateRange(filters: AnalyticsFilters): { from: Date; to: Date } {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    return {
+      from: filters.from || sevenDaysAgo,
+      to: filters.to || now
     };
   }
 
@@ -85,14 +183,13 @@ export class AnalyticsService {
    * Apply default filters
    */
   private static applyDefaults(filters: AnalyticsFilters): Required<AnalyticsFilters> {
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const { from, to } = AnalyticsService.getDefaultDateRange(filters);
 
     return {
-      applicationIDs: filters.applicationIDs || [], // Empty array means all
-      logLevels: filters.logLevels || [], // Empty array means all
-      from: filters.from || sevenDaysAgo,
-      to: filters.to || now
+      applicationIDs: filters.applicationIDs || [],
+      logLevels: filters.logLevels || [],
+      from,
+      to
     };
   }
 
@@ -101,20 +198,15 @@ export class AnalyticsService {
    */
   private static buildMatchStage(filters: Required<AnalyticsFilters>): Record<string, unknown> {
     const match: Record<string, unknown> = {
-      date: {
-        $gte: filters.from,
-        $lte: filters.to
-      }
+      date: { $gte: filters.from, $lte: filters.to }
     };
 
-    // Filter by application IDs if specified
     if (filters.applicationIDs.length > 0) {
       match.sourceApp = {
         $in: filters.applicationIDs.map(id => new mongoose.Types.ObjectId(id))
       };
     }
 
-    // Filter by log levels if specified
     if (filters.logLevels.length > 0) {
       match.logLevel = { $in: filters.logLevels };
     }
@@ -131,35 +223,25 @@ export class AnalyticsService {
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffDays = diffHours / 24;
 
-    if (diffMinutes <= 120) {
-      return 'minute'; // Less than 120 minutes - group by minute
-    } else if (diffHours <= 48) {
-      return 'hour'; // Less than 2 days - group by hour
-    } else if (diffDays <= 30) {
-      return 'day'; // Up to 30 days - group by day
-    } else {
-      return 'week'; // More than 30 days - group by week
-    }
+    console.log(`🔍 Time difference: ${diffMs} ms, ${diffMinutes} minutes, ${diffHours} hours, ${diffDays} days`);
+
+    if (diffMinutes <= 120) return 'minute';
+    if (diffHours <= 48) return 'hour';
+    if (diffDays <= 30) return 'day';
+    return 'week';
   }
 
   /**
-   * Get log level distribution
+   * Get log level distribution with percentages
    */
   private static async getLogLevelDistribution(matchStage: Record<string, unknown>): Promise<LogLevelDistribution[]> {
     const results = await Log.aggregate([
       { $match: matchStage },
-      {
-      $group: {
-        _id: '$logLevel',
-        count: { $sum: 1 }
-      }
-      },
+      { $group: { _id: '$logLevel', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);
 
-    // Calculate percentages
     const total = results.reduce((sum, item) => sum + item.count, 0);
-    
     return results.map(item => ({
       ...item,
       percentage: total > 0 ? Math.round((item.count / total) * 100) : 0
@@ -167,7 +249,7 @@ export class AnalyticsService {
   }
 
   /**
-   * Get application counts
+   * Get application counts with names
    */
   private static async getApplicationCounts(matchStage: Record<string, unknown>): Promise<ApplicationCount[]> {
     return await Log.aggregate([
@@ -193,7 +275,7 @@ export class AnalyticsService {
   }
 
   /**
-   * Get volume trend
+   * Get volume trend with proper timestamps
    */
   private static async getVolumeTrend(matchStage: Record<string, unknown>, granularity: string): Promise<VolumeDataPoint[]> {
     const dateFormats = {
@@ -220,7 +302,6 @@ export class AnalyticsService {
       { $sort: { _id: 1 } }
     ]);
 
-    // Convert to proper timestamps
     return results.map(item => ({
       ...item,
       timestamp: AnalyticsService.parseGroupedDate(item._id, granularity)
@@ -231,29 +312,21 @@ export class AnalyticsService {
    * Parse grouped date string back to Date object
    */
   private static parseGroupedDate(dateStr: string, granularity: string): Date {
+    const parts = dateStr.split('-').map(Number);
+
     switch (granularity) {
-      case 'minute': {
-        const [year, month, day, hour, minute] = dateStr.split('-').map(Number);
-        return new Date(year, month - 1, day, hour, minute);
-      }
-      
-      case 'hour': {
-        const [year, month, day, hour] = dateStr.split('-').map(Number);
-        return new Date(year, month - 1, day, hour);
-      }
-      
-      case 'day': {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        return new Date(y, m - 1, d);
-      }
-      
+      case 'minute':
+        return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4]);
+      case 'hour':
+        return new Date(parts[0], parts[1] - 1, parts[2], parts[3]);
+      case 'day':
+        return new Date(parts[0], parts[1] - 1, parts[2]);
       case 'week': {
-        const [weekYear, week] = dateStr.split('-').map(Number);
+        const [weekYear, week] = parts;
         const jan1 = new Date(weekYear, 0, 1);
         const daysOffset = (week - 1) * 7;
         return new Date(jan1.getTime() + daysOffset * 24 * 60 * 60 * 1000);
       }
-      
       default:
         return new Date(dateStr);
     }

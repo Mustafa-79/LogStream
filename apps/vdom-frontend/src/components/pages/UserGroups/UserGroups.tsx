@@ -8,8 +8,10 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 
-// TODO: Unable to edit active toggle in edit modal
-// FIXME: Ensure active toggle works in edit modal
+// TODO: Pagination
+// TODO: Search / Filter
+// TODO: Shift the duplicate name logic to the backend
+// FIXME: Add application to user group -> delete application -> app still shows in user group (it shouldn't) (backend issue)
 
 export function UserGroups() {
   const [userGroups, setUserGroups] = useState<IGroup[]>([]);
@@ -453,7 +455,7 @@ export function UserGroups() {
       {/* Page Header */}
       <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-1x-vertical">
         <div>
-          <h1 style="color: #6366f1; margin: 0; font-size: 2rem; font-weight: 600; font-family: 'Poppins', sans-serif;">
+          <h1 class="oj-typography-heading-lg" style="margin: 0;">
             User Groups
           </h1>
 

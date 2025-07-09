@@ -1,7 +1,6 @@
 import { h, ComponentProps } from "preact";
 import { useState, useCallback, useMemo } from "preact/hooks";
-import "ojs/ojchart";
-import { ojChart } from "ojs/ojchart";
+import "oj-c/line-chart";
 import MutableArrayDataProvider = require("ojs/ojmutablearraydataprovider");
 import { VolumeTrend } from "./types";
 
@@ -9,7 +8,7 @@ import { VolumeTrend } from "./types";
 type ChartItem = {
   id: number;
   series: string;
-  group: string;
+  quarter: string;
   value: number;
 };
 
@@ -23,53 +22,82 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
     return data.map((item, index) => ({
       id: index,
       series: "Log Volume",
-      group: new Date(item.timestamp).toLocaleDateString(),
+      quarter: new Date(item.timestamp).toLocaleDateString(),
       value: item.count
     }));
   }, [data]);
 
-  const chartDataProvider = useMemo(() => 
+  const chartDataProvider = useMemo(() =>
     new MutableArrayDataProvider(chartData, { keyAttributes: "id" }),
     [chartData]
   );
 
-  // --- Chart Item Template ---
-  const chartItem = (
-    item: ojChart.ItemTemplateContext<ChartItem["id"], ChartItem>
-  ) => {
+  // Handle empty data case
+  if (!data || data.length === 0) {
     return (
-      <oj-chart-item
+      <div class="oj-md-margin-4x-horizontal">
+        <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
+          Log Volume Trend
+        </h3>
+        <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
+          This chart displays the trend of log volumes over time.
+        </p>
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="height: 300px; width: 100%; border: 1px dashed #d1d5db; border-radius: 8px; background-color: #f9fafb;">
+          <div class="oj-flex oj-sm-flex-direction-column oj-sm-align-items-center">
+            <div class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-2x-bottom">
+              No data available
+            </div>
+            <p class="oj-typography-body-sm oj-text-color-secondary">
+              No log volume data found for the selected time period.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Chart Series Template ---
+  const chartSeries = (series: any) => {
+    return (
+      <oj-c-line-chart-series
+        markerDisplayed="on"
+        lineType="curved">
+      </oj-c-line-chart-series>
+    );
+  };
+
+  // --- Chart Item Template ---
+  const chartItem = (item: { data: ChartItem }) => {
+    return (
+      <oj-c-line-chart-item
         value={item.data.value}
-        groupId={[item.data.group]}
+        groupId={[item.data.quarter]}
         seriesId={item.data.series}>
-      </oj-chart-item>
+      </oj-c-line-chart-item>
     );
   };
 
   return (
     <div class="oj-md-margin-4x-horizontal">
-    <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
-      Log Volume Trend
-    </h3>
-    <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
-      This chart displays the trend of log volumes over time.
-    </p>
-      {/* TODO: make this an oj-c-line-chart
-      https://www.oracle.com/webfolder/technetwork/jet/jetCookbook.html?component=lineChartCorepack&demo=lineTypes
-       */}
-      <oj-chart
+      <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
+        Log Volume Trend
+      </h3>
+      <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
+        This chart displays the trend of log volumes over time.
+      </p>
+      <oj-c-line-chart
         id="volumeLineChart"
-        type="line"
         data={chartDataProvider}
-        animationOnDisplay="auto"
-        animationOnDataChange="auto"
         hoverBehavior="dim"
         class="oj-sm-margin-2x-top"
-        style="height: 300px; width: 100%;"
-        line-type="curved">
-        
+        style="height: 300px; width: 100%;">
+
+        <template slot="seriesTemplate" render={chartSeries}></template>
         <template slot="itemTemplate" render={chartItem}></template>
-      </oj-chart>
+      </oj-c-line-chart>
+
+
+
     </div>
   );
 };

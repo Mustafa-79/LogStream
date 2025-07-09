@@ -168,7 +168,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
             <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Members ({group.members?.length || 0})</h3>
           </div>
 
-          <div class="oj-flex oj-sm-flex-items-center">
+          {/* <div class="oj-flex oj-sm-flex-items-center">
             {group.members?.slice(0, 4).map((member, index) => (
               <div
                 key={member._id || index}
@@ -222,7 +222,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
                 </oj-popup>
               </>
             )}
-          </div>
+          </div> */}
 
           <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Application Access ({group.applications?.length || 0})</h3>
           <div class="oj-flex oj-sm-flex-wrap oj-sm-flex-items-center oj-sm-margin-1x-top oj-sm-margin-0" style={{ gap: '8px' }}>

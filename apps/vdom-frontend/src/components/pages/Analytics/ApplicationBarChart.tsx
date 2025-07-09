@@ -33,6 +33,30 @@ const ApplicationBarChart = ({ data }: { data: ApplicationCount[] }) => {
     [chartData]
   );
 
+  // Handle empty data case
+  if (!data || data.length === 0) {
+    return (
+      <div class="oj-md-margin-4x-horizontal">
+        <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
+          Log Counts
+        </h3>
+        <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
+          This chart displays the number of logs per application.
+        </p>
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="height: 300px; width: 100%; border: 1px dashed #d1d5db; border-radius: 8px; background-color: #f9fafb;">
+          <div class="oj-flex oj-sm-flex-direction-column oj-sm-align-items-center">
+            <div class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-2x-bottom">
+              No data available
+            </div>
+            <p class="oj-typography-body-sm oj-text-color-secondary">
+              No application data found for the selected time period.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // --- Chart Item Template ---
   const chartItem = (
     item: ojChart.ItemTemplateContext<ChartItem["id"], ChartItem>
@@ -49,7 +73,7 @@ const ApplicationBarChart = ({ data }: { data: ApplicationCount[] }) => {
   return (
     <div class="oj-md-margin-4x-horizontal">
       <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
-        Application Counts
+        Log Counts
       </h3>
       <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
         This chart displays the number of logs per application.
