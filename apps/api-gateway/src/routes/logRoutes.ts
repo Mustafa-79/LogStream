@@ -7,6 +7,8 @@ const router = express.Router();
 // Apply authentication to all log routes
 router.use(authenticateJWT);
 
-router.get('/new', logController.getNewLogs);
+router.get('/', logController.getLogs);
+
+router.get('/stats', logController.getLogStats);
 
 export default router;

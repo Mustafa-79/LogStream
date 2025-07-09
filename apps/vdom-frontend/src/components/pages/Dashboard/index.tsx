@@ -1,13 +1,17 @@
 import { h } from "preact";
 import { useState, useEffect } from "preact/hooks";
-import { Log } from "../../../utils/applicationUtils";
 import MutableArrayDataProvider = require('ojs/ojmutablearraydataprovider');
-import 'oj-c/table';
+import { DropdownOption, FilterState } from "../../LogFilter/types";
+import LogFilter from "../../LogFilter/index";
+import useLogs from "../../../hooks/useLogs";
 
-interface DashboardProps {
-  logs: Log[];
-  loading?: boolean;
-}
+import 'oj-c/table';
+import "ojs/ojbutton";
+import "oj-c/progress-circle";
+import "ojs/ojpagingcontrol";
+import "oj-c/action-card";
+import { log } from "ojs/ojlogger";
+import { useApplicationNames } from "../../../hooks/useApplications";
 
 interface TableLog {
   id: string;
@@ -21,12 +25,30 @@ interface TableLog {
 type SortDirection = 'asc' | 'desc' | null;
 type SortableColumn = 'timestamp' | 'logLevel' | 'sourceApp' | 'traceId' | 'message';
 
-export const Dashboard = ({ logs, loading = false }: DashboardProps) => {
+export const Dashboard = () => {
+  const { logs, loading, error, pagination, logStats, statsLoading, statsError, actions } = useLogs({ pageSize: 25 });
+  const { applicationNames, loading: appNamesLoading, error: appNamesError } = useApplicationNames();
   const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [dataProvider, setDataProvider] = useState<any>(null);
 
-  console.log('Render - sortColumn:', sortColumn, 'sortDirection:', sortDirection);
+  const [filters, setFilters] = useState<FilterState>({
+    applications: [],
+    logLevels: [],
+    fromDate: null,
+    toDate: null,
+  });
+
+  useEffect(() => {
+    actions.fetchLogs();
+    actions.fetchLogStats();
+  }, []);
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    // TODO: Apply filters to analytics data
+    console.log('Analytics filters changed:', newFilters);
+  };
 
   const formatTimestamp = (date: string | Date) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -206,25 +228,207 @@ export const Dashboard = ({ logs, loading = false }: DashboardProps) => {
     }
   };
 
-  const selectionMode = {
-    row: "multiple" as const,
-    column: "multiple" as const
-  };
-
   const scrollPolicyOptions = {
     fetchSize: 10
   };
+
+  // Pagination handlers
+  const handlePageChange = async (page: number) => {
+    await actions.goToPage(page);
+  };
+
+  const handleFirstPage = async () => {
+    await actions.goToFirstPage();
+  };
+
+  const handlePrevPage = async () => {
+    await actions.goToPrevPage();
+  };
+
+  const handleNextPage = async () => {
+    await actions.goToNextPage();
+  };
+
+  const handleLastPage = async () => {
+    await actions.goToLastPage();
+  };
+
+  // Generate page numbers for pagination
+  const getVisiblePageNumbers = () => {
+    const { currentPage, totalPages } = pagination;
+    const visiblePages: number[] = [];
+    const maxVisiblePages = 7;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      const halfVisible = Math.floor(maxVisiblePages / 2);
+      let startPage = Math.max(1, currentPage - halfVisible);
+      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        visiblePages.push(i);
+      }
+    }
+    
+    return visiblePages;
+  };
+
+  if (loading) {
+    return (
+      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading Logs data...</div>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <oj-c-progress-circle
+              class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
+              aria-labelledby="lgLabel indetLabel"
+              size="lg"
+              value={-1}
+            ></oj-c-progress-circle>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom" style={{ color: 'var(--oj-core-color-danger)' }}>
+            Error loading Logs data
+          </div>
+          <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
+          <oj-button class="oj-button-primary" onojAction={actions.refetch}>
+            Retry
+          </oj-button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div class="oj-web-applayout-page" style="padding: 40px;">
       <h1 class="oj-typography-heading-lg" style="margin: 0;">
         Dashboard
       </h1>
+
+      <div style="margin-bottom: 30px;">
+        <h2 style="margin: 0 0 20px 0; font-size: 1.5rem; font-weight: 600; color: #374151;">
+          Log Statistics Overview
+        </h2>
+        
+        {statsLoading ? (
+          <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-4x">
+            <oj-c-progress-circle size="sm" value={-1}></oj-c-progress-circle>
+            <span class="oj-typography-body-md oj-sm-margin-2x-start">Loading statistics...</span>
+          </div>
+        ) : logStats ? (
+          <div class="oj-flex oj-sm-flex-wrap" style="gap: 20px;">
+            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+              <oj-c-action-card
+                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+              >
+                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                  <div>
+                    <div class="oj-typography-heading-xs" style="color: #000; margin-bottom: 8px;">
+                      Total Logs
+                    </div>
+                    <div class="oj-typography-heading-lg" style="color: #1f2937; font-weight: 700;">
+                      {logStats.totalCount}
+                    </div>
+                    <div class="oj-typography-body-m" style="color: #6b7280; font-weight: 700;">
+                      Results
+                    </div>
+                  </div>
+                </div>
+              </oj-c-action-card>
+            </div>
+
+            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+              <oj-c-action-card
+                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+              >
+                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                  <div>
+                    <div class="oj-typography-heading-xs" style="color: #000; margin-bottom: 8px;">
+                      Error Logs
+                    </div>
+                    <div class="oj-typography-heading-lg" style="color: #dc2626; font-weight: 700;">
+                      {logStats.errorCount}
+                    </div>
+                    <div class="oj-typography-body-m" style="color: #6b7280; font-weight: 700;">
+                      Critical issues
+                    </div>
+                  </div>
+                </div>
+              </oj-c-action-card>
+            </div>
+
+            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+              <oj-c-action-card
+                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+              >
+                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                  <div>
+                    <div class="oj-typography-heading-xs" style="color: #000; margin-bottom: 8px;">
+                      Warning Logs
+                    </div>
+                    <div class="oj-typography-heading-lg" style="color: #f59e0b; font-weight: 700;">
+                      {logStats.warningCount}
+                    </div>
+                    <div class="oj-typography-body-m" style="color: #6b7280; font-weight: 700;">
+                      Potential issues
+                    </div>
+                  </div>
+                </div>
+              </oj-c-action-card>
+            </div>
+
+            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+              <oj-c-action-card
+                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+              >
+                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                  <div>
+                    <div class="oj-typography-heading-xs" style="color: #000; margin-bottom: 8px;">
+                      Info & Debug Logs
+                    </div>
+                    <div class="oj-typography-heading-lg" style="color: #3b82f6; font-weight: 700;">
+                      {logStats.infoCount + logStats.debugCount}
+                    </div>
+                    <div class="oj-typography-body-m" style="color: #6b7280; font-weight: 700;">
+                      Informational logs
+                    </div>
+                  </div>
+                </div>
+              </oj-c-action-card>
+            </div>
+          </div>
+        ) : (
+          <div style="padding: 20px; text-align: center; color: #6b7280; background: #f9fafb; border-radius: 8px;">
+            <p style="margin: 0;">No statistics available</p>
+          </div>
+        )}
+      </div>
+
+      <LogFilter
+        onFilterChange={handleFilterChange}
+        initialFilters={filters}
+        applications={applicationNames}
+      />
       
       <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); overflow: hidden;">
         <div style="padding: 20px; border-bottom: 1px solid #e5e7eb;">
           <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #374151;">
-            Application Logs ({logs.length})
+            Total Application Logs ({pagination.totalCount})
           </h2>
         </div>
         
@@ -239,19 +443,78 @@ export const Dashboard = ({ logs, loading = false }: DashboardProps) => {
               aria-label="Application Logs Table"
               data={dataProvider}
               columns={columns}
-              // selectionMode={selectionMode}
               scrollPolicyOptions={scrollPolicyOptions}
               class="demo-table-container"
               style="width: 100%; min-height: 400px;"
             ></oj-c-table>
           </div>
         ) : null}
+
+        {/* Pagination Controls */}
+        {pagination.totalPages > 1 && (
+          <div style="padding: 20px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+            <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center">
+              <div class="oj-typography-body-sm" style="color: #6b7280;">
+                Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount} entries
+              </div>
+              
+              <div class="oj-flex oj-sm-align-items-center" style="gap: 8px;">
+                <oj-button
+                  class="oj-button-outlined-chrome"
+                  disabled={!pagination.hasPrevPage}
+                  onojAction={handleFirstPage}
+                  style="min-width: auto; padding: 8px 12px;"
+                >
+                  <span class="oj-typography-body-sm">First</span>
+                </oj-button>
+                
+                <oj-button
+                  class="oj-button-outlined-chrome"
+                  disabled={!pagination.hasPrevPage}
+                  onojAction={handlePrevPage}
+                  style="min-width: auto; padding: 8px 12px;"
+                >
+                  <span class="oj-typography-body-sm">‹ Prev</span>
+                </oj-button>
+                
+                {getVisiblePageNumbers().map((pageNum) => (
+                  <oj-button
+                    key={pageNum}
+                    class={pageNum === pagination.currentPage ? "oj-button-primary" : "oj-button-outlined-chrome"}
+                    onojAction={() => handlePageChange(pageNum)}
+                    style="min-width: 40px; padding: 8px 12px;"
+                  >
+                    <span class="oj-typography-body-sm">{pageNum}</span>
+                  </oj-button>
+                ))}
+                
+                <oj-button
+                  class="oj-button-outlined-chrome"
+                  disabled={!pagination.hasNextPage}
+                  onojAction={handleNextPage}
+                  style="min-width: auto; padding: 8px 12px;"
+                >
+                  <span class="oj-typography-body-sm">Next ›</span>
+                </oj-button>
+                
+                <oj-button
+                  class="oj-button-outlined-chrome"
+                  disabled={!pagination.hasNextPage}
+                  onojAction={handleLastPage}
+                  style="min-width: auto; padding: 8px 12px;"
+                >
+                  <span class="oj-typography-body-sm">Last</span>
+                </oj-button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {logs.length > 0 && (
         <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; font-size: 0.875rem; color: #6b7280;">
           <p style="margin: 0;">
-            Showing {logs.length} log{logs.length !== 1 ? 's' : ''} • 
+            Page {pagination.currentPage} of {pagination.totalPages} • 
             Last updated: {new Date().toLocaleTimeString()} •
             {sortColumn && sortDirection && (
               <span> Sorted by {sortColumn} ({sortDirection === 'asc' ? 'ascending' : 'descending'})</span>

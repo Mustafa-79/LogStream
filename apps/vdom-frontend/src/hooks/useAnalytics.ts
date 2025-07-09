@@ -31,7 +31,7 @@ export const useAnalytics = () => {
       } else {
         setLoading(true);
       }
-      
+
       const response = await AnalyticsService.fetchAnalytics(filters);
       setAnalyticsData(response.data);
       setCurrentFilters(filters);

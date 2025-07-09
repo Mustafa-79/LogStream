@@ -23,6 +23,11 @@ interface ApiResponse<T> {
   data: T;
 }
 
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
 class ApplicationService {
   // Helper function to get authenticated headers
   private static getAuthHeaders(): HeadersInit {
@@ -48,6 +53,19 @@ class ApplicationService {
     }
     
     const json: ApiResponse<any[]> = await response.json();
+    return json.data;
+  }
+
+  static async fetchApplicationNames() {
+    const response = await fetch(ApiLinks.GET_APPLICATION_NAMES, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const json: ApiResponse<DropdownOption[]> = await response.json();
     return json.data;
   }
 

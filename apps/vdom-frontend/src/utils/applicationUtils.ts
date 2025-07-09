@@ -16,7 +16,7 @@ export interface Application {
   active: boolean;
   lastUpdate: string;
   logsToday: number;
-  errors: number;
+  errorsToday: number;
   threshold?: number;
   timePeriod?: number;
   createdAt?: string;
@@ -155,7 +155,7 @@ export const sortApplications = (
         comparison = new Date(a.lastUpdate).getTime() - new Date(b.lastUpdate).getTime();
         break;
       case 'errors':
-        comparison = a.errors - b.errors;
+        comparison = a.errorsToday - b.errorsToday;
         break;
       case 'logsToday':
         comparison = a.logsToday - b.logsToday;

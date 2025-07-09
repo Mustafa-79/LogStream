@@ -16,6 +16,12 @@ router
   );
 
 router
+  .route('/names')
+  .get(
+    applicationController.getApplicationNames
+  );
+
+router
   .route('/')
   .post(
     requireAdmin, 
