@@ -22,15 +22,23 @@ interface TableLog {
   traceId: string;
 }
 
+interface LogFilters {
+  applications?: string[];
+  logLevels?: string[];
+  fromDate?: string;
+  toDate?: string;
+}
+
 type SortDirection = 'asc' | 'desc' | null;
 type SortableColumn = 'timestamp' | 'logLevel' | 'sourceApp' | 'traceId' | 'message';
 
 export const Dashboard = () => {
-  const { logs, loading, error, pagination, logStats, statsLoading, statsError, actions } = useLogs({ pageSize: 25 });
+  const { logs, loading, error, pagination, logStats, statsLoading, statsError, currentFilters, actions } = useLogs({ pageSize: 25 });
   const { applicationNames, loading: appNamesLoading, error: appNamesError } = useApplicationNames();
   const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [dataProvider, setDataProvider] = useState<any>(null);
+  const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
 
   const [filters, setFilters] = useState<FilterState>({
     applications: [],
@@ -44,10 +52,44 @@ export const Dashboard = () => {
     actions.fetchLogStats();
   }, []);
 
-  const handleFilterChange = (newFilters: FilterState) => {
+  const convertFiltersToApiFormat = (filterState: FilterState): LogFilters => {
+    const apiFilters: LogFilters = {};
+
+    if (filterState.applications.length > 0) {
+      apiFilters.applications = filterState.applications;
+    }
+
+    if (filterState.logLevels.length > 0) {
+      apiFilters.logLevels = filterState.logLevels;
+    }
+
+    // Add date filters
+    if (filterState.fromDate) {
+      apiFilters.fromDate = filterState.fromDate;
+    }
+
+    if (filterState.toDate) {
+      apiFilters.toDate = filterState.toDate;
+    }
+
+    return apiFilters;
+  };
+
+  const handleFilterChange = async (newFilters: FilterState) => {
     setFilters(newFilters);
-    // TODO: Apply filters to analytics data
-    console.log('Analytics filters changed:', newFilters);
+    setApplyingFilters(true);
+    
+    try {
+      const apiFilters = convertFiltersToApiFormat(newFilters);
+      
+      await actions.fetchLogsWithFilters(apiFilters);
+      
+      console.log('Filters applied successfully:', newFilters);
+    } catch (error) {
+      console.error('Error applying filters:', error);
+    } finally {
+      setApplyingFilters(false);
+    }
   };
 
   const formatTimestamp = (date: string | Date) => {
@@ -423,6 +465,7 @@ export const Dashboard = () => {
         onFilterChange={handleFilterChange}
         initialFilters={filters}
         applications={applicationNames}
+        applyingFilters={applyingFilters}
       />
       
       <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); overflow: hidden;">

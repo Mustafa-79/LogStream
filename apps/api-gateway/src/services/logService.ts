@@ -2,6 +2,13 @@ import mongoose from "mongoose";
 import { ILog, Log } from "../models/Log.model";
 import Group from '../models/Group.model';
 
+interface LogFilters {
+  applications?: string[];
+  logLevels?: string[];
+  fromDate?: Date;
+  toDate?: Date;
+}
+
 export const getNewLogs = async (since: Date): Promise<ILog[]> => {
   return await Log.find({ date: { $gt: since } }).sort({ date: 1 });
 };
@@ -10,7 +17,8 @@ export const getLogs = async (
   userId: string, 
   since: Date,
   page: number = 1,
-  limit: number = 25
+  limit: number = 25,
+  filters?: LogFilters
 ): Promise<{
   logs: ILog[];
   pagination: {
@@ -25,7 +33,25 @@ export const getLogs = async (
   try {
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const skip = (page - 1) * limit;
+    
     console.log('Fetching logs for user:', userId, 'Since:', since, 'Page:', page, 'Limit:', limit);
+    console.log('Applied filters:', filters);
+    
+    // Build date filter conditions
+    const dateConditions: any[] = [
+      { $in: ["$sourceApp", "$$appIds"] },
+      { $gt: ["$date", since] }
+    ];
+    
+    // Add fromDate filter if provided
+    if (filters?.fromDate) {
+      dateConditions.push({ $gte: ["$date", filters.fromDate] });
+    }
+    
+    // Add toDate filter if provided
+    if (filters?.toDate) {
+      dateConditions.push({ $lte: ["$date", filters.toDate] });
+    }
     
     const result = await Group.aggregate([
       // Stage 1: Find groups where user is a member
@@ -56,10 +82,7 @@ export const getLogs = async (
             {
               $match: {
                 $expr: {
-                  $and: [
-                    { $in: ["$sourceApp", "$$appIds"] },
-                    { $gt: ["$date", since] }
-                  ]
+                  $and: dateConditions
                 }
               }
             },
@@ -87,13 +110,25 @@ export const getLogs = async (
                 sourceAppId: "$sourceApp"
               }
             },
-            // Stage 7: Replace sourceApp with the application name
+            // Stage 7: Apply application ID filter if provided
+            ...(filters?.applications && filters.applications.length > 0 ? [{
+              $match: {
+                sourceApp: { $in: filters.applications.map(id => new mongoose.Types.ObjectId(id)) }
+              }
+            }] : []),
+            // Stage 8: Apply log level filter if provided
+            ...(filters?.logLevels && filters.logLevels.length > 0 ? [{
+              $match: {
+                logLevel: { $in: filters.logLevels }
+              }
+            }] : []),
+            // Stage 9: Replace sourceApp with the application name
             {
               $addFields: {
                 sourceApp: "$sourceAppName"
               }
             },
-            // Stage 8: Remove temporary fields
+            // Stage 10: Remove temporary fields
             {
               $project: {
                 applicationDetails: 0,

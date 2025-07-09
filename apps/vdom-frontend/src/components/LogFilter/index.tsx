@@ -169,13 +169,13 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setLogLevelsValue(emptySet);
     
     // Reset to default date values using the same utility
-    const defaultDates = getDefaultDateFilters();
+    const defaultNewDates = defaultDates ? getDefaultDateFilters(): null;
     
     const newFilters: FilterState = {
       applications: [],
       logLevels: [],
-      fromDate: defaultDates?.fromDate || null,
-      toDate: defaultDates?.toDate || null,
+      fromDate: defaultNewDates?.fromDate || null,
+      toDate: defaultNewDates?.toDate || null,
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
