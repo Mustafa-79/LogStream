@@ -53,6 +53,19 @@ export const getAllApplications = async () => {
   }
 };
 
+export const getApplicationNames = async (): Promise<{ value: string; label: string }[]> => {
+  try {
+    const applications = await Application.find({ deleted: false }, 'name _id').sort({ createdAt: -1 });
+    return applications.map(app => ({
+      value: (app as any)._id.toString(),
+      label: app.name
+    }));
+  } catch (error) {
+    console.error('Error in getApplicationNames:', error);
+    throw new Error('Failed to fetch application names.');
+  }
+};
+
 export const createApplication = async (data: Partial<IApplication>): Promise<IApplication> => {
   try {
     const application = new Application(data);

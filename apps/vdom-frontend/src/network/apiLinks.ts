@@ -3,6 +3,7 @@ class ApiLinks {
 
   // Application APIs
   static GET_ALL_APPLICATIONS: string = `${ApiLinks.API_BASE_URL}/application`;
+  static GET_APPLICATION_NAMES: string = `${ApiLinks.API_BASE_URL}/application/names`;
   static CREATE_APPLICATION: string = `${ApiLinks.API_BASE_URL}/application`;
   static UPDATE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;
   static DELETE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;

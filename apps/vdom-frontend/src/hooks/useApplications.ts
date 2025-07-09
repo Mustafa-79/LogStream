@@ -13,6 +13,11 @@ interface UpdateApplicationData {
   active?: boolean;
 }
 
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
 export const useApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,6 +47,37 @@ export const useApplications = () => {
     loading,
     error,
     refetch: fetchApplications
+  };
+};
+
+export const useApplicationNames = () => {
+  const [applicationNames, setApplicationNames] = useState<DropdownOption[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchApplicationNames = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const names = await ApplicationService.fetchApplicationNames();
+      setApplicationNames(names);
+    } catch (err) {
+      console.error('Error fetching application names:', err);
+      setError('Failed to fetch application names');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApplicationNames();
+  }, []);
+
+  return {
+    applicationNames,
+    setApplicationNames,
+    loading,
+    error,
   };
 };
 

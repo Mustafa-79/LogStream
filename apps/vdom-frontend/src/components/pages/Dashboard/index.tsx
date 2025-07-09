@@ -11,6 +11,7 @@ import "oj-c/progress-circle";
 import "ojs/ojpagingcontrol";
 import "oj-c/action-card";
 import { log } from "ojs/ojlogger";
+import { useApplicationNames } from "../../../hooks/useApplications";
 
 interface TableLog {
   id: string;
@@ -26,6 +27,7 @@ type SortableColumn = 'timestamp' | 'logLevel' | 'sourceApp' | 'traceId' | 'mess
 
 export const Dashboard = () => {
   const { logs, loading, error, pagination, logStats, statsLoading, statsError, actions } = useLogs({ pageSize: 25 });
+  const { applicationNames, loading: appNamesLoading, error: appNamesError } = useApplicationNames();
   const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [dataProvider, setDataProvider] = useState<any>(null);
@@ -41,12 +43,6 @@ export const Dashboard = () => {
     actions.fetchLogs();
     actions.fetchLogStats();
   }, []);
-
-  const applications: DropdownOption[] = [
-    { value: 'dummy_id_1', label: 'Application1' },
-    { value: 'dummy_id_2', label: 'Application2' },
-    { value: 'dummy_id_3', label: 'Application3' }
-  ];
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
@@ -426,7 +422,7 @@ export const Dashboard = () => {
       <LogFilter
         onFilterChange={handleFilterChange}
         initialFilters={filters}
-        applications={applications}
+        applications={applicationNames}
       />
       
       <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); overflow: hidden;">
