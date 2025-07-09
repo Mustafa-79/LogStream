@@ -65,6 +65,10 @@ export class AnalyticsService {
     const matchStage = AnalyticsService.buildMatchStage(processedFilters);
     const granularity = AnalyticsService.determineGranularity(processedFilters.from, processedFilters.to);
 
+    console.log('🔧 Processed filters:', processedFilters);
+    console.log('🔍 Match stage:', matchStage);
+    console.log('⏱ Granularity:', granularity);
+
     // Execute all aggregations in parallel
     const [
       totalLogs,
@@ -218,6 +222,8 @@ export class AnalyticsService {
     const diffMinutes = diffMs / (1000 * 60);
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffDays = diffHours / 24;
+
+    console.log(`🔍 Time difference: ${diffMs} ms, ${diffMinutes} minutes, ${diffHours} hours, ${diffDays} days`);
 
     if (diffMinutes <= 120) return 'minute';
     if (diffHours <= 48) return 'hour';

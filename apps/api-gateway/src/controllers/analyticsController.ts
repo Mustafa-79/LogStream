@@ -25,6 +25,8 @@ export class AnalyticsController {
       }
 
       const filters = AnalyticsController.parseFilters(req);
+
+      console.log('🎯 Parsed filters:', filters);
       const data = await AnalyticsService.getAnalytics(userId, filters);
       
       res.status(200).json(

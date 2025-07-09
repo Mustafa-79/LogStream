@@ -11,7 +11,7 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 export const Analytics = () => {
-  const { analyticsData, loading, refetching, applyingFilters, error, refetch, applyFilters, applications } = useAnalytics();
+  const { analyticsData, loading, refetching, applyingFilters, error, refetch, applyFilters, applications, defaultDates } = useAnalytics();
   const [filters, setFilters] = useState<FilterState>({
     applications: [],
     logLevels: [],
@@ -117,6 +117,7 @@ export const Analytics = () => {
         initialFilters={filters}
         applications={applications}
         applyingFilters={applyingFilters}
+        defaultDates={defaultDates}
       />
 
 

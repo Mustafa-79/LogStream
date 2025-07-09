@@ -11,6 +11,7 @@ import 'ojs/ojdatetimepicker';
 import "ojs/ojformlayout";
 import "ojs/ojbutton";
 import "ojs/ojlabel";
+import { getDefaultDateFilters } from "../../utils/dateUtils";
 
 // Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
@@ -31,12 +32,37 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit'
 });
 
-const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [], applyingFilters = false }: LogFilterProps) => {
+/**
+ * LogFilter Component
+ * 
+ * @param onFilterChange - Callback function called when filters change
+ * @param initialFilters - Initial filter values (optional)
+ * @param className - Additional CSS classes (optional)
+ * @param applications - List of available applications for filtering (optional)
+ * @param applyingFilters - Whether filters are currently being applied (optional)
+ * @param defaultDates - Default date range for from/to inputs (optional)
+ *                      If not provided, date inputs will be empty initially
+ * 
+ * Usage examples:
+ * 
+ * // With default dates (7 days ago to now)
+ * <LogFilter defaultDates={getDefaultDateFilters()} />
+ * 
+ * // With custom default dates
+ * <LogFilter defaultDates={{
+ *   fromDate: new Date('2025-01-01').toISOString(),
+ *   toDate: new Date().toISOString()
+ * }} />
+ * 
+ * // Without default dates (empty inputs)
+ * <LogFilter />
+ */
+const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [], applyingFilters = false, defaultDates }: LogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
     logLevels: initialFilters.logLevels || [],
-    fromDate: initialFilters.fromDate || null,
-    toDate: initialFilters.toDate || null,
+    fromDate: initialFilters.fromDate || (defaultDates?.fromDate || null),
+    toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
 
   // Create ArrayDataProviders dynamically based on props
@@ -77,8 +103,12 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
   // Handle from date change
   const handleFromDateChange = (event: any) => {
     const fromDate = event.detail.value;
-    // Convert to ISO string if it's a valid date
-    const isoFromDate = fromDate ? new Date(fromDate).toISOString() : null;
+    let isoFromDate = null;
+    if (fromDate) {
+      const dateObj = new Date(fromDate);
+      dateObj.setMilliseconds(0); // Set milliseconds to 0
+      isoFromDate = dateObj.toISOString();
+    }
     const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
   };
@@ -86,8 +116,12 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
   // Handle to date change
   const handleToDateChange = (event: any) => {
     const toDate = event.detail.value;
-    // Convert to ISO string if it's a valid date
-    const isoToDate = toDate ? new Date(toDate).toISOString() : null;
+    let isoToDate = null;
+    if (toDate) {
+      const dateObj = new Date(toDate);
+      dateObj.setMilliseconds(0); // Set milliseconds to 0
+      isoToDate = dateObj.toISOString();
+    }
     const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
   };
@@ -133,11 +167,15 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     const emptySet = new Set<string>();
     setApplicationsValue(emptySet);
     setLogLevelsValue(emptySet);
+    
+    // Reset to default date values using the same utility
+    const defaultDates = getDefaultDateFilters();
+    
     const newFilters: FilterState = {
       applications: [],
       logLevels: [],
-      fromDate: null,
-      toDate: null,
+      fromDate: defaultDates?.fromDate || null,
+      toDate: defaultDates?.toDate || null,
     };
     setFilters(newFilters);
     onFilterChange(newFilters);

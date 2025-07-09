@@ -11,6 +11,10 @@ export interface LogFilterProps {
   className?: string;
   applications?: DropdownOption[];
   applyingFilters?: boolean;
+  defaultDates?: {
+    fromDate: string;
+    toDate: string;
+  };
 }
 
 export interface DropdownOption {

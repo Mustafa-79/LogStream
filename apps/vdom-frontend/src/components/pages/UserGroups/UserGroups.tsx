@@ -8,8 +8,10 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 
-// TODO: Unable to edit active toggle in edit modal
-// FIXME: Ensure active toggle works in edit modal
+// TODO: Pagination
+// TODO: Search / Filter
+// TODO: Shift the duplicate name logic to the backend
+// FIXME: Add application to user group -> delete application -> app still shows in user group (it shouldn't) (backend issue)
 
 export function UserGroups() {
   const [userGroups, setUserGroups] = useState<IGroup[]>([]);
