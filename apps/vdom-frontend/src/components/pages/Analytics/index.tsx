@@ -91,9 +91,9 @@ export const Analytics = () => {
       {/* Page Header */}
       <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
         <div style="flex: 1;">
-          <h1 style="color: #6366f1; margin: 0; font-size: 2rem; font-weight: 600; font-family: 'Poppins', sans-serif;">
+            <h1 class="oj-typography-heading-lg" style="margin: 0;">
             Analytics Dashboard
-          </h1>
+            </h1>
           <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
             Visualize log patterns, application performance, and system insights.
           </p>

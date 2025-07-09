@@ -453,7 +453,7 @@ export function UserGroups() {
       {/* Page Header */}
       <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-1x-vertical">
         <div>
-          <h1 style="color: #6366f1; margin: 0; font-size: 2rem; font-weight: 600; font-family: 'Poppins', sans-serif;">
+          <h1 class="oj-typography-heading-lg" style="margin: 0;">
             User Groups
           </h1>
 
