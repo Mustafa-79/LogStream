@@ -11,6 +11,7 @@ import { UserGroups } from "./pages/UserGroups/UserGroups";
 import { Dashboard } from "./pages/Dashboard/index";
 import { Analytics } from "./pages/Analytics/index";
 import { Login } from "./pages/Login/index";
+import { Settings } from "./pages/Settings/index";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { useAppState } from "../hooks/useAppState";
 import { RouteConfig } from "./router";
@@ -90,6 +91,20 @@ export const App = registerCustomElement(
         label: 'Login',
         icon: 'oj-ux-ico-login',
         requireAuth: false
+      },
+      {
+        path: '/settings',
+        component: () => (
+          <ProtectedRoute 
+            requireAuth={true}
+            onRedirect={appState.actions.handleRedirect}
+          >
+            <Settings />
+          </ProtectedRoute>
+        ),
+        label: 'Settings',
+        icon: 'oj-ux-ico-settings',
+        requireAuth: true
       }
     ];
 
