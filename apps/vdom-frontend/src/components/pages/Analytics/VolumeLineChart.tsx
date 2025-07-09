@@ -32,6 +32,30 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
     [chartData]
   );
 
+  // Handle empty data case
+  if (!data || data.length === 0) {
+    return (
+      <div class="oj-md-margin-4x-horizontal">
+        <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
+          Log Volume Trend
+        </h3>
+        <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
+          This chart displays the trend of log volumes over time.
+        </p>
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="height: 300px; width: 100%; border: 1px dashed #d1d5db; border-radius: 8px; background-color: #f9fafb;">
+          <div class="oj-flex oj-sm-flex-direction-column oj-sm-align-items-center">
+            <div class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-2x-bottom">
+              No data available
+            </div>
+            <p class="oj-typography-body-sm oj-text-color-secondary">
+              No log volume data found for the selected time period.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // --- Chart Series Template ---
   const chartSeries = (series: any) => {
     return (
