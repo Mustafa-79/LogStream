@@ -1,27 +1,41 @@
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useRef } from "preact/hooks";
 import LogService from "../services/logService";
-import LogUtils, { LogCountsRecord } from "../utils/logUtils";
 import { Log } from "../utils/applicationUtils";
 import { AuthManager } from "../utils/auth";
 
 interface UseLogsOptions {
-  autoFetch?: boolean;
   onUnauthorized?: () => void;
+  pageSize?: number;
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  limit: number;
 }
 
 export const useLogs = (options: UseLogsOptions = {}) => {
-  const { autoFetch = true, onUnauthorized } = options;
-  
+  const { onUnauthorized, pageSize = 25 } = options;
+
   const [logs, setLogs] = useState<Log[]>([]);
-  const [logCounts, setLogCounts] = useState<LogCountsRecord>({});
-  const [isPaused, setIsPaused] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const latestDateRef = useRef<string | null>(null);
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const [pagination, setPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: pageSize
+  });
+  const [logStats, setLogStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
-  const fetchNewLogs = async () => {
+  const fetchLogs = async (page: number = 1, since?: string) => {
     if (!AuthManager.isAuthenticated()) {
       return;
     }
@@ -29,106 +43,98 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const newLogs = await LogService.fetchNewLogs(latestDateRef.current || undefined);
-      console.log("newLogs: ", newLogs)
-      
-      if (newLogs.length > 0) {
-        setLogs(prevLogs => {
-          const mergedLogs = LogUtils.mergeLogs(prevLogs, newLogs);
-          const counts = LogUtils.computeLogCounts(mergedLogs);
-          setLogCounts(counts);
-          return mergedLogs;
-        });
-        
-        latestDateRef.current = LogUtils.getLatestLogDate(newLogs);
-      }
+
+      const response = await LogService.fetchLogs(since, page, pageSize);
+
+      setLogs(response.logs);
+      setPagination(response.pagination);
     } catch (err) {
-      console.error('Error fetching new logs:', err);
-      
-      if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+      console.error("Error fetching logs:", err);
+
+      if (err instanceof Error && err.message === "UNAUTHORIZED") {
         if (onUnauthorized) {
           onUnauthorized();
         }
         return;
       }
-      
-      setError('Failed to fetch logs');
+
+      setError("Failed to fetch logs");
     } finally {
       setLoading(false);
     }
   };
 
-  const startPolling = () => {
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
-    }
-
-    const intervalId = setInterval(() => {
-      if (!isPaused && AuthManager.isAuthenticated()) {
-        fetchNewLogs();
-      }
-    }, LogService.getFetchInterval());
-
-    intervalIdRef.current = intervalId;
-  };
-
-  const stopPolling = () => {
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
+  const goToPage = async (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages && page !== pagination.currentPage) {
+      await fetchLogs(page);
     }
   };
 
-  const pausePolling = () => {
-    setIsPaused(true);
+  const goToNextPage = async () => {
+    if (pagination.hasNextPage) {
+      await fetchLogs(pagination.currentPage + 1);
+    }
   };
 
-  const resumePolling = () => {
-    setIsPaused(false);
+  const goToPrevPage = async () => {
+    if (pagination.hasPrevPage) {
+      await fetchLogs(pagination.currentPage - 1);
+    }
   };
 
-  const clearLogs = () => {
-    setLogs([]);
-    setLogCounts({});
-    latestDateRef.current = null;
+  const goToFirstPage = async () => {
+    if (pagination.currentPage !== 1) {
+      await fetchLogs(1);
+    }
   };
 
-  const refetch = () => {
-    fetchNewLogs();
+  const goToLastPage = async () => {
+    if (pagination.currentPage !== pagination.totalPages) {
+      await fetchLogs(pagination.totalPages);
+    }
   };
 
-  useEffect(() => {
-    if (autoFetch && AuthManager.isAuthenticated()) {
-      fetchNewLogs();
-      startPolling();
+  const refreshCurrentPage = async () => {
+    await fetchLogs(pagination.currentPage);
+  };
+
+  const fetchLogStats = async () => {
+    if (!AuthManager.isAuthenticated()) {
+      return;
     }
 
-    return () => {
-      stopPolling();
-    };
-  }, [autoFetch, isPaused]);
-
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, []);
+    try {
+      setStatsLoading(true);
+      setStatsError(null);
+      const stats = await LogService.fetchLogStats();
+      console.log('Log stats fetched:', stats);
+      setLogStats(stats);
+    } catch (error) {
+      console.error('Error fetching log stats:', error);
+      setStatsError("Failed to fetch log stats");
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   return {
     logs,
-    logCounts,
-    isPaused,
     loading,
     error,
+    pagination,
+    logStats,
+    statsLoading,
+    statsError,
     actions: {
-      fetchNewLogs,
-      startPolling,
-      stopPolling,
-      pausePolling,
-      resumePolling,
-      clearLogs,
-      refetch
+      fetchLogs: () => fetchLogs(1),
+      fetchLogStats,
+      refetch: refreshCurrentPage,
+      goToPage,
+      goToNextPage,
+      goToPrevPage,
+      goToFirstPage,
+      goToLastPage,
+      refreshCurrentPage
     }
   };
 };

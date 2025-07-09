@@ -20,6 +20,7 @@ export const useAnalytics = () => {
         setLoading(true);
       }
       const response = await AnalyticsService.fetchAnalytics();
+      console.log("Fetched analytics data:", response.data);
       setAnalyticsData(response.data);
       // Clear error on successful fetch
       setError(null);

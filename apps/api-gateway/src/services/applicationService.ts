@@ -1,11 +1,55 @@
 import Application, { IApplication } from '../models/Application.model';
+import { Log } from '../models/Log.model';
 
 export const getAllApplications = async () => {
   try {
-    return await Application.find({ deleted: false }).sort({ createdAt: -1 });
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const applications = await Application.find({ deleted: false }).sort({ createdAt: -1 });
+
+    const logsAggregation = await Log.aggregate([
+      {
+        $match: {
+          date: { $gte: twentyFourHoursAgo },
+          sourceApp: { $in: applications.map(app => app._id) }
+        }
+      },
+      {
+        $group: {
+          _id: "$sourceApp",
+          totalLogs: { $sum: 1 },
+          errorLogs: {
+            $sum: {
+              $cond: [{ $eq: ["$logLevel", "ERROR"] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
+    
+
+    const logStatsMap = new Map<string, { totalLogs: number; errorLogs: number }>();
+    logsAggregation.forEach(stat => {
+      logStatsMap.set(stat._id.toString(), {
+        totalLogs: stat.totalLogs,
+        errorLogs: stat.errorLogs
+      });
+    });
+
+    const enrichedApplications = applications.map(app => {
+      const stats = logStatsMap.get((app as any)._id.toString()) || { totalLogs: 0, errorLogs: 0 };
+      return {
+        ...app.toObject(),
+        logsToday: stats.totalLogs,
+        errorsToday: stats.errorLogs
+      };
+    });
+
+    return enrichedApplications;
   } catch (error) {
     console.error('Error in getAllApplications:', error);
-    throw new Error('Failed to fetch applications.');
+    throw new Error('Failed to fetch applications with log stats.');
   }
 };
 

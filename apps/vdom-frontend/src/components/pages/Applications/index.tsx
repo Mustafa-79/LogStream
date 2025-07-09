@@ -8,12 +8,7 @@ import "oj-c/button";
 import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
-export type ApplicationsProps = {
-  logs: Log[];
-  logCounts: Record<string, { logsToday: number; errors: number }>;
-};
-
-export function Applications({ logs, logCounts }: ApplicationsProps) {
+export function Applications() {
   const { applications, setApplications, loading } = useApplications();
   const { createApplication, isCreating } = useCreateApplication();
   const { updateApplication, isUpdating } = useUpdateApplication();
@@ -252,7 +247,7 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
       <div class="oj-flex oj-flex-wrap" style="gap: 24px;">
         {applications.map(app => {
           const appId = app._id.toString();
-          const appLogCounts = logCounts[appId] || { logsToday: 0, errors: 0 };
+          const appLogCounts = { logsToday: 10, errors: 10 };
           const statusBadge = getStatusBadge(app, appLogCounts.errors);
 
           return (
@@ -305,7 +300,8 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
                   {statusBadge.text}
                 </span>
                 <span style="color: #6b7280; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
-                  {getLastLogTime(appId, logs)}
+                  {/* {getLastLogTime(appId, logs)} */}
+                  Time
                 </span>
               </div>
 
@@ -313,13 +309,13 @@ export function Applications({ logs, logCounts }: ApplicationsProps) {
                 <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="margin-bottom: 8px; width: 100%;">
                   <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Logs today:</span>
                   <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
-                    {appLogCounts.logsToday}
+                    {app.logsToday}
                   </span>
                 </div>
                 <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="width: 100%;">
                   <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Errors:</span>
                   <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
-                    {appLogCounts.errors}
+                    {app.errorsToday}
                   </span>
                 </div>
               </div>}
