@@ -29,7 +29,7 @@ export const Analytics = () => {
   // Simple memoization to prevent unnecessary chart re-renders when data hasn't changed
   const memoizedChartData = useMemo(() => {
     if (!analyticsData) return null;
-    
+
     return {
       logLevelDistribution: analyticsData.logLevelDistribution,
       applicationCounts: analyticsData.applicationCounts,
@@ -112,19 +112,19 @@ export const Analytics = () => {
       </div>
 
       {/* Log Filter Component */}
-      <LogFilter 
+      <LogFilter
         onFilterChange={handleFilterChange}
         initialFilters={filters}
         applications={applications}
       />
 
-      
+
       {/* Charts Section */}
       <div class="oj-flex oj-sm-flex-direction-row oj-sm-margin-4x-bottom">
         <div class="oj-flex-item oj-panel oj-sm-margin-2x-end oj-sm-margin-2x-bottom oj-panel-shadow-md">
           <PieChart data={memoizedChartData?.logLevelDistribution || []} />
         </div>
-        
+
         <div class="oj-flex-item oj-panel oj-sm-margin-2x-start oj-sm-margin-2x-bottom oj-panel-shadow-md">
           <ApplicationBarChart data={memoizedChartData?.applicationCounts || []} />
         </div>

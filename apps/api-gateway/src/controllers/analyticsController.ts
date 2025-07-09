@@ -4,7 +4,7 @@ import createResponse from '../utils/responseHelper';
 
 export class AnalyticsController {
   /**
-   * Get comprehensive analytics data
+   * Get comprehensive analytics data for the authenticated user (filtered by accessible applications)
    * GET /analytics
    * 
    * Query Parameters:
@@ -15,8 +15,17 @@ export class AnalyticsController {
    */
   static async getAnalytics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const userId = req.user?.userId || req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json(
+          createResponse(401, 'User authentication required', null)
+        );
+        return;
+      }
+
       const filters = AnalyticsController.parseFilters(req);
-      const data = await AnalyticsService.getAnalytics(filters);
+      const data = await AnalyticsService.getAnalytics(userId, filters);
       
       res.status(200).json(
         createResponse(200, 'Analytics data retrieved successfully', data)
