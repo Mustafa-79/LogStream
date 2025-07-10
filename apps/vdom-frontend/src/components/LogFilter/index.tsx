@@ -29,11 +29,9 @@ const timeFullConverter = new IntlDateTimeConverter({
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
-  second: '2-digit'
+  second: '2-digit' 
 });
 
-
-// TODO: Choose 1 app -> unchoose -> Summary still shows 1 app selected
 
 /**
  * LogFilter Component
@@ -90,6 +88,11 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const newFilters = { ...filters, applications: selectedApps };
       setFilters(newFilters);
     }
+    if (!selectedKeys || selectedKeys.size === 0) {
+      // If no applications are selected, reset to empty array
+      const newFilters = { ...filters, applications: [] };
+      setFilters(newFilters);
+    }
   };
 
   // Handle log level filter changes
@@ -99,6 +102,12 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       setLogLevelsValue(selectedKeys);
       const selectedLevels = Array.from(selectedKeys);
       const newFilters = { ...filters, logLevels: selectedLevels };
+      setFilters(newFilters);
+    }
+
+    if (!selectedKeys || selectedKeys.size === 0) {
+      // If no log levels are selected, reset to empty array
+      const newFilters = { ...filters, logLevels: [] };
       setFilters(newFilters);
     }
   };
