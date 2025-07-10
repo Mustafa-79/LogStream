@@ -85,31 +85,31 @@ class GoogleDirectoryService {
       // Try multiple search strategies to find users
       let users: admin_directory_v1.Schema$User[] = [];
       
-      // Strategy 1: Search by email prefix
+      // Strategy 1: Search by name prefix
       try {
         const emailResponse = await this.admin.users.list({
           domain: process.env.GOOGLE_WORKSPACE_DOMAIN,
-          query: `email:${query}*`,
+          query: `name:${query}`,
           maxResults: 20,
           projection: 'basic',
           orderBy: 'email'
         });
         users = emailResponse.data.users ?? [];
-        console.log(`✅ Found ${users.length} users by email search`);
+        console.log(`✅ Found ${users.length} users by name search`);
       } catch {
-        console.log(`⚠️ Email search failed, trying name search...`);
+        console.log(`⚠️ Name search failed, trying email search...`);
         
-        // Strategy 2: Search by name (if email search fails)
+        // Strategy 2: Search by email (if name search fails)
         try {
           const nameResponse = await this.admin.users.list({
             domain: process.env.GOOGLE_WORKSPACE_DOMAIN,
-            query: `name:${query}*`,
+            query: `email:${query}*`,
             maxResults: 20,
             projection: 'basic',
             orderBy: 'email'
           });
           users = nameResponse.data.users ?? [];
-          console.log(`✅ Found ${users.length} users by name search`);
+          console.log(`✅ Found ${users.length} users by email search`);
         } catch {
           console.log(`⚠️ Name search also failed, trying general search...`);
           
