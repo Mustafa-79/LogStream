@@ -9,7 +9,7 @@ const router = Router()
 // Apply authentication to all user group routes
 router.use(authenticateJWT);
 
-router.get('/', requireAdmin, userGroupsController.getUserGroups)
+router.get('/', requireAdmin, validate(userGroupValidation.getUserGroups), userGroupsController.getUserGroups)
 
 router.post('/', requireAdmin, validate(userGroupValidation.createUserGroup), userGroupsController.createUserGroup)
 

@@ -2,6 +2,15 @@ import Joi from 'joi'
 
 
 export const userGroupValidation = {
+
+  getUserGroups: {
+    query: Joi.object({
+      page:             Joi.number().integer().min(1).default(1).label('Page Number'),
+      search:           Joi.string().trim().allow('').max(100).label('Search Term'),
+      status:           Joi.string().valid('active', 'inactive', 'all').default('all').label('Status Filter'),
+      applicationIds:   Joi.string().allow('').label('Application IDs (comma-separated)'),
+    }),
+  },
   
   createUserGroup: {
     body: Joi.object({

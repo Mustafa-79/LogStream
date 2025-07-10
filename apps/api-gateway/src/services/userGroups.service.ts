@@ -3,40 +3,128 @@ import User, { IUser } from '../models/User.model'
 import Application, { IApplication } from '../models/Application.model'
 import ApiError from '../utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import { Types } from 'mongoose'
 
-export const getAllUserGroups = async (): Promise<Array<Omit<IGroup, keyof Document> & { members?: IUser[]; applications?: IApplication[] }>> => {
+export interface GetUserGroupsOptions {
+  page?: number
+  search?: string
+  status?: 'active' | 'inactive' | 'all'
+  applicationIds?: string[]
+}
 
-  const result = await Group.aggregate([
-    { $match: { deleted: false } },
-    
-    { $sort: { name: 1 } },
-    
+export interface PaginatedUserGroupsResponse {
+  groups: Array<Omit<IGroup, keyof Document> & { members?: IUser[]; applications?: IApplication[] }>
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalGroups: number
+    groupsPerPage: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+// Helper function to validate MongoDB ObjectId
+const isValidObjectId = (id: string): boolean => {
+  return Types.ObjectId.isValid(id)
+}
+
+// Helper function to validate array of ObjectIds
+const validateObjectIds = (ids: string[]): boolean => {
+  return ids.every(id => isValidObjectId(id))
+}
+
+export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Promise<PaginatedUserGroupsResponse> => {
+  const {
+    page = 1,
+    search = '',
+    status = 'all',
+    applicationIds = []
+  } = options
+
+  // Fixed limit to 4 groups per page
+  const limit = 4
+
+  // Validate ObjectIds
+  if (applicationIds.length > 0 && !validateObjectIds(applicationIds)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more application IDs are invalid.')
+  }
+
+  // Build aggregation pipeline
+  const pipeline: Record<string, unknown>[] = []
+
+  // First lookup members and applications
+  pipeline.push(
     {
       $lookup: {
         from: 'users',
         localField: 'memberIDs',
         foreignField: '_id',
         as: 'members',
-        pipeline: [
-          { $sort: { username: 1 } } // Sort members by username
-        ]
+        pipeline: [{ $sort: { username: 1 } }]
       }
     },
-    
     {
       $lookup: {
         from: 'applications',
         localField: 'applicationIDs',
         foreignField: '_id',
         as: 'applications',
-        pipeline: [
-          { $sort: { name: 1 } } // Sort applications by name
-        ]
+        pipeline: [{ $sort: { name: 1 } }]
       }
     }
-  ])
-  
-  return result
+  )
+
+  // Build match conditions
+  const matchConditions: Record<string, unknown> = { deleted: false }
+
+  // Add status filter
+  if (status === 'active') {
+    matchConditions.active = true
+  } else if (status === 'inactive') {
+    matchConditions.active = false
+  }
+
+  // Add search filter (only for group name)
+  if (search && search.trim() !== '') {
+    matchConditions.name = { $regex: search.trim(), $options: 'i' }
+  }
+
+  // Add application filter
+  if (applicationIds.length > 0) {
+    matchConditions.applicationIDs = { $in: applicationIds }
+  }
+
+  pipeline.push({ $match: matchConditions })
+
+  // Always sort by name alphabetically
+  pipeline.push({ $sort: { name: 1 } })
+
+  // Get total count
+  const countPipeline = [...pipeline, { $count: 'total' }]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const countResult = await Group.aggregate(countPipeline as any)
+  const totalGroups = countResult[0]?.total || 0
+  const totalPages = Math.ceil(totalGroups / limit)
+
+  // Add pagination
+  const skip = (page - 1) * limit
+  pipeline.push({ $skip: skip }, { $limit: limit })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await Group.aggregate(pipeline as any)
+
+  return {
+    groups: result,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalGroups,
+      groupsPerPage: limit,
+      hasNext: page < totalPages,
+      hasPrev: page > 1
+    }
+  }
 }
 
 
@@ -154,7 +242,7 @@ export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
   }
-  if (!group.deleted) {     
+  if (!group.deleted) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Group is not deleted.')
   }
   const restored = await Group.findOneAndUpdate(

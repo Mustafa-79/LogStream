@@ -229,8 +229,12 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
         newErrors.fromDate = "'From' date cannot be after 'to' date.";
       }
 
-      // Rule 2: To date cannot be in the future
-      if (to > new Date()) {
+      // Rule 2: Neither date can be in the future
+      const now = new Date();
+      if (from > now) {
+        newErrors.fromDate = "'From' date cannot be in the future.";
+      }
+      if (to > now) {
         newErrors.toDate = "'To' date cannot be in the future.";
       }
     }

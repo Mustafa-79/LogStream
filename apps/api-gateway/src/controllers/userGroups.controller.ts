@@ -4,9 +4,28 @@ import createResponse from '../utils/responseHelper'
 
 export const getUserGroups = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const groups = await userGroupService.getAllUserGroups()
+        const {
+            page = 1,
+            search = '',
+            status = 'all',
+            applicationIds = ''
+        } = req.query
+
+        // Parse comma-separated application IDs
+        const applicationIdsArray = applicationIds ? (applicationIds as string).split(',').filter(id => id.trim()) : []
+
+        // Parse query parameters (validation handled by Joi)
+        const options = {
+            page: parseInt(page as string) || 1,
+            search: (search as string) || '',
+            status: (status as 'active' | 'inactive' | 'all') || 'all',
+            applicationIds: applicationIdsArray
+        }
+
+        const result = await userGroupService.getAllUserGroups(options)
+        
         res.status(200).json(
-            createResponse(200, 'User groups fetched successfully', groups)
+            createResponse(200, 'User groups fetched successfully', result)
         )
     } catch (error) {
         next(error)
