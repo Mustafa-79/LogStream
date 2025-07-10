@@ -39,47 +39,47 @@ export interface AnalyticsResponse {
   };
 }
 
-export class AnalyticsService {
-  /**
-   * Get comprehensive analytics data filtered by user's accessible applications
-   */
-  static async getAnalytics(userId: string, filters: AnalyticsFilters = {}): Promise<AnalyticsResponse> {
-    const userApplicationIds = await AnalyticsService.getUserAccessibleApplications(userId);
+interface MongoQuery {
+  date: { $gte: Date; $lte: Date };
+  sourceApp?: { $in: mongoose.Types.ObjectId[] };
+  logLevel?: { $in: string[] };
+}
 
-    // If user has no access to any applications, return empty analytics
-    if (userApplicationIds.length === 0) {
-      return AnalyticsService.getEmptyAnalytics(filters);
+export class AnalyticsService {
+  static async getAnalytics(userId: string, filters: AnalyticsFilters = {}): Promise<AnalyticsResponse> {
+    const userApps = await this.getUserApps(userId);
+    
+    if (userApps.length === 0) {
+      return this.emptyResponse(filters);
     }
 
-    // Filter applications based on user access
-    const userFilters: AnalyticsFilters = {
-      ...filters,
-      applicationIDs: AnalyticsService.filterUserApplications(
-        filters.applicationIDs,
-        userApplicationIds
-      )
+    // Process filters with defaults
+    const appIds = filters.applicationIDs?.length ? 
+      filters.applicationIDs.filter(id => userApps.includes(id)) : userApps;
+    
+    const from = filters.from || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const to = filters.to || new Date();
+    const granularity = this.getGranularity(from, to);
+
+    // Build MongoDB query
+    const query: MongoQuery = {
+      date: { $gte: from, $lte: to }
     };
+    
+    if (appIds.length) {
+      query.sourceApp = { $in: appIds.map(id => new mongoose.Types.ObjectId(id)) };
+    }
+    
+    if (filters.logLevels?.length) {
+      query.logLevel = { $in: filters.logLevels };
+    }
 
-    // Apply defaults and build query
-    const processedFilters = AnalyticsService.applyDefaults(userFilters);
-    const matchStage = AnalyticsService.buildMatchStage(processedFilters);
-    const granularity = AnalyticsService.determineGranularity(processedFilters.from, processedFilters.to);
-
-    console.log('🔧 Processed filters:', processedFilters);
-    console.log('🔍 Match stage:', matchStage);
-    console.log('⏱ Granularity:', granularity);
-
-    // Execute all aggregations in parallel
-    const [
-      totalLogs,
-      logLevelDistribution,
-      applicationCounts,
-      volumeTrend
-    ] = await Promise.all([
-      Log.countDocuments(matchStage),
-      AnalyticsService.getLogLevelDistribution(matchStage),
-      AnalyticsService.getApplicationCounts(matchStage),
-      AnalyticsService.getVolumeTrend(matchStage, granularity)
+    // Get all data in parallel
+    const [totalLogs, logLevelDistribution, applicationCounts, volumeTrend] = await Promise.all([
+      Log.countDocuments(query),
+      this.getLogLevels(query),
+      this.getAppCounts(query),
+      this.getVolumeTrend(query, granularity, from, to)
     ]);
 
     return {
@@ -87,186 +87,84 @@ export class AnalyticsService {
       applicationCounts,
       volumeTrend,
       totalLogs,
-      period: {
-        from: processedFilters.from,
-        to: processedFilters.to,
-        granularity
-      }
+      period: { from, to, granularity }
     };
   }
 
-  /**
-   * Get application IDs that a user has access to through their group memberships
-   */
-  private static async getUserAccessibleApplications(userId: string): Promise<mongoose.Types.ObjectId[]> {
+  private static async getUserApps(userId: string): Promise<string[]> {
     try {
-      const userObjectId = new mongoose.Types.ObjectId(userId);
-
       const result = await Group.aggregate([
-        // Stage 1: Find groups where user is a member
         {
           $match: {
-            memberIDs: userObjectId,
+            memberIDs: new mongoose.Types.ObjectId(userId),
             active: true,
             deleted: false
           }
         },
-        // Stage 2: Unwind applicationIDs array to work with individual app IDs
-        {
-          $unwind: "$applicationIDs"
-        },
-        // Stage 3: Group by null to collect all unique application IDs
-        {
-          $group: {
-            _id: null,
-            applicationIds: { $addToSet: "$applicationIDs" }
-          }
-        }
+        { $unwind: "$applicationIDs" },
+        { $group: { _id: null, apps: { $addToSet: "$applicationIDs" } } }
       ]);
 
-      return result.length > 0 ? result[0].applicationIds : [];
+      return result[0]?.apps?.map((id: mongoose.Types.ObjectId) => id.toString()) || [];
     } catch (error) {
-      console.error('Error fetching user accessible applications:', error);
+      console.error('Error getting user apps:', error);
       return [];
     }
   }
 
-  /**
-   * Filter application IDs based on user access
-   */
-  private static filterUserApplications(
-    requestedAppIds: string[] | undefined,
-    userAccessibleAppIds: mongoose.Types.ObjectId[]
-  ): string[] {
-    const userAccessibleStrings = userAccessibleAppIds.map(id => id.toString());
-
-    if (!requestedAppIds || requestedAppIds.length === 0) {
-      return userAccessibleStrings;
-    }
-
-    return requestedAppIds.filter(id => userAccessibleStrings.includes(id));
-  }
-
-  /**
-   * Get empty analytics response with proper date defaults
-   */
-  private static getEmptyAnalytics(filters: AnalyticsFilters): AnalyticsResponse {
-    const { from, to } = AnalyticsService.getDefaultDateRange(filters);
-
+  private static emptyResponse(filters: AnalyticsFilters): AnalyticsResponse {
+    const from = filters.from || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const to = filters.to || new Date();
+    
     return {
       logLevelDistribution: [],
       applicationCounts: [],
       volumeTrend: [],
       totalLogs: 0,
-      period: {
-        from,
-        to,
-        granularity: AnalyticsService.determineGranularity(from, to)
-      }
+      period: { from, to, granularity: this.getGranularity(from, to) }
     };
   }
 
-  /**
-   * Get default date range
-   */
-  private static getDefaultDateRange(filters: AnalyticsFilters): { from: Date; to: Date } {
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    return {
-      from: filters.from || sevenDaysAgo,
-      to: filters.to || now
-    };
+  private static getGranularity(from: Date, to: Date): string {
+    const minutes = (to.getTime() - from.getTime()) / (1000 * 60);
+    
+    if (minutes <= 120) return 'minute';
+    if (minutes <= 2880) return 'hour';
+    return 'day';
   }
 
-  /**
-   * Apply default filters
-   */
-  private static applyDefaults(filters: AnalyticsFilters): Required<AnalyticsFilters> {
-    const { from, to } = AnalyticsService.getDefaultDateRange(filters);
-
-    return {
-      applicationIDs: filters.applicationIDs || [],
-      logLevels: filters.logLevels || [],
-      from,
-      to
-    };
-  }
-
-  /**
-   * Build MongoDB match stage
-   */
-  private static buildMatchStage(filters: Required<AnalyticsFilters>): Record<string, unknown> {
-    const match: Record<string, unknown> = {
-      date: { $gte: filters.from, $lte: filters.to }
-    };
-
-    if (filters.applicationIDs.length > 0) {
-      match.sourceApp = {
-        $in: filters.applicationIDs.map(id => new mongoose.Types.ObjectId(id))
-      };
-    }
-
-    if (filters.logLevels.length > 0) {
-      match.logLevel = { $in: filters.logLevels };
-    }
-
-    return match;
-  }
-
-  /**
-   * Determine optimal granularity based on time range
-   */
-  private static determineGranularity(from: Date, to: Date): string {
-    const diffMs = to.getTime() - from.getTime();
-    const diffMinutes = diffMs / (1000 * 60);
-    const diffHours = diffMs / (1000 * 60 * 60);
-    const diffDays = diffHours / 24;
-
-    console.log(`🔍 Time difference: ${diffMs} ms, ${diffMinutes} minutes, ${diffHours} hours, ${diffDays} days`);
-
-    if (diffMinutes <= 120) return 'minute';
-    if (diffHours <= 48) return 'hour';
-    if (diffDays <= 30) return 'day';
-    return 'week';
-  }
-
-  /**
-   * Get log level distribution with percentages
-   */
-  private static async getLogLevelDistribution(matchStage: Record<string, unknown>): Promise<LogLevelDistribution[]> {
+  private static async getLogLevels(query: MongoQuery): Promise<LogLevelDistribution[]> {
     const results = await Log.aggregate([
-      { $match: matchStage },
+      { $match: query },
       { $group: { _id: '$logLevel', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);
 
     const total = results.reduce((sum, item) => sum + item.count, 0);
+    
     return results.map(item => ({
-      ...item,
+      _id: item._id,
+      count: item.count,
       percentage: total > 0 ? Math.round((item.count / total) * 100) : 0
     }));
   }
 
-  /**
-   * Get application counts with names
-   */
-  private static async getApplicationCounts(matchStage: Record<string, unknown>): Promise<ApplicationCount[]> {
-    return await Log.aggregate([
-      { $match: matchStage },
+  private static async getAppCounts(query: MongoQuery): Promise<ApplicationCount[]> {
+    return Log.aggregate([
+      { $match: query },
       {
         $lookup: {
           from: 'applications',
           localField: 'sourceApp',
           foreignField: '_id',
-          as: 'application'
+          as: 'app'
         }
       },
-      { $unwind: '$application' },
+      { $unwind: '$app' },
       {
         $group: {
           _id: '$sourceApp',
-          applicationName: { $first: '$application.name' },
+          applicationName: { $first: '$app.name' },
           count: { $sum: 1 }
         }
       },
@@ -274,62 +172,117 @@ export class AnalyticsService {
     ]);
   }
 
-  /**
-   * Get volume trend with proper timestamps
-   */
-  private static async getVolumeTrend(matchStage: Record<string, unknown>, granularity: string): Promise<VolumeDataPoint[]> {
-    const dateFormats = {
-      minute: '%Y-%m-%d-%H-%M',
-      hour: '%Y-%m-%d-%H',
-      day: '%Y-%m-%d',
-      week: '%Y-%U'
-    };
-
+  private static async getVolumeTrend(
+    query: MongoQuery, 
+    granularity: string,
+    from: Date,
+    to: Date
+  ): Promise<VolumeDataPoint[]> {
+    const groupFields = this.getGroupFields(granularity);
+    
     const results = await Log.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: {
-            $dateToString: {
-              format: dateFormats[granularity as keyof typeof dateFormats],
-              date: '$date'
-            }
-          },
-          count: { $sum: 1 },
-          timestamp: { $first: '$date' }
-        }
-      },
-      { $sort: { _id: 1 } }
+      { $match: query },
+      { $group: { _id: groupFields, count: { $sum: 1 } } },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1, '_id.hour': 1, '_id.minute': 1 } }
     ]);
 
-    return results.map(item => ({
-      ...item,
-      timestamp: AnalyticsService.parseGroupedDate(item._id, granularity)
-    }));
+    // Map results by formatted ID
+    const dataMap = new Map<string, number>();
+    results.forEach(item => {
+      const id = this.formatId(item._id, granularity);
+      dataMap.set(id, item.count);
+    });
+
+    // Generate all time intervals
+    return this.generateIntervals(from, to, granularity)
+      .map(({ id, timestamp }) => ({
+        _id: id,
+        count: dataMap.get(id) || 0,
+        timestamp
+      }));
   }
 
-  /**
-   * Parse grouped date string back to Date object
-   */
-  private static parseGroupedDate(dateStr: string, granularity: string): Date {
-    const parts = dateStr.split('-').map(Number);
+  private static getGroupFields(granularity: string): Record<string, Record<string, Record<string, string>>> {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const base = { date: '$date', timezone };
+    
+    const fields: Record<string, Record<string, Record<string, string>>> = {
+      year: { $year: base },
+      month: { $month: base },
+      day: { $dayOfMonth: base }
+    };
 
-    switch (granularity) {
-      case 'minute':
-        return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4]);
-      case 'hour':
-        return new Date(parts[0], parts[1] - 1, parts[2], parts[3]);
-      case 'day':
-        return new Date(parts[0], parts[1] - 1, parts[2]);
-      case 'week': {
-        const [weekYear, week] = parts;
-        const jan1 = new Date(weekYear, 0, 1);
-        const daysOffset = (week - 1) * 7;
-        return new Date(jan1.getTime() + daysOffset * 24 * 60 * 60 * 1000);
-      }
-      default:
-        return new Date(dateStr);
+    if (granularity === 'hour' || granularity === 'minute') {
+      fields.hour = { $hour: base };
     }
+
+    if (granularity === 'minute') {
+      fields.minute = { $minute: base };
+    }
+
+    return fields;
+  }
+
+  private static formatId(groupId: Record<string, number>, granularity: string): string {
+    const parts = [groupId.year.toString()];
+    
+    if (granularity !== 'year') {
+      parts.push(groupId.month.toString().padStart(2, '0'));
+      parts.push(groupId.day.toString().padStart(2, '0'));
+    }
+    
+    if (granularity === 'hour' || granularity === 'minute') {
+      parts.push(groupId.hour.toString().padStart(2, '0'));
+    }
+    
+    if (granularity === 'minute') {
+      parts.push(groupId.minute.toString().padStart(2, '0'));
+    }
+    
+    return parts.join('-');
+  }
+
+  private static generateIntervals(from: Date, to: Date, granularity: string): Array<{ id: string; timestamp: Date }> {
+    const intervals: Array<{ id: string; timestamp: Date }> = [];
+    const current = new Date(from.getTime());
+    
+    // Normalize to granularity boundary
+    if (granularity === 'minute') current.setSeconds(0, 0);
+    if (granularity === 'hour') current.setMinutes(0, 0, 0);
+    if (granularity === 'day') current.setHours(0, 0, 0, 0);
+    
+    while (current <= to) {
+      const timestamp = new Date(current);
+      const id = this.createId(timestamp, granularity);
+      
+      intervals.push({ id, timestamp });
+      
+      // Increment by granularity
+      if (granularity === 'minute') current.setMinutes(current.getMinutes() + 1);
+      else if (granularity === 'hour') current.setHours(current.getHours() + 1);
+      else current.setDate(current.getDate() + 1);
+    }
+    
+    return intervals;
+  }
+
+  private static createId(date: Date, granularity: string): string {
+    const parts = [date.getFullYear().toString()];
+    
+    if (granularity !== 'year') {
+      parts.push((date.getMonth() + 1).toString().padStart(2, '0'));
+      parts.push(date.getDate().toString().padStart(2, '0'));
+    }
+    
+    if (granularity === 'hour' || granularity === 'minute') {
+      parts.push(date.getHours().toString().padStart(2, '0'));
+    }
+    
+    if (granularity === 'minute') {
+      parts.push(date.getMinutes().toString().padStart(2, '0'));
+    }
+    
+    return parts.join('-');
   }
 }
 

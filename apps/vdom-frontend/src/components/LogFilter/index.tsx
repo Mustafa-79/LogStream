@@ -3,7 +3,7 @@ import { useState, useEffect } from "preact/hooks";
 import { FilterState, LogFilterProps } from "./types";
 import ArrayDataProvider = require("ojs/ojarraydataprovider");
 import { IntlDateTimeConverter } from "ojs/ojconverter-datetime";
-import "oj-c/select-multiple";
+  import "oj-c/select-multiple";
 import "ojs/ojinputtext";
 // import "ojs/ojinputdatetime";
 import 'ojs/ojdatetimepicker';
@@ -29,8 +29,9 @@ const timeFullConverter = new IntlDateTimeConverter({
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
-  second: '2-digit'
+  second: '2-digit' 
 });
+
 
 /**
  * LogFilter Component
@@ -64,6 +65,7 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     fromDate: initialFilters.fromDate || (defaultDates?.fromDate || null),
     toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
+  const [errors, setErrors] = useState<{ fromDate?: string, toDate?: string }>({});
 
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
@@ -87,6 +89,11 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const newFilters = { ...filters, applications: selectedApps };
       setFilters(newFilters);
     }
+    if (!selectedKeys || selectedKeys.size === 0) {
+      // If no applications are selected, reset to empty array
+      const newFilters = { ...filters, applications: [] };
+      setFilters(newFilters);
+    }
   };
 
   // Handle log level filter changes
@@ -96,6 +103,12 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       setLogLevelsValue(selectedKeys);
       const selectedLevels = Array.from(selectedKeys);
       const newFilters = { ...filters, logLevels: selectedLevels };
+      setFilters(newFilters);
+    }
+
+    if (!selectedKeys || selectedKeys.size === 0) {
+      // If no log levels are selected, reset to empty array
+      const newFilters = { ...filters, logLevels: [] };
       setFilters(newFilters);
     }
   };
@@ -111,6 +124,9 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
     const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
+    if (errors.fromDate) {
+      setErrors(prev => ({ ...prev, fromDate: undefined }));
+    }
   };
 
   // Handle to date change
@@ -124,6 +140,9 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
     const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
+    if (errors.toDate) {
+      setErrors(prev => ({ ...prev, toDate: undefined }));
+    }
   };
 
   // Toggle all applications
@@ -179,11 +198,45 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
+    setErrors({});
   };
 
   // Apply filters
   const applyFilters = () => {
-    onFilterChange(filters);
+    if (validateDates()) {
+      onFilterChange(filters);
+    }
+  };
+
+  // Validate date filters
+  const validateDates = (): boolean => {
+    const newErrors: { fromDate?: string; toDate?: string } = {};
+    const { fromDate, toDate } = filters;
+
+    // Rule 3: Both dates must be present or both absent
+    if (fromDate && !toDate) {
+      newErrors.toDate = "Please select a 'to' date.";
+    } else if (!fromDate && toDate) {
+      newErrors.fromDate = "Please select a 'from' date.";
+    }
+
+    if (fromDate && toDate) {
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+
+      // Rule 1: From date cannot be after to date
+      if (from > to) {
+        newErrors.fromDate = "'From' date cannot be after 'to' date.";
+      }
+
+      // Rule 2: To date cannot be in the future
+      if (to > new Date()) {
+        newErrors.toDate = "'To' date cannot be in the future.";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   return (
@@ -279,7 +332,13 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             onvalueChanged={handleFromDateChange}
             converter={timeFullConverter}
             label-hint="Select from date and time"
+            class={errors.fromDate ? 'oj-invalid' : ''}
           ></oj-input-date-time>
+          {errors.fromDate && (
+            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
+              {errors.fromDate}
+            </div>
+          )}
         </div>
 
         {/* To Date */}
@@ -293,7 +352,13 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             onvalueChanged={handleToDateChange}
             converter={timeFullConverter}
             label-hint="Select to date and time"
+            class={errors.toDate ? 'oj-invalid' : ''}
           ></oj-input-date-time>
+          {errors.toDate && (
+            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
+              {errors.toDate}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import express, { Router } from 'express';
 import { authenticateJWT } from '../middlewares/auth'; 
 import { getAnalytics } from '../controllers/analyticsController';
+import validate from '../middlewares/validate'
+import { analyticsValidation } from '../validations/analytics.validation';
 
 const router: Router = express.Router();
 
@@ -18,6 +20,6 @@ router.use(authenticateJWT);
  * 
  * Note: applicationIDs are automatically filtered based on user's group memberships
  */
-router.get('/', getAnalytics);
+router.get('/', validate(analyticsValidation.getAnalytics), getAnalytics);
 
 export default router;
