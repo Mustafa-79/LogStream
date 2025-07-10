@@ -65,6 +65,7 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     fromDate: initialFilters.fromDate || (defaultDates?.fromDate || null),
     toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
+  const [errors, setErrors] = useState<{ fromDate?: string, toDate?: string }>({});
 
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
@@ -123,6 +124,9 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
     const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
+    if (errors.fromDate) {
+      setErrors(prev => ({ ...prev, fromDate: undefined }));
+    }
   };
 
   // Handle to date change
@@ -136,6 +140,9 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
     const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
+    if (errors.toDate) {
+      setErrors(prev => ({ ...prev, toDate: undefined }));
+    }
   };
 
   // Toggle all applications
@@ -191,11 +198,45 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
+    setErrors({});
   };
 
   // Apply filters
   const applyFilters = () => {
-    onFilterChange(filters);
+    if (validateDates()) {
+      onFilterChange(filters);
+    }
+  };
+
+  // Validate date filters
+  const validateDates = (): boolean => {
+    const newErrors: { fromDate?: string; toDate?: string } = {};
+    const { fromDate, toDate } = filters;
+
+    // Rule 3: Both dates must be present or both absent
+    if (fromDate && !toDate) {
+      newErrors.toDate = "Please select a 'to' date.";
+    } else if (!fromDate && toDate) {
+      newErrors.fromDate = "Please select a 'from' date.";
+    }
+
+    if (fromDate && toDate) {
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+
+      // Rule 1: From date cannot be after to date
+      if (from > to) {
+        newErrors.fromDate = "'From' date cannot be after 'to' date.";
+      }
+
+      // Rule 2: To date cannot be in the future
+      if (to > new Date()) {
+        newErrors.toDate = "'To' date cannot be in the future.";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   return (
@@ -291,7 +332,13 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             onvalueChanged={handleFromDateChange}
             converter={timeFullConverter}
             label-hint="Select from date and time"
+            class={errors.fromDate ? 'oj-invalid' : ''}
           ></oj-input-date-time>
+          {errors.fromDate && (
+            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
+              {errors.fromDate}
+            </div>
+          )}
         </div>
 
         {/* To Date */}
@@ -305,7 +352,13 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             onvalueChanged={handleToDateChange}
             converter={timeFullConverter}
             label-hint="Select to date and time"
+            class={errors.toDate ? 'oj-invalid' : ''}
           ></oj-input-date-time>
+          {errors.toDate && (
+            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
+              {errors.toDate}
+            </div>
+          )}
         </div>
       </div>
 
