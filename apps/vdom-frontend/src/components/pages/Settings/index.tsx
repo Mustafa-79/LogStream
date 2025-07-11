@@ -218,10 +218,10 @@ export function Settings() {
         </div>
 
         {/* Two Column Layout using Oracle JET Flex */}
-        <div class="oj-flex oj-flex-wrap oj-sm-margin-8x-horizontal" style="gap: 32px;">
+        <div class="oj-flex oj-flex-wrap settings-main-layout" style="gap: 32px;">
           {/* Left Column - Configure Application */}
-          <div class="oj-flex oj-sm-flex-direction-column oj-flex-item" style="min-width: 300px;">
-            <h4 class="oj-typography-body-md oj-text-color-primary oj-sm-margin-4x-bottom" style="margin: 0; font-weight: 500;">Configure Application</h4>
+          <div class="oj-flex oj-sm-flex-direction-column oj-flex-item settings-config-section" style="min-width: 300px;">
+            <h4 class="oj-typography-body-lg oj-text-color-primary oj-sm-margin-4x-bottom">Configure Application</h4>
             
             <div class="oj-sm-margin-4x-bottom">
               <label htmlFor="app-select" class="oj-label oj-text-color-secondary">
@@ -266,28 +266,29 @@ export function Settings() {
           </div>
 
           {/* Right Column - Application Status */}
-          <div class="oj-flex oj-sm-flex-direction-column oj-flex-item" style="min-width: 400px;">
-            <h4 class="oj-typography-body-md oj-text-color-primary oj-sm-margin-4x-bottom" style="margin: 0; font-weight: 500;">Application Status</h4>
+          <div class="oj-flex oj-sm-flex-direction-column oj-flex-item settings-status-section" style="min-width: 400px;">
+            <h4 class="oj-typography-body-lg oj-text-color-primary oj-sm-margin-4x-bottom">Application Status</h4>
             
-              <div class="oj-flex oj-sm-padding-4x" style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);">
+            <div class="oj-panel oj-panel-shadow-sm settings-status-table" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; max-height: 400px; overflow-y: auto;">
+              {/* Table Header */}
+              <div class="oj-flex oj-sm-padding-4x settings-table-header" style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);">
                 <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary" style="flex: 2; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Application</div>
-                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary oj-text-align-center" style="flex: 1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Threshold</div>
-                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary oj-text-align-center" style="flex: 1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Period</div>
-                <div class="oj-typography-body-xs oj-text-color-secondary oj-text-align-center" style="width: 80px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Status</div>
+                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary oj-text-align-center settings-threshold-col" style="flex: 1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Threshold</div>
+                <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary oj-text-align-center settings-period-col" style="flex: 1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Period</div>
+                <div class="oj-typography-body-xs oj-text-color-secondary oj-text-align-center settings-status-col" style="width: 80px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Status</div>
               </div>
-            <div class="oj-panel oj-panel-shadow-sm" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; max-height: 400px; overflow-y: auto;">
               {/* Table Header */}
 
               {/* Table Body */}
               {applicationStatus.map((app) => (
-                <div key={app.id} class="oj-flex oj-sm-align-items-center oj-sm-padding-4x" style="border-bottom: 1px solid #e5e7eb;">
+                <div key={app.id} class="oj-flex oj-sm-align-items-center oj-sm-padding-4x settings-table-row" style="border-bottom: 1px solid #e5e7eb;">
                   <div class="oj-flex oj-sm-align-items-center oj-flex-item" style="flex: 2; gap: 8px; min-width: 0;">
                     <div style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%; flex-shrink: 0;"></div>
                     <span class="oj-typography-body-sm" style="color: #374151; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{app.name}</span>
                   </div>
-                  <div class="oj-flex-item oj-typography-body-sm oj-text-color-secondary oj-text-align-center" style="flex: 1;">{app.threshold}</div>
-                  <div class="oj-flex-item oj-typography-body-sm oj-text-color-secondary oj-text-align-center" style="flex: 1;">{getTimePeriodDisplay(app.timePeriod)}</div>
-                  <div class="oj-flex oj-sm-justify-content-center" style="width: 80px;">
+                  <div class="oj-flex-item oj-typography-body-sm oj-text-color-secondary oj-text-align-center settings-threshold-col" style="flex: 1;">{app.threshold}</div>
+                  <div class="oj-flex-item oj-typography-body-sm oj-text-color-secondary oj-text-align-center settings-period-col" style="flex: 1;">{getTimePeriodDisplay(app.timePeriod)}</div>
+                  <div class="oj-flex oj-sm-justify-content-center settings-status-col" style="width: 80px;">
                     <oj-switch
                       value={app.enabled}
                       onvalueChanged={(event: any) => handleStatusToggle(app.name, event.detail.value)}
@@ -369,11 +370,71 @@ export function Settings() {
         .oj-flex[style*="gap: 8px"] {
           gap: 8px;
         }
+
+        /* Main layout responsiveness */
+        .settings-main-layout {
+          margin: 0 2rem;
+        }
+
+        /* Configure Application Section */
+        .settings-config-section {
+          flex: 1;
+          max-width: 100%;
+        }
+
+        /* Application Status Section */
+        .settings-status-section {
+          flex: 1;
+          max-width: 100%;
+        }
+
+        .settings-status-table {
+          width: 100%;
+          overflow-x: auto;
+        }
         
+        /* Mobile responsive breakpoints */
         @media (max-width: 768px) {
           .oj-flex[style*="gap: 32px"] {
             flex-direction: column !important;
             gap: 16px !important;
+          }
+
+          .settings-main-layout {
+            margin: 0 1rem;
+            flex-direction: column !important;
+            gap: 24px !important;
+          }
+
+          .settings-config-section,
+          .settings-status-section {
+            min-width: unset !important;
+            width: 100%;
+            max-width: 100%;
+          }
+
+          .settings-status-table {
+            overflow-x: auto;
+            min-width: 320px;
+          }
+
+          /* Hide some columns on very small screens */
+          .settings-period-col {
+            display: none !important;
+          }
+
+          /* Adjust table layout for mobile */
+          .settings-table-header,
+          .settings-table-row {
+            padding: 0.75rem 0.5rem !important;
+          }
+
+          .settings-threshold-col {
+            flex: 0.8 !important;
+          }
+
+          .settings-status-col {
+            width: 60px !important;
           }
         }
         
@@ -382,6 +443,31 @@ export function Settings() {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 8px !important;
+          }
+
+          .settings-main-layout {
+            margin: 0 0.5rem;
+          }
+
+          /* Further optimize table for very small screens */
+          .settings-table-header,
+          .settings-table-row {
+            padding: 0.5rem 0.25rem !important;
+          }
+
+          .settings-status-col {
+            width: 50px !important;
+          }
+        }
+
+        /* Ensure proper spacing and alignment */
+        @media (max-width: 480px) {
+          .settings-threshold-col {
+            text-align: left !important;
+          }
+
+          .settings-status-table {
+            min-width: 280px;
           }
         }
       `}</style>
