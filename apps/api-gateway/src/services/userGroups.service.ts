@@ -70,7 +70,10 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
         localField: 'applicationIDs',
         foreignField: '_id',
         as: 'applications',
-        pipeline: [{ $sort: { name: 1 } }]
+        pipeline: [
+          { $match: { deleted: false } },
+          { $sort: { name: 1 } }
+        ]
       }
     }
   )
