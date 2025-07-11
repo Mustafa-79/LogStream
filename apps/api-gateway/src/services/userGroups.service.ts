@@ -134,6 +134,12 @@ export const createUserGroup = async (data: IGroup): Promise<IGroup> => {
   const members = data.memberIDs || []
   const applications = data.applicationIDs || []
 
+  // Check if a group with the same name already exists (not deleted)
+  const existingGroup = await Group.findOne({ name: data.name, deleted: false })
+  if (existingGroup) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
+  }
+
   // Validate provided members exist
   if (members && Array.isArray(members) && members.length > 0) {
     const foundUsers = await User.find({ _id: { $in: members } })
