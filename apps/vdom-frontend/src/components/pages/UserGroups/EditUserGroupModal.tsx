@@ -31,7 +31,6 @@ export function EditUserGroupModal({
       onSubmit={onSubmit}
       loading={loading}
       error={error}
-      existingGroups={existingGroups}
     />
   );
 }

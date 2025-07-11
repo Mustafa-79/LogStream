@@ -20,7 +20,6 @@ interface Pagination {
 }
 
 
-// TODO: Shift the duplicate name logic to the backend
 // FIXME: Add application to user group -> delete application -> app still shows in user group (it shouldn't) (backend issue)
 
 export function UserGroups() {
