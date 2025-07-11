@@ -90,9 +90,9 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
     matchConditions.name = { $regex: search.trim(), $options: 'i' }
   }
 
-  // Add application filter
+  // Add application filter - match groups that have ALL specified applications
   if (applicationIds.length > 0) {
-    matchConditions.applicationIDs = { $in: applicationIds }
+    matchConditions.applicationIDs = { $all: applicationIds.map(id => new Types.ObjectId(id)) }
   }
 
   pipeline.push({ $match: matchConditions })

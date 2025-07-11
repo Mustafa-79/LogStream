@@ -109,10 +109,31 @@ export class UserGroupsAPI {
     }
   }
 
-  static async getUserGroups(): Promise<IGroup[]> {
-    return this.makeApiRequest<IGroup[]>({
+  static async getUserGroups(
+    page: number, 
+    search?: string, 
+    status?: 'active' | 'inactive' | 'all', 
+    applicationIds?: string[]
+  ): Promise<{ groups: IGroup[]; pagination: any }> {
+
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    
+    if (search && search.trim()) {
+      params.append('search', search.trim());
+    }
+    
+    if (status && status !== 'all') {
+      params.append('status', status);
+    }
+    
+    if (applicationIds && applicationIds.length > 0) {
+      params.append('applicationIds', applicationIds.join(','));
+    }
+    
+    return this.makeApiRequest<{ groups: IGroup[]; pagination: any }>({
       method: 'GET',
-      endpoint: API_CONFIG.ENDPOINTS.USER_GROUPS
+      endpoint: `${API_CONFIG.ENDPOINTS.USER_GROUPS}?${params.toString()}`
     });
   }
 
