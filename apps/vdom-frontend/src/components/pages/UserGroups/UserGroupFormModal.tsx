@@ -20,7 +20,6 @@ interface UserGroupFormModalProps {
   onSubmit?: (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[], usersToRemove?: string[]) => void | Promise<void>;
   loading?: boolean;
   error?: string | null;
-  existingGroups?: IGroup[];
 }
 
 export function UserGroupFormModal({
@@ -31,7 +30,6 @@ export function UserGroupFormModal({
   onSubmit,
   loading = false,
   error = null,
-  existingGroups = []
 }: UserGroupFormModalProps) {
   const [formData, setFormData] = useState<CreateUserGroupFormData>({
     name: '',
@@ -148,19 +146,6 @@ export function UserGroupFormModal({
       newErrors.name = 'Group name must be less than 20 characters';
     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(formData.name.trim())) {
       newErrors.name = 'Group name can only contain letters, numbers, spaces, hyphens, and underscores';
-    } else {
-      // Check for name uniqueness (case-insensitive)
-      const trimmedName = formData.name.trim().toLowerCase();
-      const isDuplicate = existingGroups.some(group => {
-        const isSameName = group.name.toLowerCase() === trimmedName;
-        // For edit mode, exclude the current group from uniqueness check
-        const isCurrentGroup = mode === 'edit' && group._id === userGroup?._id;
-        return isSameName && !isCurrentGroup;
-      });
-
-      if (isDuplicate) {
-        newErrors.name = 'A group with this name already exists';
-      }
     }
 
     // Description validation 
@@ -245,22 +230,8 @@ export function UserGroupFormModal({
 
       // Check basic validation first
       if (value.trim().length >= 5 && value.trim().length <= 20 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
-        // Check for name uniqueness (case-insensitive)
-        const trimmedName = value.trim().toLowerCase();
-        const isDuplicate = existingGroups.some(group => {
-          const isSameName = group.name.toLowerCase() === trimmedName;
-          // For edit mode, exclude the current group from uniqueness check
-          const isCurrentGroup = mode === 'edit' && group._id === userGroup?._id;
-          return isSameName && !isCurrentGroup;
-        });
-
-        if (!isDuplicate) {
-          delete newErrors.name;
-          setErrors(newErrors);
-        } else {
-          newErrors.name = 'A group with this name already exists';
-          setErrors(newErrors);
-        }
+        delete newErrors.name;
+        setErrors(newErrors);
       }
     }
   };

@@ -32,6 +32,7 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
 
 
   const handleEditClick = () => {
@@ -111,8 +112,24 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
     setDeleteError(null); // Clear error when canceling
   };
 
+  const handleToggleMembers = () => {
+    setShowMembers(!showMembers);
+  };
+
   return (
     <>
+      <style>
+        {`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
       <oj-action-card class="oj-sm-12 oj-sm-margin-4x-bottom">
         <div class="oj-flex oj-sm-flex-direction-column oj-sm-12 oj-sm-padding-4x-horizontal">
           <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between">
@@ -164,65 +181,88 @@ export function UserGroupCard({ group, onDelete, onEdit }: UserGroupCardProps) {
           </div>
           <p class="oj-typography-body-sm">{group.description}</p>
 
-          <div class="oj-flex oj-sm-flex-items-center">
-            <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Members ({group.members?.length || 0})</h3>
-          </div>
+            <div class="oj-flex oj-sm-flex-items-center">
+            <h3 
+              class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0 oj-flex oj-sm-flex-items-center" 
+              onClick={handleToggleMembers}
+              style={{ alignItems: 'center' }}
+            >
+              Members ({group.members?.length || 0})
+              <span 
+              class="oj-ux-ico-chevron-down oj-sm-margin-1x-start oj-transform oj-sm-transition"
+              style={{ 
+                fontSize: '1rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                verticalAlign: 'middle',
+                transform: showMembers ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }}
+              ></span>
+            </h3>
+            </div>
 
-          {/* <div class="oj-flex oj-sm-flex-items-center">
-            {group.members?.slice(0, 4).map((member, index) => (
-              <div
-                key={member._id || index}
-                class="oj-sm-margin-1x-end oj-sm-padding-2x-horizontal oj-flex oj-sm-align-items-center"
-                style={{
-                  backgroundColor: '#f0f0f0',  // Adjust background as needed
-                  borderRadius: '16px',
-                }}
-              >
-                <oj-avatar
-                  size="sm"
-                  initials={getUserInitials(member)}
-                  class="oj-sm-margin-1x-end"
-                />
-                <span class="oj-typography-body-sm">{member.username}</span>
-              </div>
-            ))}
-
-
-            {group.members && group.members.length > 4 && (
-              <>
-                <span
-                  id={`more-members-${group._id}`}
+          {showMembers && (
+            <div 
+              class="oj-flex oj-sm-flex-items-center"
+              style={{
+                animation: 'fadeIn 0.3s ease-in-out'
+              }}
+            >
+              {group.members?.slice(0, 4).map((member, index) => (
+                <div
+                  key={member._id || index}
                   class="oj-sm-margin-1x-end oj-sm-padding-2x-horizontal oj-flex oj-sm-align-items-center"
                   style={{
                     backgroundColor: '#f0f0f0',
-                    borderRadius: '16px',
-                    cursor: 'pointer'
-                  }}
-                  onMouseOver={() => {
-                    const popup = document.getElementById(`popup-${group._id}`) as any;
-                    popup.open(`#more-members-${group._id}`, {
-                      launcher: `#more-members-${group._id}`,
-                      position: { my: 'start top', at: 'end bottom' }
-                    });
-                  }}
-                  onMouseOut={() => {
-                    const popup = document.getElementById(`popup-${group._id}`) as any;
-                    popup.close();
+                    borderRadius: '16px'
                   }}
                 >
-                  + {group.members.length - 4} more
-                </span>
+                  <oj-avatar
+                    size="sm"
+                    initials={getUserInitials(member)}
+                    class="oj-sm-margin-1x-end"
+                  />
+                  <span class="oj-typography-body-sm">{member.username}</span>
+                </div>
+              ))}
 
-                <oj-popup id={`popup-${group._id}`} auto-dismiss="none">
-                  <ul style={{ margin: 0, padding: '8px', listStyle: 'none' }}>
-                    {group.members.slice(4).map((member) => (
-                      <li key={member.username}>{member.username}</li>
-                    ))}
-                  </ul>
-                </oj-popup>
-              </>
-            )}
-          </div> */}
+              {group.members && group.members.length > 4 && (
+                <>
+                  <span
+                    id={`more-members-${group._id}`}
+                    class="oj-sm-margin-1x-end oj-sm-padding-2x-horizontal oj-flex oj-sm-align-items-center"
+                    style={{
+                      backgroundColor: '#f0f0f0',
+                      borderRadius: '16px',
+                      cursor: 'pointer'
+                    }}
+                    onMouseOver={() => {
+                      const popup = document.getElementById(`popup-${group._id}`) as any;
+                      popup.open(`#more-members-${group._id}`, {
+                        launcher: `#more-members-${group._id}`,
+                        position: { my: 'start top', at: 'end bottom' }
+                      });
+                    }}
+                    onMouseOut={() => {
+                      const popup = document.getElementById(`popup-${group._id}`) as any;
+                      popup.close();
+                    }}
+                  >
+                    + {group.members.length - 4} more
+                  </span>
+
+                  <oj-popup id={`popup-${group._id}`} auto-dismiss="none">
+                    <ul style={{ margin: 0, padding: '8px', listStyle: 'none' }}>
+                      {group.members.slice(4).map((member) => (
+                        <li key={member.username}>{member.username}</li>
+                      ))}
+                    </ul>
+                  </oj-popup>
+                </>
+              )}
+            </div>
+          )}
 
           <h3 class="oj-typography-heading-xs oj-sm-margin-1x-vertical oj-sm-margin-0">Application Access ({group.applications?.length || 0})</h3>
           <div class="oj-flex oj-sm-flex-wrap oj-sm-flex-items-center oj-sm-margin-1x-top oj-sm-margin-0" style={{ gap: '8px' }}>

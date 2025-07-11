@@ -28,7 +28,6 @@ export function CreateUserGroupModal({
       onSubmit={onSubmit}
       loading={loading}
       error={error}
-      existingGroups={existingGroups}
     />
   );
 }
