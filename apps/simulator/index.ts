@@ -31,6 +31,20 @@ const appMessages: { [key: string]: string[] } = {
     "Customer notification sent",
     "Analytics event tracked"
   ],
+  app4: [
+    "Data synchronization completed",
+    "Backup created successfully",
+    "User profile updated",
+    "Session expired",
+    "Security alert triggered"
+  ],
+  app5: [
+    "Payment gateway response received",
+    "Third-party API call successful",
+    "User feedback submitted",
+    "System resource usage normal",
+    "Scheduled task executed"
+  ],
   "default-app": [
     "Generic application log message",
     "System operation completed",
@@ -41,13 +55,19 @@ const appMessages: { [key: string]: string[] } = {
 // Log file path
 const logPath: string = path.join(__dirname, "logs", "app.log");
 
-// Ensure logs directory exists
-fs.mkdirSync(path.dirname(logPath), { recursive: true });
-
-// Overwrite the existing log file (if any)
-fs.writeFileSync(logPath, '');
+// Ensure logs directory exists (only for non-app4 apps)
+if (APP_NAME !== 'app4') {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  // Overwrite the existing log file (if any)
+  fs.writeFileSync(logPath, '');
+}
 
 console.log(`Starting log simulator for ${APP_NAME}`);
+if (APP_NAME === 'app4') {
+  console.error(`[${APP_NAME}] Writing logs to stdout instead of file`);
+} else {
+  console.log(`[${APP_NAME}] Writing logs to file: ${logPath}`);
+}
 
 // Simple unique identifier generator
 function generateId(): string {
@@ -76,8 +96,16 @@ function generateLog(): string {
 
 function writeLog(): void {
   const logEntry: string = generateLog();
-  fs.appendFileSync(logPath, logEntry);
-  console.log(`[${APP_NAME}] Log written:`, logEntry.trim());
+  
+  if (APP_NAME === 'app4') {
+    // For app4, write directly to stdout instead of file
+    process.stdout.write(logEntry);
+    console.error(`[${APP_NAME}] Log written to stdout:`, logEntry.trim());
+  } else {
+    // For other apps, write to file as before
+    fs.appendFileSync(logPath, logEntry);
+    console.log(`[${APP_NAME}] Log written:`, logEntry.trim());
+  }
 }
 
 // Write logs at different intervals for each app to simulate real-world scenarios
@@ -85,6 +113,8 @@ const intervals: { [key: string]: number } = {
   app1: 3000,  // Every 3 seconds (high traffic app)
   app2: 7000,  // Every 7 seconds (medium traffic app)
   app3: 5000,  // Every 5 seconds (regular traffic app)
+  app4: 9000,  // Every 9 seconds (low traffic app)
+  app5: 8000,  // Every 8 seconds (low traffic app)
   "default-app": 5000
 };
 

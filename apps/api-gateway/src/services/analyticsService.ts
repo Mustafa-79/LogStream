@@ -82,6 +82,9 @@ export class AnalyticsService {
       this.getVolumeTrend(query, granularity, from, to)
     ]);
 
+
+    console.log("Total Logs:", totalLogs);
+
     return {
       logLevelDistribution,
       applicationCounts,
