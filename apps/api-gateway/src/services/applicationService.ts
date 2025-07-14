@@ -108,6 +108,15 @@ export const getApplicationNames = async (): Promise<{ value: string; label: str
   }
 };
 
+export const getApplications = async (): Promise<IApplication[]> => {
+  try {
+    return await Application.find({ deleted: false });
+  } catch (error) {
+    console.error('Error in getApplications:', error);
+    throw new Error('Failed to fetch applications.');
+  }
+};
+
 export const createApplication = async (data: Partial<IApplication>): Promise<IApplication> => {
   try {
     const existingApp = await Application.findOne({ name: data.name, deleted: false });

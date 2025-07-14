@@ -91,6 +91,7 @@ export function UserGroups() {
       setLoading(false);
     }
   };
+  
 
   // Load reference data (users and applications) for form usage
   const loadReferenceData = async () => {
@@ -110,7 +111,7 @@ export function UserGroups() {
       }));
       setApplicationDataProvider(new ArrayDataProvider(applicationOptions, { keyAttributes: 'value' }));
       
-      console.log('Loaded reference data:', { users: usersData?.length || 0, applications: applicationsData?.length || 0 });
+      console.log('Loaded reference data:', { users: usersData || 0, applications: applicationsData || 0 });
     } catch (error) {
       console.error('Error loading reference data:', error);
     }
