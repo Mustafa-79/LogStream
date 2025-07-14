@@ -1,14 +1,14 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
+import "oj-c/progress-circle";
 import { AuthManager } from "../../../utils/auth";
+import SettingsService from "../../../services/settingsService";
 import { SettingsHeader } from "./SettingsHeader";
 import { NotificationsSection } from "./NotificationsSection";
 import { DataRetentionSection } from "./DataRetentionSection";
+import { Application, ApplicationStatus } from "./types";
 import { 
-  applications, 
   timePeriods, 
   retentionPeriods, 
-  initialApplicationStatus, 
-  appMapping, 
   getTimePeriodDisplay 
 } from "./constants";
 
@@ -18,15 +18,68 @@ export function Settings() {
   const [alertThreshold, setAlertThreshold] = useState("");
   const [timePeriod, setTimePeriod] = useState("");
   const [dataRetentionPeriod, setDataRetentionPeriod] = useState("30days");
-  const [applicationStatus, setApplicationStatus] = useState(initialApplicationStatus);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const isAdmin = AuthManager.getCurrentUser()?.isAdmin || false;
+
+  // Helper function to convert time period from minutes to display format
+  const convertTimePeriodToDisplay = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} minutes`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    }
+  };
+
+  // Fetch user applications from API
+  const fetchUserApplications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const userApps = await SettingsService.fetchUserApplications();
+      
+      // Transform user applications to dropdown format
+      const appOptions: Application[] = userApps.map((app, index) => ({
+        value: `app${index + 1}`,
+        label: app.name
+      }));
+      setApplications(appOptions);
+      
+      // Transform user applications to status format
+      const statusData: ApplicationStatus[] = userApps.map((app, index) => ({
+        id: `app${index + 1}`,
+        name: app.name,
+        threshold: app.threshold.toString(),
+        timePeriod: convertTimePeriodToDisplay(app.timePeriod),
+        enabled: app.active,
+        notificationsEnabled: app.notificationsEnabled
+      }));
+      setApplicationStatus(statusData);
+      
+    } catch (err) {
+      setError('Failed to load user applications');
+      console.error('Error fetching user applications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchUserApplications();
+  }, []);
 
   const handleReset = () => {
     setSelectedApplication(null);
     setAlertThreshold("");
     setTimePeriod("");
     setEnableAlerts(true);
+    // Reload data from API
+    fetchUserApplications();
   };
 
   const handleSaveChanges = () => {
@@ -43,8 +96,8 @@ export function Settings() {
     const selectedApp = event.detail.value;
     setSelectedApplication(selectedApp);
     
-    const statusId = appMapping[selectedApp];
-    const statusEntry = applicationStatus.find(app => app.id === statusId);
+    // Find the corresponding application status
+    const statusEntry = applicationStatus.find(app => app.id === selectedApp);
     if (statusEntry) {
       setAlertThreshold(statusEntry.threshold);
       const periodValue = timePeriods.find(p => p.label === statusEntry.timePeriod)?.value || "";
@@ -64,12 +117,9 @@ export function Settings() {
   const updateApplicationStatus = (threshold?: string, period?: string) => {
     if (!selectedApplication) return;
     
-    const statusId = appMapping[selectedApplication];
-    if (!statusId) return;
-
     setApplicationStatus(prev => 
       prev.map(app => {
-        if (app.id === statusId) {
+        if (app.id === selectedApplication) {
           return {
             ...app,
             threshold: threshold ?? app.threshold,
@@ -97,6 +147,41 @@ export function Settings() {
   const handleDataRetentionChange = (event: any) => {
     setDataRetentionPeriod(event.detail.value);
   };
+
+  if (loading) {
+    return (
+      <div class="oj-web-applayout-page oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="min-height: 200px;">
+          <oj-progress-circle size="sm"></oj-progress-circle>
+          <span class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-4x-start">
+            Loading applications...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div class="oj-web-applayout-page oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="min-height: 200px;">        <div class="oj-panel oj-panel-shadow-sm oj-sm-padding-6x" style="border: 1px solid #ef4444; background: #fef2f2;">
+          <div class="oj-flex oj-sm-align-items-center">
+            <div style="background: #ef4444; color: white; margin-right: 1rem; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">!</div>
+            <div>
+              <div class="oj-typography-body-md oj-text-color-danger">{error}</div>
+              <button 
+                class="oj-button-sm oj-sm-margin-2x-top"
+                onClick={fetchUserApplications}
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div class="oj-web-applayout-page oj-sm-padding-8x">

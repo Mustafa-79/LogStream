@@ -1,20 +1,23 @@
 class ApiLinks {
-  static API_BASE_URL: string = "http://localhost:3000/api";
+  static readonly API_BASE_URL: string = "http://localhost:3000/api";
 
   // Application APIs
-  static GET_ALL_APPLICATIONS: string = `${ApiLinks.API_BASE_URL}/application`;
-  static GET_APPLICATION_NAMES: string = `${ApiLinks.API_BASE_URL}/application/names`;
-  static CREATE_APPLICATION: string = `${ApiLinks.API_BASE_URL}/application`;
-  static UPDATE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;
-  static DELETE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;
-  static UPDATE_THRESHOLD_TIME_PERIOD = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}/threshold-time`;
+  static readonly GET_ALL_APPLICATIONS: string = `${ApiLinks.API_BASE_URL}/application`;
+  static readonly GET_APPLICATION_NAMES: string = `${ApiLinks.API_BASE_URL}/application/names`;
+  static readonly CREATE_APPLICATION: string = `${ApiLinks.API_BASE_URL}/application`;
+  static readonly UPDATE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;
+  static readonly DELETE_APPLICATION = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}`;
+  static readonly UPDATE_THRESHOLD_TIME_PERIOD = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}/threshold-time`;
 
    // Log APIs
-  static GET_LOGS: string = `${ApiLinks.API_BASE_URL}/logs`;
-  static GET_LOG_STATS: string = `${ApiLinks.API_BASE_URL}/logs/stats`;
+  static readonly GET_LOGS: string = `${ApiLinks.API_BASE_URL}/logs`;
+  static readonly GET_LOG_STATS: string = `${ApiLinks.API_BASE_URL}/logs/stats`;
 
   // Analytics APIs
-  static GET_ANALYTICS: string = `${ApiLinks.API_BASE_URL}/analytics`;
+  static readonly GET_ANALYTICS: string = `${ApiLinks.API_BASE_URL}/analytics`;
+
+  // Settings APIs
+  static readonly GET_USER_APPLICATIONS: string = `${ApiLinks.API_BASE_URL}/settings/user-applications`;
 
 }
 

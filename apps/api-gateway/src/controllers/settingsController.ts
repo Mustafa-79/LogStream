@@ -64,7 +64,8 @@ export const getUserApplications = async (req: Request, res: Response, next: Nex
                     description: app.description,
                     threshold: app.threshold,
                     timePeriod: app.timePeriod,
-                    active: app.active
+                    active: app.active,
+                    notificationsEnabled: app.notificationsEnabled,
                 })),
                 totalApplications: applications.length
             })

@@ -63,7 +63,7 @@ export function ApplicationStatusTable({
             </div>
             <div class="oj-flex oj-sm-justify-content-center settings-status-col" style="width: 80px;">
               <oj-switch
-                value={app.enabled}
+                value={app.notificationsEnabled}
                 onvalueChanged={(event: any) => onStatusToggle(app.name, event.detail.value)}
               />
             </div>

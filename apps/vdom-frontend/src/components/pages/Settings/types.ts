@@ -19,6 +19,7 @@ export interface ApplicationStatus {
   threshold: string;
   timePeriod: string;
   enabled: boolean;
+  notificationsEnabled: boolean;
 }
 
 export interface SettingsFormData {
