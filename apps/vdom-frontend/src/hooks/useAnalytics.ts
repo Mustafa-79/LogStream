@@ -36,13 +36,18 @@ export const useAnalytics = () => {
       setAnalyticsData(response.data);
       setCurrentFilters(filters);
       
+
+
       // Store initial applications list only on first load (when no application filters are applied)
-      if ((!filters?.applications || filters.applications.length === 0) && response.data.applicationCounts) {
-        const apps = response.data.applicationCounts.map(app => ({
+      if (!isRefetch && !isFilterApply) {
+        setInitialApplications(response.data.applicationCounts.map(app => ({
           value: app._id,
           label: app.applicationName
-        }));
-        setInitialApplications(apps);
+        })));
+
+        // for the application counts, remove entries with zero count
+        response.data.applicationCounts = response.data.applicationCounts.filter(app => app.count > 0);
+
       }
       
       // Clear error on successful fetch
