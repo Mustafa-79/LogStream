@@ -12,9 +12,22 @@ interface UpdateApplicationData {
   active?: boolean;
 }
 
-interface UpdateThresholdData {
-  threshold: number;
-  time_period: number;
+interface ApplicationsResponse {
+  applications: any[];
+  pagination: Pagination;
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  limit: number;
+}
+
+interface ApplicationFilters {
+  active?: boolean; 
 }
 
 interface ApiResponse<T> {
@@ -43,8 +56,22 @@ class ApplicationService {
     return headers;
   }
 
-  static async fetchAllApplications() {
-    const response = await fetch(ApiLinks.GET_ALL_APPLICATIONS, {
+  static async fetchAllApplications(
+    page: number = 1,
+    limit: number = 5,
+    filters?: ApplicationFilters
+  ): Promise<ApplicationsResponse> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+
+    if (filters?.active !== undefined) {
+      params.append('active', filters.active.toString());
+    }
+
+    const url = `${ApiLinks.GET_ALL_APPLICATIONS}?${params.toString()}`;
+
+    const response = await fetch(url, {
       headers: this.getAuthHeaders(),
     });
     
@@ -52,7 +79,7 @@ class ApplicationService {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const json: ApiResponse<any[]> = await response.json();
+    const json: ApiResponse<ApplicationsResponse> = await response.json();
     return json.data;
   }
 
@@ -138,32 +165,6 @@ class ApplicationService {
     } catch (error) {
       console.error("Error in deleteApplication:", error);
       
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
-      }
-
-      throw error;
-    }
-  }
-
-  static async updateThresholdAndTimePeriod(id: string, thresholdData: UpdateThresholdData) {
-    try {
-      const response = await fetch(ApiLinks.UPDATE_THRESHOLD_TIME_PERIOD(id), {
-        method: 'PUT',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(thresholdData),
-      });
-
-      const json: ApiResponse<any> = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.message || `Failed to update threshold and time period`);
-      }
-
-      return json.data;
-    } catch (error) {
-      console.error("Error in updateThresholdAndTimePeriod:", error);
-
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error("Cannot connect to the server. Please check your internet connection or try again later.");
       }

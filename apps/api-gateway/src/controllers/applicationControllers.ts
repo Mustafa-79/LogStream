@@ -4,10 +4,25 @@ import createResponse from '../utils/responseHelper';
 
 export const getAllApplications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const applications = await applicationService.getAllApplications();
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    const activeParam = req.query.active as string | undefined;
+    
+    const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
+    const limit = limitParam ? Math.min(100, Math.max(1, parseInt(limitParam, 10))) : 25;
+    
+    let activeFilter: boolean | undefined;
+    if (activeParam !== undefined) {
+      activeFilter = activeParam.toLowerCase() === 'true';
+    }
+
+    const { applications, pagination } = await applicationService.getAllApplications(page, limit, activeFilter);
 
     res.status(200).json(
-      createResponse(200, 'Applications fetched successfully', applications)
+      createResponse(200, 'Applications fetched successfully', {
+        applications,
+        pagination
+      })
     );
   } catch (error) {
     next(error);
@@ -33,7 +48,8 @@ export const createApplication = async (req: Request, res: Response, next: NextF
     res.status(201).json(
       createResponse(201, 'Application created successfully', application)
     );
-  } catch (error) {
+  } catch (error: any) {
+    res.status(400).json(createResponse(400, error.message || 'Failed to create application', null));
     next(error);
   }
 };
