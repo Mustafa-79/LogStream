@@ -9,12 +9,12 @@ export const timePeriods: TimePeriod[] = [
 ];
 
 export const retentionPeriods: RetentionPeriod[] = [
-  { value: "7", label: "7 days" },
-  { value: "10", label: "10 days" },
-  { value: "15", label: "15 days" },
-  { value: "20", label: "20 days" },
-  { value: "25", label: "25 days" },
-  { value: "30", label: "30 days" }
+  { value: 7, label: "7 days" },
+  { value: 10, label: "10 days" },
+  { value: 15, label: "15 days" },
+  { value: 20, label: "20 days" },
+  { value: 25, label: "25 days" },
+  { value: 30, label: "30 days" }
 ];
 
 export const getTimePeriodDisplay = (period: string): string => {

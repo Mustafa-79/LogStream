@@ -17,7 +17,7 @@ export function Settings() {
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
   const [alertThreshold, setAlertThreshold] = useState("");
   const [timePeriod, setTimePeriod] = useState("");
-  const [dataRetentionPeriod, setDataRetentionPeriod] = useState("30days");
+  const [dataRetentionPeriod, setDataRetentionPeriod] = useState(30);
   const [applications, setApplications] = useState<Application[]>([]);
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,20 +42,22 @@ export function Settings() {
       setError(null);
       const userApps = await SettingsService.fetchUserApplications();
       
+      // Sort applications by name alphabetically
+      const sortedUserApps = [...userApps].sort((a, b) => a.name.localeCompare(b.name));
+      
       // Transform user applications to dropdown format
-      const appOptions: Application[] = userApps.map((app, index) => ({
-        value: `app${index + 1}`,
+      const appOptions: Application[] = sortedUserApps.map((app, index) => ({
+        value: app.id, // Use the actual MongoDB ID as the value
         label: app.name
       }));
       setApplications(appOptions);
       
       // Transform user applications to status format
-      const statusData: ApplicationStatus[] = userApps.map((app, index) => ({
-        id: `app${index + 1}`,
+      const statusData: ApplicationStatus[] = sortedUserApps.map((app, index) => ({
+        id: app.id,
         name: app.name,
         threshold: app.threshold.toString(),
         timePeriod: convertTimePeriodToDisplay(app.timePeriod),
-        enabled: app.active,
         notificationsEnabled: app.notificationsEnabled
       }));
       setApplicationStatus(statusData);
@@ -83,23 +85,59 @@ export function Settings() {
   };
 
   const handleSaveChanges = () => {
-    console.log('Save Changes:', {
+    // Helper function to convert time period display format to seconds
+    const convertPeriodToSeconds = (periodDisplay: string): number => {
+      // Extract number and unit from strings like "5 minutes", "1 hour", "30 minutes"
+      const regex = /(\d+)\s*(minute|minutes|hour|hours?)/i;
+      const match = regex.exec(periodDisplay);
+      
+      if (!match) {
+        return 300; // Default to 5 minutes if parsing fails
+      }
+      
+      const value = parseInt(match[1], 10);
+      const unit = match[2].toLowerCase();
+      
+      // Convert to seconds based on unit
+      if (unit.startsWith('minute')) {
+        return value * 60; // minutes to seconds
+      } else if (unit.startsWith('hour')) {
+        return value * 3600; // hours to seconds
+      }
+      
+      return 300; // Default fallback
+    };
+
+    // Transform applicationStatus into the requested format
+    const applicationsData = applicationStatus.reduce((acc, app, index) => {
+      acc[index + 1] = {
+        id: app.id, // MongoDB object ID
+        name: app.name,
+        threshold: app.threshold,
+        period: convertPeriodToSeconds(app.timePeriod),
+        status: app.notificationsEnabled // Use notificationsEnabled directly
+      };
+      return acc;
+    }, {} as Record<number, { id: string; name: string; threshold: string; period: number; status: boolean }>);
+
+    const saveData = {
       enableAlerts,
-      selectedApplication,
-      alertThreshold,
-      timePeriod,
-      dataRetentionPeriod
-    });
+      applications: applicationsData,
+      dataRetentionPeriod: dataRetentionPeriod
+    };
+
+    console.log('Save Changes:', saveData);
   };
 
   const handleApplicationChange = (event: any) => {
-    const selectedApp = event.detail.value;
-    setSelectedApplication(selectedApp);
+    const selectedAppId = event.detail.value;
+    setSelectedApplication(selectedAppId);
     
-    // Find the corresponding application status
-    const statusEntry = applicationStatus.find(app => app.id === selectedApp);
+    // Find the corresponding application status by MongoDB ID
+    const statusEntry = applicationStatus.find(app => app.id === selectedAppId);
     if (statusEntry) {
       setAlertThreshold(statusEntry.threshold);
+      // Match the time period from status display format to dropdown value
       const periodValue = timePeriods.find(p => p.label === statusEntry.timePeriod)?.value || "";
       setTimePeriod(periodValue);
     } else {
@@ -110,7 +148,7 @@ export function Settings() {
 
   const handleStatusToggle = (appName: string, enabled: boolean) => {
     setApplicationStatus(prev => 
-      prev.map(app => app.name === appName ? { ...app, enabled } : app)
+      prev.map(app => app.name === appName ? { ...app, notificationsEnabled: enabled } : app)
     );
   };
 

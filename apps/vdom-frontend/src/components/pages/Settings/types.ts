@@ -9,7 +9,7 @@ export interface TimePeriod {
 }
 
 export interface RetentionPeriod {
-  value: string;
+  value: number;
   label: string;
 }
 
@@ -18,7 +18,6 @@ export interface ApplicationStatus {
   name: string;
   threshold: string;
   timePeriod: string;
-  enabled: boolean;
   notificationsEnabled: boolean;
 }
 

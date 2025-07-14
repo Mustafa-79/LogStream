@@ -4,7 +4,7 @@ import { RetentionPeriod } from "./types";
 
 interface DataRetentionSectionProps {
   readonly retentionPeriods: RetentionPeriod[];
-  readonly dataRetentionPeriod: string;
+  readonly dataRetentionPeriod: number;
   readonly onRetentionChange: (event: any) => void;
 }
 
