@@ -144,8 +144,8 @@ export function UserGroupFormModal({
       newErrors.name = 'Group name must be at least 5 characters long';
     } else if (formData.name.trim().length > 20) {
       newErrors.name = 'Group name must be less than 20 characters';
-    } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(formData.name.trim())) {
-      newErrors.name = 'Group name can only contain letters, numbers, spaces, hyphens, and underscores';
+    } else if (!/^[a-zA-Z0-9\s\-_.,:;\[\]\(\)'""]+$/.test(formData.name.trim())) {
+      newErrors.name = 'Group name contains invalid characters. Allowed: letters, numbers, spaces, hyphens (-), underscores (_), periods (.), commas (,), colons (:), semicolons (;), parentheses (), brackets [], apostrophes (\'), and quotation marks (").';
     }
 
     // Description validation 
@@ -155,6 +155,8 @@ export function UserGroupFormModal({
       newErrors.description = 'Description must be at least 10 characters';
     } else if (formData.description.length > 100) {
       newErrors.description = 'Description must be less than 100 characters';
+    } else if (!/^[a-zA-Z0-9\s\-_.,:;\[\]\(\)'""]+$/.test(formData.description)) {
+      newErrors.description = 'Description contains invalid characters. Allowed: letters, numbers, spaces, hyphens (-), underscores (_), periods (.), commas (,), colons (:), semicolons (;), parentheses (), brackets [], apostrophes (\'), and quotation marks (").';
     }
 
 
@@ -223,17 +225,6 @@ export function UserGroupFormModal({
   const handleNameChange = (event: any) => {
     const value = event.detail.value;
     setFormData(prev => ({ ...prev, name: value }));
-
-    // Real-time validation for immediate feedback
-    if (value.trim() && errors.name) {
-      const newErrors = { ...errors };
-
-      // Check basic validation first
-      if (value.trim().length >= 5 && value.trim().length <= 20 && /^[a-zA-Z0-9\s\-_]+$/.test(value.trim())) {
-        delete newErrors.name;
-        setErrors(newErrors);
-      }
-    }
   };
 
   const handleDescriptionChange = (event: any) => {

@@ -20,8 +20,6 @@ interface Pagination {
 }
 
 
-// FIXME: Add application to user group -> delete application -> app still shows in user group (it shouldn't) (backend issue)
-
 export function UserGroups() {
   const [userGroups, setUserGroups] = useState<IGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,14 +82,8 @@ export function UserGroups() {
       setUserGroups(backendResponse.groups || []);
       
       // Update pagination state
-      setPagination(backendResponse.pagination || {
-        currentPage: 1,
-        totalPages: 1,
-        totalGroups: 0,
-        groupsPerPage: 4,
-        hasNext: false,
-        hasPrev: false
-      });
+      setPagination(backendResponse.pagination);
+      
     } catch (err) {
       console.error('Error fetching user groups from API:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch user groups');

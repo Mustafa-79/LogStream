@@ -3,7 +3,7 @@ import User, { IUser } from '../models/User.model'
 import Application, { IApplication } from '../models/Application.model'
 import ApiError from '../utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-import { Types } from 'mongoose'
+import { Types, PipelineStage } from 'mongoose'
 
 export interface GetUserGroupsOptions {
   page?: number
@@ -51,7 +51,7 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
   }
 
   // Build aggregation pipeline
-  const pipeline: Record<string, unknown>[] = []
+  const pipeline: PipelineStage[] = []
 
   // First lookup members and applications
   pipeline.push(
@@ -105,8 +105,7 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
 
   // Get total count
   const countPipeline = [...pipeline, { $count: 'total' }]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const countResult = await Group.aggregate(countPipeline as any)
+  const countResult = await Group.aggregate(countPipeline)
   const totalGroups = countResult[0]?.total || 0
   const totalPages = Math.ceil(totalGroups / limit)
 
@@ -114,8 +113,7 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
   const skip = (page - 1) * limit
   pipeline.push({ $skip: skip }, { $limit: limit })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await Group.aggregate(pipeline as any)
+  const result = await Group.aggregate(pipeline)
 
   return {
     groups: result,
@@ -137,8 +135,11 @@ export const createUserGroup = async (data: IGroup): Promise<IGroup> => {
   const members = data.memberIDs || []
   const applications = data.applicationIDs || []
 
-  // Check if a group with the same name already exists (not deleted)
-  const existingGroup = await Group.findOne({ name: data.name, deleted: false })
+  // Check if a group with the same name already exists (not deleted), case-insensitive
+  const existingGroup = await Group.findOne({ 
+    name: { $regex: `^${data.name}$`, $options: 'i' }, 
+    deleted: false 
+  })
   if (existingGroup) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
   }
