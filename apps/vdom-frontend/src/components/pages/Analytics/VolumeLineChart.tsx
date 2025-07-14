@@ -35,8 +35,8 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
     [chartData]
   );
 
-  // Handle empty data case
-  if (!data || data.length === 0) {
+  // Handle empty data case + when all counts are zero
+  if (!data || data.length === 0 || data.every(item => item.count === 0)) {
     return (
       <div class="oj-md-margin-4x-horizontal">
         <h3 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-3x-bottom">
