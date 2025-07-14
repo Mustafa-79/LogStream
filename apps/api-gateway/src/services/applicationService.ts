@@ -1,12 +1,41 @@
 import Application, { IApplication } from '../models/Application.model';
 import { Log } from '../models/Log.model';
 
-export const getAllApplications = async () => {
+export const getAllApplications = async (
+  page: number = 1,
+  limit: number = 25,
+  active?: boolean
+): Promise<{
+  applications: any[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}> => {
   try {
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const skip = (page - 1) * limit;
 
-    const applications = await Application.find({ deleted: false }).sort({ createdAt: -1 });
+    const filterQuery: any = { deleted: false };
+    
+    if (active !== undefined) {
+      filterQuery.active = active;
+    }
+
+
+    const totalCount = await Application.countDocuments(filterQuery);
+
+    const applications = await Application.find(filterQuery)
+      .collation({ locale: 'en', strength: 2 })
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit);
+
 
     const logsAggregation = await Log.aggregate([
       {
@@ -27,7 +56,6 @@ export const getAllApplications = async () => {
         }
       }
     ]);
-    
 
     const logStatsMap = new Map<string, { totalLogs: number; errorLogs: number }>();
     logsAggregation.forEach(stat => {
@@ -46,7 +74,21 @@ export const getAllApplications = async () => {
       };
     });
 
-    return enrichedApplications;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    const pagination = {
+      currentPage: page,
+      totalPages,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      limit
+    };
+
+    return {
+      applications: enrichedApplications,
+      pagination
+    };
   } catch (error) {
     console.error('Error in getAllApplications:', error);
     throw new Error('Failed to fetch applications with log stats.');
@@ -68,15 +110,16 @@ export const getApplicationNames = async (): Promise<{ value: string; label: str
 
 export const createApplication = async (data: Partial<IApplication>): Promise<IApplication> => {
   try {
-    const application = new Application(data);
-    return await application.save();
-  } catch (error: any) {
-    if (error.code === 11000 && error.keyPattern?.name) {
+    const existingApp = await Application.findOne({ name: data.name, deleted: false });
+    if (existingApp) {
       throw new Error(`Application with name "${data.name}" already exists.`);
     }
 
+    const application = new Application(data);
+    return await application.save();
+  } catch (error: any) {
     console.error('Error in createApplication:', error);
-    throw new Error('Failed to create application.');
+    throw error;
   }
 };
 

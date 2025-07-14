@@ -18,23 +18,96 @@ interface DropdownOption {
   label: string;
 }
 
-export const useApplications = () => {
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  limit: number;
+}
+
+interface UseApplicationsOptions {
+  pageSize?: number;
+}
+
+interface ApplicationFilters {
+  active?: boolean;
+}
+
+export const useApplications = (options: UseApplicationsOptions = {}) => {
+  const { pageSize = 5 } = options;
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<ApplicationFilters>({});
+  const [pagination, setPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: pageSize
+  });
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (page: number = 1, filters?: ApplicationFilters) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await ApplicationService.fetchAllApplications();
-      setApplications(data);
+      
+      const filtersToUse = filters !== undefined ? filters : currentFilters;
+      const data = await ApplicationService.fetchAllApplications(page, pageSize, filtersToUse);
+      
+      setApplications(data.applications);
+      setPagination(data.pagination);
+      
+      if (filters !== undefined) {
+        setCurrentFilters(filters);
+      }
     } catch (err) {
       console.error('Error fetching applications:', err);
       setError('Failed to fetch applications');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchApplicationsWithFilters = async (filters: ApplicationFilters) => {
+    await fetchApplications(1, filters);
+  };
+
+  const goToPage = async (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages && page !== pagination.currentPage) {
+      await fetchApplications(page);
+    }
+  };
+
+  const goToNextPage = async () => {
+    if (pagination.hasNextPage) {
+      await fetchApplications(pagination.currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = async () => {
+    if (pagination.hasPrevPage) {
+      await fetchApplications(pagination.currentPage - 1);
+    }
+  };
+
+  const goToFirstPage = async () => {
+    if (pagination.currentPage !== 1) {
+      await fetchApplications(1);
+    }
+  };
+
+  const goToLastPage = async () => {
+    if (pagination.currentPage !== pagination.totalPages) {
+      await fetchApplications(pagination.totalPages);
+    }
+  };
+
+  const refreshCurrentPage = async () => {
+    await fetchApplications(pagination.currentPage);
   };
 
   useEffect(() => {
@@ -46,7 +119,19 @@ export const useApplications = () => {
     setApplications,
     loading,
     error,
-    refetch: fetchApplications
+    pagination,
+    currentFilters,
+    actions: {
+      fetchApplications: () => fetchApplications(1),
+      fetchApplicationsWithFilters,
+      refetch: refreshCurrentPage,
+      goToPage,
+      goToNextPage,
+      goToPrevPage,
+      goToFirstPage,
+      goToLastPage,
+      refreshCurrentPage
+    }
   };
 };
 
