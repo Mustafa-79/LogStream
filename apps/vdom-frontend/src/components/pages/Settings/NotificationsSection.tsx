@@ -61,27 +61,45 @@ export function NotificationsSection({
 
       <AlertToggle enableAlerts={enableAlerts} onToggle={onAlertsToggle} />
 
-      {/* Two Column Layout */}
-      <div class="oj-flex oj-flex-wrap settings-main-layout" style="gap: 32px;">
-        <ApplicationConfig
-          applications={applications}
-          timePeriods={timePeriods}
-          selectedApplication={selectedApplication}
-          alertThreshold={alertThreshold}
-          timePeriod={timePeriod}
-          onApplicationChange={onApplicationChange}
-          onThresholdChange={onThresholdChange}
-          onTimePeriodChange={onTimePeriodChange}
-        />
+      {/* Conditionally render configuration and status table only when alerts are enabled */}
+      {enableAlerts && (
+        <>
+          {/* Two Column Layout */}
+          <div class="oj-flex oj-flex-wrap settings-main-layout" style="gap: 32px;">
+            <ApplicationConfig
+              applications={applications}
+              timePeriods={timePeriods}
+              selectedApplication={selectedApplication}
+              alertThreshold={alertThreshold}
+              timePeriod={timePeriod}
+              onApplicationChange={onApplicationChange}
+              onThresholdChange={onThresholdChange}
+              onTimePeriodChange={onTimePeriodChange}
+            />
 
-        <ApplicationStatusTable
-          applicationStatus={applicationStatus}
-          onStatusToggle={onStatusToggle}
-          getTimePeriodDisplay={getTimePeriodDisplay}
-        />
-      </div>
+            <ApplicationStatusTable
+              applicationStatus={applicationStatus}
+              onStatusToggle={onStatusToggle}
+              getTimePeriodDisplay={getTimePeriodDisplay}
+            />
+          </div>
 
-      <InfoNote message="You'll receive notifications via email alerts when thresholds are exceeded." />
+          <InfoNote message="You'll receive notifications via email alerts when thresholds are exceeded." />
+        </>
+      )}
+
+      {/* Show a message when alerts are disabled */}
+      {!enableAlerts && (
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center oj-sm-padding-8x">
+          <div class="oj-typography-body-md oj-text-color-secondary" style="text-align: center;">
+            <div style="margin-bottom: 8px;">📵</div>
+            <div>Alerts are currently disabled</div>
+            <div class="oj-typography-body-sm" style="margin-top: 4px;">
+              Enable alerts above to configure application thresholds and notifications
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
