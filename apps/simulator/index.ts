@@ -1,95 +1,109 @@
 import * as fs from "fs";
 import * as path from "path";
+import { MongoClient } from "mongodb";
 
-// Configuration from environment variables
 const APP_NAME = process.env.APP_NAME || "default-app";
-// const LOG_LEVEL = process.env.LOG_LEVEL || "info";
+const MONGO_URL = process.env.A5_MONGO_URL;
+const DB_NAME = process.env.A5_DB_NAME;
 
-// Log levels
-const levels: string[] = ['INFO', 'WARNING', 'ERROR', 'DEBUG'];
+let mongoClient: MongoClient;
+let logsCollection: any;
 
-// App-specific log messages
-const appMessages: { [key: string]: string[] } = {
-  app1: [
-    "User authentication successful",
-    "Database connection established",
-    "Processing payment transaction",
-    "Cache hit for user preferences",
-    "API request received"
-  ],
-  app2: [
-    "File upload completed",
-    "Email notification sent",
-    "Background job started",
-    "Configuration updated",
-    "Health check passed"
-  ],
-  app3: [
-    "Order processing initiated",
-    "Inventory updated",
-    "Shipping label generated",
-    "Customer notification sent",
-    "Analytics event tracked"
-  ],
-  "default-app": [
-    "Generic application log message",
-    "System operation completed",
-    "Process executed successfully"
-  ]
+const levels = ['INFO', 'WARNING', 'ERROR', 'DEBUG'];
+const messages: { [key: string]: string[] } = {
+  app1: ["User authentication successful", "Database connection established", "Processing payment transaction"],
+  app2: ["File upload completed", "Email notification sent", "Background job started"],
+  app3: ["Order processing initiated", "Inventory updated", "Shipping label generated"],
+  app4: ["Data synchronization completed", "Backup created successfully", "User profile updated"],
+  app5: ["Payment gateway response received", "Third-party API call successful", "User feedback submitted"],
+  "default-app": ["Generic application log message", "System operation completed", "Process executed successfully"]
 };
 
-// Log file path
-const logPath: string = path.join(__dirname, "logs", "app.log");
+const logPath = path.join(__dirname, "logs", "app.log");
 
-// Ensure logs directory exists
-fs.mkdirSync(path.dirname(logPath), { recursive: true });
+// Initialize MongoDB for app5
+async function initMongoDB() {
+  if (APP_NAME === 'app5' && MONGO_URL) {
+    mongoClient = new MongoClient(MONGO_URL);
+    await mongoClient.connect();
+    logsCollection = mongoClient.db(DB_NAME).collection('logs');
+    await logsCollection.deleteMany({});
+    console.log(`Connected to MongoDB and emptied the logs collection`);
+  }
+}
 
-// Overwrite the existing log file (if any)
-fs.writeFileSync(logPath, '');
+// Setup log file for apps 1-3
+if (!['app4', 'app5'].includes(APP_NAME)) {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  fs.writeFileSync(logPath, '');
+}
 
-console.log(`Starting log simulator for ${APP_NAME}`);
-
-// Simple unique identifier generator
-function generateId(): string {
+function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
-function getCurrentTimestamp(): string {
-  return new Date().toISOString();
-}
-
-function getRandomMessage(): string {
-  const messages = appMessages[APP_NAME] || appMessages["default-app"];
-  return messages[Math.floor(Math.random() * messages.length)];
-}
-
-function generateLog(): string {
-  const level: string = levels[Math.floor(Math.random() * levels.length)];
-  const traceId: string = generateId();
-  const message: string = getRandomMessage();
-  const timestamp: string = getCurrentTimestamp();
+function generateLog() {
+  const level = levels[Math.floor(Math.random() * levels.length)];
+  const traceId = generateId();
+  const appMessages = messages[APP_NAME] || messages["default-app"];
+  const message = appMessages[Math.floor(Math.random() * appMessages.length)];
+  const timestamp = new Date().toISOString();
   
-  // New format: [%d] [%p] [%X{traceid}] %m%n
-  // where %d = timestamp, %p = log level, %X{traceid} = trace ID, %m = message, %n = newline
   return `[${timestamp}] [${level}] [${traceId}] ${message}\n`;
 }
 
-function writeLog(): void {
-  const logEntry: string = generateLog();
-  fs.appendFileSync(logPath, logEntry);
-  console.log(`[${APP_NAME}] Log written:`, logEntry.trim());
+function writeLog() {
+  const logEntry = generateLog();
+  
+  if (APP_NAME === 'app4') {
+    process.stdout.write(logEntry);
+  } else if (APP_NAME === 'app5') {
+    writeToMongoDB(logEntry);
+  } else {
+    fs.appendFileSync(logPath, logEntry);
+    console.log(`Log written:`, logEntry.trim());
+  }
 }
 
-// Write logs at different intervals for each app to simulate real-world scenarios
+async function writeToMongoDB(logEntry: string) {
+  try {
+    const match = logEntry.match(/\[(.*?)\] \[(.*?)\] \[(.*?)\] (.*)/);
+    const logData = match ? {
+      timestamp: new Date(match[1]),
+      level: match[2],
+      traceId: match[3],
+      message: match[4].trim(),
+      app: APP_NAME,
+      createdAt: new Date()
+    } : {
+      raw: logEntry.trim(),
+      app: APP_NAME,
+      createdAt: new Date()
+    };
+    
+    await logsCollection.insertOne(logData);
+    console.log(`Log written to MongoDB:`, logEntry.trim());
+  } catch (error) {
+    console.error(`Failed to write to MongoDB:`, error);
+  }
+}
+
 const intervals: { [key: string]: number } = {
-  app1: 3000,  // Every 3 seconds (high traffic app)
-  app2: 7000,  // Every 7 seconds (medium traffic app)
-  app3: 5000,  // Every 5 seconds (regular traffic app)
+  app1: 11000,
+  app2: 7000,
+  app3: 15000,
+  app4: 9000,
+  app5: 8000,
   "default-app": 5000
 };
 
-const interval = intervals[APP_NAME] || intervals["default-app"];
-console.log(`Writing logs every ${interval}ms for ${APP_NAME}`);
+async function main() {
+  await initMongoDB();
+  
+  console.log(`Starting log simulator for ${APP_NAME}`);
+  const interval = intervals[APP_NAME] || intervals["default-app"];
+  
+  setInterval(writeLog, interval);
+}
 
-// Write a log at specified intervals
-setInterval(writeLog, interval);
+main().catch(console.error);

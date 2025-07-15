@@ -91,6 +91,7 @@ export function UserGroups() {
       setLoading(false);
     }
   };
+  
 
   // Load reference data (users and applications) for form usage
   const loadReferenceData = async () => {
@@ -110,7 +111,7 @@ export function UserGroups() {
       }));
       setApplicationDataProvider(new ArrayDataProvider(applicationOptions, { keyAttributes: 'value' }));
       
-      console.log('Loaded reference data:', { users: usersData?.length || 0, applications: applicationsData?.length || 0 });
+      console.log('Loaded reference data:', { users: usersData || 0, applications: applicationsData || 0 });
     } catch (error) {
       console.error('Error loading reference data:', error);
     }
@@ -753,7 +754,6 @@ export function UserGroups() {
         <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
           <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
             <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">No user groups found</div>
-            <p class="oj-typography-body-md">Create your first user group to get started.</p>
           </div>
         </div>
       ) : (

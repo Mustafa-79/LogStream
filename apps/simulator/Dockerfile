@@ -7,7 +7,7 @@ RUN npm install
 
 COPY . .
 
-# Install ts-node globally (optional, but common for dev tools)
-RUN npm install -g ts-node typescript
+# Make the startup script executable
+RUN chmod +x start.sh
 
-CMD ["npx", "ts-node", "index.ts"]
+CMD ["sh", "start.sh"]

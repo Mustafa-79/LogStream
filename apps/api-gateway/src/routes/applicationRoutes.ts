@@ -22,6 +22,13 @@ router
   );
 
 router
+  .route('/all')
+  .get(
+    requireAdmin, 
+    applicationController.getApplications
+  );
+
+router
   .route('/')
   .post(
     requireAdmin, 

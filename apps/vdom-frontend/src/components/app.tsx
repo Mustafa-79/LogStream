@@ -1,5 +1,4 @@
 import { registerCustomElement } from "ojs/ojvcomponent";
-import { h } from "preact";
 import { useEffect } from "preact/hooks";
 import Context = require("ojs/ojcontext");
 
@@ -97,6 +96,7 @@ export const App = registerCustomElement(
         component: () => (
           <ProtectedRoute 
             requireAuth={true}
+            requireAdmin={true}
             onRedirect={appState.actions.handleRedirect}
           >
             <Settings />
@@ -104,7 +104,8 @@ export const App = registerCustomElement(
         ),
         label: 'Settings',
         icon: 'oj-ux-ico-settings',
-        requireAuth: true
+        requireAuth: true,
+        requireAdmin: true
       }
     ];
 

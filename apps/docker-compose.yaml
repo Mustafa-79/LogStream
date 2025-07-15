@@ -23,6 +23,28 @@ services:
           memory: ${REDIS_MEMORY_LIMIT}
           cpus: '${REDIS_CPU_LIMIT}'
 
+  mongodb:
+    image: mongo:7
+    container_name: logstream-mongodb
+    ports:
+      - "${MONGODB_EXTERNAL_PORT}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - logstream
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: ${MONGODB_MEMORY_LIMIT}
+          cpus: '${MONGODB_CPU_LIMIT}'
+
+
   producer:
     build: 
       context: ./producer
@@ -93,56 +115,6 @@ services:
           memory: ${API_GATEWAY_MEMORY_LIMIT}
           cpus: '${API_GATEWAY_CPU_LIMIT}'
 
-  # Simulator for App 1
-  simulator-app1:
-    build:
-      context: ./simulator
-      dockerfile: Dockerfile
-    container_name: logstream-simulator-app1
-    environment:
-      - APP_NAME=app1
-    volumes:
-      - ./simulator/logs/app1:/usr/src/app/logs
-    networks:
-      - logstream
-    depends_on:
-      producer:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # Simulator for App 2  
-  simulator-app2:
-    build:
-      context: ./simulator
-      dockerfile: Dockerfile
-    container_name: logstream-simulator-app2
-    environment:
-      - APP_NAME=app2
-    volumes:
-      - ./simulator/logs/app2:/usr/src/app/logs
-    networks:
-      - logstream
-    depends_on:
-      producer:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # Simulator for App 3
-  simulator-app3:
-    build:
-      context: ./simulator
-      dockerfile: Dockerfile
-    container_name: logstream-simulator-app3
-    environment:
-      - APP_NAME=app3
-    volumes:
-      - ./simulator/logs/app3:/usr/src/app/logs
-    networks:
-      - logstream
-    depends_on:
-      producer:
-        condition: service_healthy
-    restart: unless-stopped
 
   # Fluent Bit for App 1
   fluent-bit-app1:
@@ -165,8 +137,6 @@ services:
     depends_on:
       producer:
         condition: service_healthy
-      simulator-app1:
-        condition: service_started
     restart: unless-stopped
     ports:
       - "${FLUENT_BIT_APP1_PORT}:2020"
@@ -192,8 +162,6 @@ services:
     depends_on:
       producer:
         condition: service_healthy
-      simulator-app2:
-        condition: service_started
     restart: unless-stopped
     ports:
       - "${FLUENT_BIT_APP2_PORT}:2020"
@@ -219,11 +187,160 @@ services:
     depends_on:
       producer:
         condition: service_healthy
-      simulator-app3:
-        condition: service_started
     restart: unless-stopped
     ports:
       - "${FLUENT_BIT_APP3_PORT}:2020"
+
+   # Fluent Bit for App 4 (reads from shared volume)
+  fluent-bit-app4:
+    build:
+      context: ./fluent-bit
+      dockerfile: Dockerfile
+    container_name: logstream-fluent-bit-app4
+    environment:
+      - APP_NAME=app4
+      - PRODUCER_HOST=${PRODUCER_HOST}
+      - PRODUCER_PORT=${PRODUCER_PORT}
+      - NODE_ENV=${NODE_ENV}
+    volumes:
+      - ./fluent-bit/storage/app4:/fluent-bit/storage
+      - ./fluent-bit/configs/app4.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - shared-logs:/shared
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      simulator-app4:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "${FLUENT_BIT_APP4_PORT}:2020"
+
+  # Fluent Bit for App 5 - Re-enabled: Now reads from log-fetcher output
+  fluent-bit-app5:
+    build:
+      context: ./fluent-bit
+      dockerfile: Dockerfile
+    container_name: logstream-fluent-bit-app5
+    environment:
+      - APP_NAME=app5
+      - LOG_PATH=/simulator/logs/app.log
+      - PRODUCER_HOST=${PRODUCER_HOST}
+      - PRODUCER_PORT=${PRODUCER_PORT}
+      - NODE_ENV=${NODE_ENV}
+    volumes:
+      - ./simulator/logs/app5:/simulator/logs:ro
+      - ./fluent-bit/storage/app5:/fluent-bit/storage
+      - ./fluent-bit/configs/app5.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      simulator-app5:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "${FLUENT_BIT_APP5_PORT}:2020"
+
+  # Simulator for App 1
+  simulator-app1:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app1
+    environment:
+      - APP_NAME=app1
+    volumes:
+      - ./simulator/logs/app1:/usr/src/app/logs
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      fluent-bit-app1:
+        condition: service_started
+    restart: unless-stopped
+
+  # Simulator for App 2  
+  simulator-app2:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app2
+    environment:
+      - APP_NAME=app2
+    volumes:
+      - ./simulator/logs/app2:/usr/src/app/logs
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      fluent-bit-app2:
+        condition: service_started
+    restart: unless-stopped
+
+  # Simulator for App 3
+  simulator-app3:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app3
+    environment:
+      - APP_NAME=app3
+    volumes:
+      - ./simulator/logs/app3:/usr/src/app/logs
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      fluent-bit-app3:
+        condition: service_started
+    restart: unless-stopped
+
+  # Simulator for App 4 (writes to stdout)
+  simulator-app4:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app4
+    environment:
+      - APP_NAME=app4
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - shared-logs:/shared
+    command: sh -c "npx ts-node index.ts | tee /shared/app4.log"
+
+  # Simulator for App 5 - Original simulator that writes to MongoDB
+  simulator-app5:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: logstream-simulator-app5
+    environment:
+      - APP_NAME=app5
+      - A5_MONGO_URL=${A5_MONGO_URL}
+      - A5_DB_NAME=${A5_DB_NAME}
+      - POLL_INTERVAL=5000
+      - LOG_FILE_PATH=/usr/src/app/logs/app.log
+    volumes:
+      - ./simulator/logs/app5:/usr/src/app/logs
+    networks:
+      - logstream
+    depends_on:
+      producer:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
 
   vdom-frontend:
     build: ./vdom-frontend
@@ -238,9 +355,17 @@ services:
 volumes:
   redis_data:
     driver: local
+  mongodb_data:
+    driver: local
   fluent_bit_storage_app1:
     driver: local
   fluent_bit_storage_app2:
     driver: local
   fluent_bit_storage_app3:
+    driver: local
+  fluent_bit_storage_app4:
+    driver: local
+  fluent_bit_storage_app5:
+    driver: local
+  shared-logs:
     driver: local

@@ -41,6 +41,18 @@ export const getApplicationNames = async (req: Request, res: Response, next: Nex
   }
 };
 
+export const getApplications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const applications = await applicationService.getApplications();
+
+    res.status(200).json(
+      createResponse(200, 'Applications fetched successfully', applications)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createApplication = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const application = await applicationService.createApplication(req.body);

@@ -179,7 +179,7 @@ export class UserGroupsAPI {
   static async getApplications(): Promise<IApplication[]> {
     return this.makeApiRequest<IApplication[]>({
       method: 'GET',
-      endpoint: '/application'
+      endpoint: '/application/all'
     });
   }
 
