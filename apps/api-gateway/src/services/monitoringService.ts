@@ -7,10 +7,10 @@ class MonitoringService {
   start() {
     this.interval = setInterval(async () => {
       try {
-        // Find stuck jobs (processing for > 30 minutes)
+        // Find stuck jobs (processing for > 15 minutes)
         const stuckJobs = await JobStatusModel.find({
           status: 'processing',
-          updatedAt: { $lt: new Date(Date.now() - 1 * 60 * 1000) }
+          updatedAt: { $lt: new Date(Date.now() - 15 * 60 * 1000) }
         });
         
         for (const job of stuckJobs) {
@@ -32,7 +32,7 @@ class MonitoringService {
       } catch (error) {
         console.error('Error in monitoring service:', error);
       }
-    }, 1 * 60 * 1000); // Check every 5 minutes
+    }, 5 * 60 * 1000); // Check every 5 minutes
   }
   
   stop() {

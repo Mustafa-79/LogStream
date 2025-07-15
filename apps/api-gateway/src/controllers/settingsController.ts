@@ -5,8 +5,7 @@ import Group from '../models/Group.model';
 import Application from '../models/Application.model';
 import DRP from '../models/DRP.model';
 import { ObjectId } from 'mongoose';
-
-
+import { logRetentionService } from '../services/dataRetentionService';
 
 export const getUserApplications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -74,16 +73,17 @@ export const getUserApplications = async (req: Request, res: Response, next: Nex
 
 export const getDRP = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        // Find the single DRP document in the collection
         const drpDocument = await DRP.findOne();
 
         if (!drpDocument) {
-            // If no DRP document exists, create a default one
             const defaultDRP = new DRP({
-                dataRetentionPeriod: 30 // default to 30 days
+                dataRetentionPeriod: 30
             });
             
             const savedDRP = await defaultDRP.save();
+            
+            // Initialize log retention with default value
+            await logRetentionService.updateLogRetention(savedDRP.dataRetentionPeriod);
             
             res.status(200).json(
                 createResponse(200, 'Data retention period retrieved successfully (default created)', {
@@ -109,8 +109,6 @@ export const updateDRP = async (req: Request, res: Response, next: NextFunction)
     try {
         const { dataRetentionPeriod } = req.body;
 
-        // Validate the input
-        console.log('Updating DRP with:', dataRetentionPeriod);
         if (!dataRetentionPeriod || typeof dataRetentionPeriod !== 'number' || dataRetentionPeriod <= 0) {
             res.status(400).json(
                 createResponse(400, 'Valid data retention period (positive number) is required', null)
@@ -118,15 +116,17 @@ export const updateDRP = async (req: Request, res: Response, next: NextFunction)
             return;
         }
 
-        // Find and update the DRP document, or create one if it doesn't exist
         const updatedDRP = await DRP.findOneAndUpdate(
-            {}, // empty filter to match any document (since there should be only one)
+            {},
             { dataRetentionPeriod },
             { 
-                new: true, // return the updated document
-                upsert: true // create if doesn't exist
+                new: true,
+                upsert: true
             }
         );
+
+        // Update log TTL index
+        await logRetentionService.updateLogRetention(dataRetentionPeriod);
 
         res.status(200).json(
             createResponse(200, 'Data retention period updated successfully', {
@@ -300,15 +300,13 @@ const updateApplicationSettings = async (applications: Record<string, { id: stri
 // Helper function to update data retention period if changed (Step 3)
 const updateDataRetentionPeriodIfChanged = async (newDataRetentionPeriod: number): Promise<{ message: string; updated: boolean; dataRetentionPeriod: number }> => {
     try {
-        // Get current DRP from database
         const currentDRP = await DRP.findOne();
         
         if (!currentDRP) {
-            // No DRP exists, create a new one
             const newDRP = new DRP({ dataRetentionPeriod: newDataRetentionPeriod });
             await newDRP.save();
             
-            console.log(`Created new DRP with value: ${newDataRetentionPeriod}`);
+            await logRetentionService.updateLogRetention(newDataRetentionPeriod);
             
             return {
                 message: 'Data retention period created',
@@ -317,13 +315,11 @@ const updateDataRetentionPeriodIfChanged = async (newDataRetentionPeriod: number
             };
         }
 
-        // Check if the value is different
         if (currentDRP.dataRetentionPeriod !== newDataRetentionPeriod) {
-            // Update the DRP
             currentDRP.dataRetentionPeriod = newDataRetentionPeriod;
             await currentDRP.save();
             
-            console.log(`Updated DRP from ${currentDRP.dataRetentionPeriod} to ${newDataRetentionPeriod}`);
+            await logRetentionService.updateLogRetention(newDataRetentionPeriod);
             
             return {
                 message: 'Data retention period updated',
@@ -332,9 +328,6 @@ const updateDataRetentionPeriodIfChanged = async (newDataRetentionPeriod: number
             };
         }
 
-        // No change needed
-        console.log(`DRP unchanged: ${currentDRP.dataRetentionPeriod}`);
-        
         return {
             message: 'Data retention period unchanged',
             updated: false,
