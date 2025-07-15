@@ -12,6 +12,11 @@ interface EnvVars {
   GOOGLE_CLIENT_SECRET: string
   BACKEND_URL: string
   FRONTEND_URL: string
+  SMTP_HOST: string
+  SMTP_PORT: number
+  SMTP_SECURE: boolean
+  SMTP_USER: string
+  SMTP_PASS: string
 }
 
 // Define Joi schema for validation
@@ -24,6 +29,11 @@ const envVarsSchema = Joi.object<EnvVars>()
     GOOGLE_CLIENT_SECRET: Joi.string().required().description('Google OAuth Client Secret'),
     BACKEND_URL: Joi.string().required().description('Backend URL'),
     FRONTEND_URL: Joi.string().required().description('Frontend URL'),
+    SMTP_HOST: Joi.string().default('smtp.gmail.com').description('SMTP host for email service'),
+    SMTP_PORT: Joi.number().default(587).description('SMTP port for email service'),
+    SMTP_SECURE: Joi.boolean().default(false).description('SMTP secure connection flag'),
+    SMTP_USER: Joi.string().required().description('SMTP user for email service'),
+    SMTP_PASS: Joi.string().required().description('SMTP password for email service')
   })
   .unknown()
 
@@ -44,7 +54,14 @@ const config = {
     clientSecret: envVars.GOOGLE_CLIENT_SECRET
   },
   backendUrl: envVars.BACKEND_URL,
-  frontendUrl: envVars.FRONTEND_URL
+  frontendUrl: envVars.FRONTEND_URL,
+  smtp: {
+    host: envVars.SMTP_HOST,
+    port: envVars.SMTP_PORT,
+    secure: envVars.SMTP_SECURE,
+    user: envVars.SMTP_USER,
+    pass: envVars.SMTP_PASS
+  }
 }
 
 export default config

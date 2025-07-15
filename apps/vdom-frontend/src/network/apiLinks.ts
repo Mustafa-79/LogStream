@@ -10,8 +10,9 @@ class ApiLinks {
   static readonly UPDATE_THRESHOLD_TIME_PERIOD = (id: string): string => `${ApiLinks.API_BASE_URL}/application/${id}/threshold-time`;
 
    // Log APIs
-  static readonly GET_LOGS: string = `${ApiLinks.API_BASE_URL}/logs`;
-  static readonly GET_LOG_STATS: string = `${ApiLinks.API_BASE_URL}/logs/stats`;
+  static GET_LOGS: string = `${ApiLinks.API_BASE_URL}/logs`;
+  static GET_LOG_STATS: string = `${ApiLinks.API_BASE_URL}/logs/stats`;
+  static EXPORT_LOGS: string = `${ApiLinks.API_BASE_URL}/logs/export`;
 
   // Analytics APIs
   static readonly GET_ANALYTICS: string = `${ApiLinks.API_BASE_URL}/analytics`;
