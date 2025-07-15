@@ -49,37 +49,42 @@ export function ApplicationConfig({
         />
       </div>
 
-      <div class="oj-sm-margin-4x-bottom">
-        <label htmlFor="alert-threshold" class="oj-label oj-text-color-secondary">
-          Alert Threshold (logs/period)
-        </label>
-        <oj-input-text
-          id="alert-threshold"
-          value={alertThreshold}
-          onvalueChanged={onThresholdChange}
-          placeholder="e.g., 100 (max: 1000)"
-          class="oj-form-control-full-width"
-        />
-        {validationErrors.alertThreshold && (
-          <div class="oj-text-color-danger oj-typography-body-sm" style="margin-top: 4px;">
-            {validationErrors.alertThreshold}
+      {/* Only show threshold and time period fields when an application is selected */}
+      {selectedApplication && (
+        <>
+          <div class="oj-sm-margin-4x-bottom">
+            <label htmlFor="alert-threshold" class="oj-label oj-text-color-secondary">
+              Alert Threshold (logs/period)
+            </label>
+            <oj-input-text
+              id="alert-threshold"
+              value={alertThreshold}
+              onvalueChanged={onThresholdChange}
+              placeholder="e.g., 100 (max: 1000)"
+              class="oj-form-control-full-width"
+            />
+            {validationErrors.alertThreshold && (
+              <div class="oj-text-color-danger oj-typography-body-sm" style="margin-top: 4px;">
+                {validationErrors.alertThreshold}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div class="oj-sm-margin-4x-bottom">
-        <label htmlFor="time-period" class="oj-label oj-text-color-secondary">
-          Time Period
-        </label>
-        <oj-select-single
-          id="time-period"
-          data={timePeriodsDataProvider}
-          value={timePeriod}
-          onvalueChanged={onTimePeriodChange}
-          placeholder="Select time period..."
-          class="oj-form-control-full-width"
-        />
-      </div>
+          <div class="oj-sm-margin-4x-bottom">
+            <label htmlFor="time-period" class="oj-label oj-text-color-secondary">
+              Time Period
+            </label>
+            <oj-select-single
+              id="time-period"
+              data={timePeriodsDataProvider}
+              value={timePeriod}
+              onvalueChanged={onTimePeriodChange}
+              placeholder="Select time period..."
+              class="oj-form-control-full-width"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
