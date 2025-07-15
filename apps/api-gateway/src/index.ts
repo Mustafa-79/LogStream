@@ -6,6 +6,7 @@ import config from './config/config'
 import { googleDirectoryService } from './services/googleDirectoryService'
 import { startAgenda } from './config/agenda';
 import { monitoringService } from './services/monitoringService'
+import { logRetentionService } from './services/dataRetentionService'
 
 const server = http.createServer(app)
 
@@ -16,6 +17,7 @@ mongoose
   .then(async () => {
     console.log('Connected to Database')
 
+    await logRetentionService.initializeLogRetention();
     await startAgenda();
 
     monitoringService.start();
@@ -37,7 +39,6 @@ mongoose
 
     server.listen(PORT, () => {
       console.log(`Server is listening on port ${PORT}`)
-      console.log(`WebSocket server is ready`)
     })
   })
   .catch((error) => {
