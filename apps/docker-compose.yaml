@@ -23,6 +23,28 @@ services:
           memory: ${REDIS_MEMORY_LIMIT}
           cpus: '${REDIS_CPU_LIMIT}'
 
+  mongodb:
+    image: mongo:7
+    container_name: logstream-mongodb
+    ports:
+      - "${MONGODB_EXTERNAL_PORT}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - logstream
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: ${MONGODB_MEMORY_LIMIT}
+          cpus: '${MONGODB_CPU_LIMIT}'
+
+
   producer:
     build: 
       context: ./producer
@@ -195,7 +217,7 @@ services:
     ports:
       - "${FLUENT_BIT_APP4_PORT}:2020"
 
-  # Fluent Bit for App 5
+  # Fluent Bit for App 5 - Re-enabled: Now reads from log-fetcher output
   fluent-bit-app5:
     build:
       context: ./fluent-bit
@@ -216,6 +238,8 @@ services:
     depends_on:
       producer:
         condition: service_healthy
+      simulator-app5:
+        condition: service_started
     restart: unless-stopped
     ports:
       - "${FLUENT_BIT_APP5_PORT}:2020"
@@ -295,7 +319,7 @@ services:
       - shared-logs:/shared
     command: sh -c "npx ts-node index.ts | tee /shared/app4.log"
 
-  # Simulator for App 5
+  # Simulator for App 5 - Original simulator that writes to MongoDB
   simulator-app5:
     build:
       context: ./simulator
@@ -303,6 +327,10 @@ services:
     container_name: logstream-simulator-app5
     environment:
       - APP_NAME=app5
+      - A5_MONGO_URL=${A5_MONGO_URL}
+      - A5_DB_NAME=${A5_DB_NAME}
+      - POLL_INTERVAL=5000
+      - LOG_FILE_PATH=/usr/src/app/logs/app.log
     volumes:
       - ./simulator/logs/app5:/usr/src/app/logs
     networks:
@@ -310,8 +338,8 @@ services:
     depends_on:
       producer:
         condition: service_healthy
-      fluent-bit-app5:
-        condition: service_started  
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
 
   vdom-frontend:
@@ -326,6 +354,8 @@ services:
 
 volumes:
   redis_data:
+    driver: local
+  mongodb_data:
     driver: local
   fluent_bit_storage_app1:
     driver: local

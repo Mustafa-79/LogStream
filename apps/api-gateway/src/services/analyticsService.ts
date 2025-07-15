@@ -78,7 +78,7 @@ export class AnalyticsService {
     const [totalLogs, logLevelDistribution, applicationCounts, volumeTrend] = await Promise.all([
       Log.countDocuments(query),
       this.getLogLevels(query),
-      this.getAppCounts(query),
+      this.getAppCounts(query, appIds),
       this.getVolumeTrend(query, granularity, from, to)
     ]);
 
@@ -152,27 +152,40 @@ export class AnalyticsService {
     }));
   }
 
-  private static async getAppCounts(query: MongoQuery): Promise<ApplicationCount[]> {
-    return Log.aggregate([
+  private static async getAppCounts(query: MongoQuery, userAppIds: string[]): Promise<ApplicationCount[]> {
+    // Import Application model
+    const Application = (await import('../models/Application.model')).default;
+    
+    // Get all user applications
+    const userApps = await Application.find({
+      _id: { $in: userAppIds.map(id => new mongoose.Types.ObjectId(id)) },
+      active: true,
+      deleted: false
+    }).select('_id name').lean();
+
+    // Get log counts for apps that have logs
+    const logCounts = await Log.aggregate([
       { $match: query },
-      {
-        $lookup: {
-          from: 'applications',
-          localField: 'sourceApp',
-          foreignField: '_id',
-          as: 'app'
-        }
-      },
-      { $unwind: '$app' },
       {
         $group: {
           _id: '$sourceApp',
-          applicationName: { $first: '$app.name' },
           count: { $sum: 1 }
         }
-      },
-      { $sort: { applicationName: 1 } }
+      }
     ]);
+
+    // Create a map of app ID to count
+    const countMap = new Map<string, number>();
+    logCounts.forEach(item => {
+      countMap.set(item._id.toString(), item.count);
+    });
+
+    // Return all user apps with their counts (0 if no logs)
+    return userApps.map(app => ({
+      _id: app._id.toString(),
+      applicationName: app.name,
+      count: countMap.get(app._id.toString()) || 0
+    })).sort((a, b) => a.applicationName.localeCompare(b.applicationName));
   }
 
   private static async getVolumeTrend(

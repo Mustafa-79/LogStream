@@ -7,4 +7,7 @@ RUN npm install
 
 COPY . .
 
-CMD ["npx", "ts-node", "index.ts"]
+# Make the startup script executable
+RUN chmod +x start.sh
+
+CMD ["sh", "start.sh"]
