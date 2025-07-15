@@ -754,7 +754,6 @@ export function UserGroups() {
         <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
           <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
             <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">No user groups found</div>
-            <p class="oj-typography-body-md">Create your first user group to get started.</p>
           </div>
         </div>
       ) : (
