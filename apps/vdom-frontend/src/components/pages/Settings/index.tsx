@@ -153,32 +153,43 @@ export function Settings() {
     setSelectedApplication(null);
     setAlertThreshold("");
     setTimePeriod("");
-    setEnableAlerts(true);
     setValidationErrors({});
     // Reload data from API
     loadAllData();
   };
 
-  const handleSaveChanges = () => {
-    // Transform applicationStatus into the requested format
-    const applicationsData = applicationStatus.reduce((acc, app, index) => {
-      acc[index + 1] = {
-        id: app.id, // MongoDB object ID
-        name: app.name,
-        threshold: app.threshold,
-        period: convertPeriodToSeconds(app.timePeriod),
-        status: app.notificationsEnabled // Use notificationsEnabled directly
+  const handleSaveChanges = async () => {
+    try {
+      // Transform applicationStatus into the requested format
+      const applicationsData = applicationStatus.reduce((acc, app, index) => {
+        acc[index + 1] = {
+          id: app.id, // MongoDB object ID
+          name: app.name,
+          threshold: app.threshold,
+          period: convertPeriodToSeconds(app.timePeriod),
+          status: app.notificationsEnabled // Use notificationsEnabled directly
+        };
+        return acc;
+      }, {} as Record<number, { id: string; name: string; threshold: string; period: number; status: boolean }>);
+
+      const saveData = {
+        enableAlerts,
+        applications: applicationsData,
+        dataRetentionPeriod: dataRetentionPeriod
       };
-      return acc;
-    }, {} as Record<number, { id: string; name: string; threshold: string; period: number; status: boolean }>);
 
-    const saveData = {
-      enableAlerts,
-      applications: applicationsData,
-      dataRetentionPeriod: dataRetentionPeriod
-    };
-
-    console.log('Save Changes:', saveData);
+      console.log('Saving settings:', saveData);
+      
+      // Send data to backend
+      await SettingsService.saveSettings(saveData);
+      
+      // Refetch data after successful save to reflect DB changes
+      await loadAllData();
+      
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Failed to save settings. Please try again.');
+    }
   };
 
   const handleApplicationChange = (event: any) => {

@@ -13,6 +13,8 @@ router.get('/user-applications', settingsController.getUserApplications);
 router.get('/drp', settingsController.getDRP);
 router.put('/drp', settingsController.updateDRP);
 
+router.post('/', settingsController.saveSettings);
+
 
 
 export default router

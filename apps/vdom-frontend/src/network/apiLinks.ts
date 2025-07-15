@@ -19,6 +19,7 @@ class ApiLinks {
   // Settings APIs
   static readonly GET_USER_APPLICATIONS: string = `${ApiLinks.API_BASE_URL}/settings/user-applications`;
   static readonly GET_DRP: string = `${ApiLinks.API_BASE_URL}/settings/drp`;
+  static readonly SAVE_SETTINGS: string = `${ApiLinks.API_BASE_URL}/settings`;
 }
 
 export default ApiLinks;

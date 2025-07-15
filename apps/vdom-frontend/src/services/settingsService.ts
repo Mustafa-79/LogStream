@@ -83,6 +83,26 @@ class SettingsService {
       throw error;
     }
   }
+
+  static async saveSettings(settingsData: any): Promise<void> {
+    try {
+      const response = await fetch(ApiLinks.SAVE_SETTINGS, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(settingsData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Settings saved successfully:', data);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      throw error;
+    }
+  }
 }
 
 export default SettingsService;
