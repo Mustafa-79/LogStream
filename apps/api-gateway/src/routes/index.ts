@@ -1,11 +1,12 @@
 import express, { Router, Request, Response } from 'express'
 import createResponse from '../utils/responseHelper'
-import authRoute from './authRoutes' // Adjust the import path as necessary
+import authRoute from './authRoutes' 
 import applicationRoute from './applicationRoutes'
 import logRoutes from './logRoutes'
 import userGroupsRoute from './userGroups'
 import userRoute from './userRoutes'
 import analyticsRoute from './analyticsRoutes'
+import settingsRoute from './settingsRoutes' 
 
 const router: Router = express.Router()
 
@@ -16,6 +17,7 @@ const defaultRoutes: { path: string; route: Router }[] = [
   { path: '/user-groups', route: userGroupsRoute },
   { path: '/logs', route: logRoutes },
   { path: '/analytics', route: analyticsRoute },
+  { path: '/settings', route: settingsRoute},
 ]
 
 defaultRoutes.forEach(({ path, route }) => {

@@ -7,6 +7,7 @@ export interface IApplication extends Document {
   timePeriod: number;
   active: boolean;
   deleted: boolean;
+  notificationsEnabled: boolean;
 }
 
 const applicationSchema: Schema<IApplication> = new Schema(
@@ -38,6 +39,11 @@ const applicationSchema: Schema<IApplication> = new Schema(
       type: Boolean,
       required: true,
       default: false,
+    },
+    notificationsEnabled: {
+      type: Boolean,
+      required: true,
+      default: true,
     },
   },
   {
