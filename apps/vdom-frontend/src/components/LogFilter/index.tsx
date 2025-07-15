@@ -3,24 +3,36 @@ import { useState, useEffect } from "preact/hooks";
 import { FilterState, LogFilterProps } from "./types";
 import ArrayDataProvider = require("ojs/ojarraydataprovider");
 import { IntlDateTimeConverter } from "ojs/ojconverter-datetime";
-  import "oj-c/select-multiple";
+import "oj-c/select-multiple";
+import "oj-c/select-single";
 import "ojs/ojinputtext";
-// import "ojs/ojinputdatetime";
 import 'ojs/ojdatetimepicker';
-
 import "ojs/ojformlayout";
 import "ojs/ojbutton";
 import "ojs/ojlabel";
+import "ojs/ojmessages";
+import "ojs/ojdialog";
 import { getDefaultDateFilters } from "../../utils/dateUtils";
+import LogService from "../../services/logService";
 
 // Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
+
+// Export format options
+const EXPORT_FORMATS = [
+  { value: "csv", label: "CSV" },
+  { value: "json", label: "JSON" }
+];
 
 // Create data for ArrayDataProvider - following the sample pattern
 const logLevelsData = LOG_LEVELS.map((level) => ({
   value: level,
   label: level
 }));
+
+const exportFormatsDP = new ArrayDataProvider(EXPORT_FORMATS, {
+  keyAttributes: 'value'
+});
 
 // Create time converter
 const timeFullConverter = new IntlDateTimeConverter({
@@ -32,7 +44,6 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit' 
 });
 
-
 /**
  * LogFilter Component
  * 
@@ -42,30 +53,36 @@ const timeFullConverter = new IntlDateTimeConverter({
  * @param applications - List of available applications for filtering (optional)
  * @param applyingFilters - Whether filters are currently being applied (optional)
  * @param defaultDates - Default date range for from/to inputs (optional)
- *                      If not provided, date inputs will be empty initially
+ * @param showExport - Whether to show export functionality (optional, defaults to false)
  * 
  * Usage examples:
  * 
- * // With default dates (7 days ago to now)
- * <LogFilter defaultDates={getDefaultDateFilters()} />
+ * // With export functionality (dashboard)
+ * <LogFilter showExport={true} defaultDates={getDefaultDateFilters()} />
  * 
- * // With custom default dates
- * <LogFilter defaultDates={{
- *   fromDate: new Date('2025-01-01').toISOString(),
- *   toDate: new Date().toISOString()
- * }} />
- * 
- * // Without default dates (empty inputs)
+ * // Without export functionality (other pages)
  * <LogFilter />
  */
-const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applications = [], applyingFilters = false, defaultDates }: LogFilterProps) => {
+const LogFilter = ({ 
+  onFilterChange, 
+  initialFilters = {}, 
+  className = "", 
+  applications = [], 
+  applyingFilters = false, 
+  defaultDates, 
+  showExport = false 
+}: LogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
     logLevels: initialFilters.logLevels || [],
     fromDate: initialFilters.fromDate || (defaultDates?.fromDate || null),
     toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
+  
   const [errors, setErrors] = useState<{ fromDate?: string, toDate?: string }>({});
+  const [exportFormat, setExportFormat] = useState<string>("csv");
+  const [exporting, setExporting] = useState<boolean>(false);
+  const [exportMessage, setExportMessage] = useState<any[]>([]);
 
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
@@ -90,7 +107,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       setFilters(newFilters);
     }
     if (!selectedKeys || selectedKeys.size === 0) {
-      // If no applications are selected, reset to empty array
       const newFilters = { ...filters, applications: [] };
       setFilters(newFilters);
     }
@@ -107,7 +123,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
 
     if (!selectedKeys || selectedKeys.size === 0) {
-      // If no log levels are selected, reset to empty array
       const newFilters = { ...filters, logLevels: [] };
       setFilters(newFilters);
     }
@@ -119,7 +134,7 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     let isoFromDate = null;
     if (fromDate) {
       const dateObj = new Date(fromDate);
-      dateObj.setMilliseconds(0); // Set milliseconds to 0
+      dateObj.setMilliseconds(0);
       isoFromDate = dateObj.toISOString();
     }
     const newFilters = { ...filters, fromDate: isoFromDate };
@@ -135,7 +150,7 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     let isoToDate = null;
     if (toDate) {
       const dateObj = new Date(toDate);
-      dateObj.setMilliseconds(0); // Set milliseconds to 0
+      dateObj.setMilliseconds(0);
       isoToDate = dateObj.toISOString();
     }
     const newFilters = { ...filters, toDate: isoToDate };
@@ -145,17 +160,41 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
   };
 
+  // Handle export format change in modal
+  const handleExportFormatChange = (event: any) => {
+    setExportFormat(event.detail.value);
+  };
+
+  // Open export modal
+  const openExportModal = () => {
+    if (!validateDates()) {
+      return;
+    }
+    // Use Oracle JET dialog API to open
+    const dialog = document.getElementById('export-dialog') as any;
+    if (dialog) {
+      dialog.open();
+    }
+  };
+
+  // Close export modal
+  const closeExportModal = () => {
+    // Use Oracle JET dialog API to close
+    const dialog = document.getElementById('export-dialog') as any;
+    if (dialog) {
+      dialog.close();
+    }
+  };
+
   // Toggle all applications
   const toggleAllApplications = () => {
     const allSelected = applicationsValue.size === applications.length;
     if (allSelected) {
-      // Clear all
       const emptySet = new Set<string>();
       setApplicationsValue(emptySet);
       const newFilters = { ...filters, applications: [] };
       setFilters(newFilters);
     } else {
-      // Select all
       const allAppsSet = new Set(applications.map(app => app.value));
       setApplicationsValue(allAppsSet);
       const newFilters = { ...filters, applications: applications.map(app => app.value) };
@@ -167,13 +206,11 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
   const toggleAllLogLevels = () => {
     const allSelected = logLevelsValue.size === LOG_LEVELS.length;
     if (allSelected) {
-      // Clear all
       const emptySet = new Set<string>();
       setLogLevelsValue(emptySet);
       const newFilters = { ...filters, logLevels: [] };
       setFilters(newFilters);
     } else {
-      // Select all
       const allLevelsSet = new Set(LOG_LEVELS);
       setLogLevelsValue(allLevelsSet);
       const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
@@ -187,7 +224,6 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     setApplicationsValue(emptySet);
     setLogLevelsValue(emptySet);
     
-    // Reset to default date values using the same utility
     const defaultNewDates = defaultDates ? getDefaultDateFilters(): null;
     
     const newFilters: FilterState = {
@@ -208,12 +244,60 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     }
   };
 
+  // Export logs functionality (called from modal)
+  const handleExportLogs = async () => {
+    setExporting(true);
+    setExportMessage([]);
+    closeExportModal(); // Close modal using API
+
+    try {
+      // Prepare filters for the service
+      const exportFilters = {
+        applications: filters.applications.length > 0 ? filters.applications : undefined,
+        logLevels: filters.logLevels.length > 0 ? filters.logLevels : undefined,
+        fromDate: filters.fromDate || undefined,
+        toDate: filters.toDate || undefined,
+      };
+
+      // Call the LogService export method
+      const result = await LogService.exportLogs(exportFilters, exportFormat as 'csv' | 'json');
+      
+      setExportMessage([{
+        severity: 'confirmation',
+        summary: 'Export Initiated',
+        detail: result.message || `Log export request submitted successfully in ${exportFormat.toUpperCase()} format. You will receive an email when the export is complete.`,
+        timestamp: new Date().toISOString(),
+        autoTimeout: 8000
+      }]);
+
+    } catch (error: any) {
+      console.error('Export error:', error);
+      
+      // Handle specific error types
+      let errorMessage = 'Failed to initiate log export. Please try again.';
+      if (error.message === 'UNAUTHORIZED') {
+        errorMessage = 'Your session has expired. Please log in again.';
+      } else if (error.message && error.message !== 'UNAUTHORIZED') {
+        errorMessage = error.message;
+      }
+      
+      setExportMessage([{
+        severity: 'error',
+        summary: 'Export Failed',
+        detail: errorMessage,
+        timestamp: new Date().toISOString(),
+        autoTimeout: 8000
+      }]);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Validate date filters
   const validateDates = (): boolean => {
     const newErrors: { fromDate?: string; toDate?: string } = {};
     const { fromDate, toDate } = filters;
 
-    // Rule 3: Both dates must be present or both absent
     if (fromDate && !toDate) {
       newErrors.toDate = "Please select a 'to' date.";
     } else if (!fromDate && toDate) {
@@ -224,12 +308,10 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
       const from = new Date(fromDate);
       const to = new Date(toDate);
 
-      // Rule 1: From date cannot be after to date
       if (from > to) {
         newErrors.fromDate = "'From' date cannot be after 'to' date.";
       }
 
-      // Rule 2: Neither date can be in the future
       const now = new Date();
       if (from > now) {
         newErrors.fromDate = "'From' date cannot be in the future.";
@@ -243,8 +325,27 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
     return Object.keys(newErrors).length === 0;
   };
 
+  // Auto-hide messages after timeout
+  useEffect(() => {
+    if (exportMessage.length > 0) {
+      const timer = setTimeout(() => {
+        setExportMessage([]);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [exportMessage]);
+
   return (
     <div class={`oj-panel oj-panel-shadow-sm ${className}`} style="padding: 20px; margin-bottom: 20px; border-radius: 8px;">
+      {/* Export Messages */}
+      {exportMessage.length > 0 && (
+        <div style="margin-bottom: 16px;">
+          <oj-messages
+            messages={exportMessage}
+          ></oj-messages>
+        </div>
+      )}
+
       {/* Header and Action Buttons */}
       <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center" style="margin-bottom: 16px;">
         <h3 style="margin: 0; color: #374151; font-size: 1.125rem; font-weight: 600;">
@@ -269,6 +370,18 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             {applyingFilters ? "Applying..." : "Apply Filters"}
           </oj-button>
 
+          {/* Export Button - Only show if showExport is true */}
+          {showExport && (
+            <oj-button
+              class="oj-button-sm oj-button-outlined-chrome"
+              onojAction={openExportModal}
+              style="margin-left: 8px;"
+              disabled={exporting}
+            >
+              <span slot="startIcon" class={exporting ? "oj-ux-ico-clock" : "oj-ux-ico-download"}></span>
+              {exporting ? "Exporting..." : "Export Logs"}
+            </oj-button>
+          )}
         </div>
       </div>
 
@@ -398,9 +511,82 @@ const LogFilter = ({ onFilterChange, initialFilters = {}, className = "", applic
             )}
         </div>
       </div>
+
+      {/* Export Modal */}
+      <oj-dialog
+        id="export-dialog"
+        dialog-title="Export Logs"
+        modality="modal"
+        onojClose={closeExportModal}
+        style="width: 400px;"
+      >
+        <div slot="body">
+          <div style="padding: 20px;">
+            <p style="margin-bottom: 20px; color: #374151;">
+              Select the format for your log export:
+            </p>
+            
+            <oj-label for="export-format-select">
+              Export Format
+            </oj-label>
+            <oj-c-select-single
+              id="export-format-select"
+              label-hint="Choose export format..."
+              label-edge="inside"
+              data={exportFormatsDP}
+              value={exportFormat}
+              onvalueChanged={handleExportFormatChange}
+              item-text="label"
+              style="width: 100%; margin-bottom: 20px;"
+            />
+
+            <div style="margin-top: 20px; padding: 12px; background-color: #f3f4f6; border-radius: 6px;">
+              <div class="oj-typography-body-sm" style="color: #6b7280;">
+                <strong>Export will include:</strong>
+                {filters.applications.length > 0 && (
+                  <div>• Applications: {filters.applications.length} selected</div>
+                )}
+                {filters.logLevels.length > 0 && (
+                  <div>• Log Levels: {filters.logLevels.length} selected</div>
+                )}
+                {filters.fromDate && (
+                  <div>• From: {new Date(filters.fromDate).toLocaleString()}</div>
+                )}
+                {filters.toDate && (
+                  <div>• To: {new Date(filters.toDate).toLocaleString()}</div>
+                )}
+                {filters.applications.length === 0 &&
+                  filters.logLevels.length === 0 &&
+                  !filters.fromDate &&
+                  !filters.toDate && (
+                    <div style="font-style: italic;">• All available logs</div>
+                  )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div slot="footer">
+          <div class="oj-flex oj-sm-justify-content-flex-end" style="gap: 8px;">
+            <oj-button
+              class="oj-button-sm oj-button-outlined-chrome"
+              onojAction={closeExportModal}
+            >
+              Cancel
+            </oj-button>
+            <oj-button
+              class="oj-button-sm oj-button-primary"
+              onojAction={handleExportLogs}
+              disabled={exporting}
+            >
+              <span slot="startIcon" class={exporting ? "oj-ux-ico-clock" : "oj-ux-ico-download"}></span>
+              {exporting ? "Exporting..." : "Export"}
+            </oj-button>
+          </div>
+        </div>
+      </oj-dialog>
     </div>
   );
-
 };
 
 export default LogFilter;

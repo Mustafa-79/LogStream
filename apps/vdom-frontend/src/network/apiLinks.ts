@@ -12,6 +12,7 @@ class ApiLinks {
    // Log APIs
   static GET_LOGS: string = `${ApiLinks.API_BASE_URL}/logs`;
   static GET_LOG_STATS: string = `${ApiLinks.API_BASE_URL}/logs/stats`;
+  static EXPORT_LOGS: string = `${ApiLinks.API_BASE_URL}/logs/export`;
 
   // Analytics APIs
   static GET_ANALYTICS: string = `${ApiLinks.API_BASE_URL}/analytics`;

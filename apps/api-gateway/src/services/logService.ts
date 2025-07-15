@@ -34,24 +34,19 @@ export const getLogs = async (
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const skip = (page - 1) * limit;
     
-    console.log('Fetching logs for user:', userId, 'Since:', since, 'Page:', page, 'Limit:', limit);
-    console.log('Applied filters:', filters);
-    
-    // Build date filter conditions
     const dateConditions: any[] = [
       { $in: ["$sourceApp", "$$appIds"] },
       { $gt: ["$date", since] }
     ];
     
-    // Add fromDate filter if provided
     if (filters?.fromDate) {
       dateConditions.push({ $gte: ["$date", filters.fromDate] });
     }
     
-    // Add toDate filter if provided
     if (filters?.toDate) {
       dateConditions.push({ $lte: ["$date", filters.toDate] });
     }
+    console.log('Fetching logs for user:', dateConditions);
     
     const result = await Group.aggregate([
       // Stage 1: Find groups where user is a member
@@ -155,13 +150,11 @@ export const getLogs = async (
         }
       }
     ]);
+    // console.log('Aggregation result:', JSON.stringify(result, null, 2));
     
     const logs = result[0]?.data || [];
-    console.log('Logs fetched for user:', userId, 'Count:', logs.length);
     const totalCount = result[0]?.totalCount[0]?.count || 0;
-    console.log('Total logs count:', totalCount);
     const totalPages = Math.ceil(totalCount / limit);
-    console.log('Total pages:', totalPages);
     
     const pagination = {
       currentPage: page,
@@ -297,6 +290,130 @@ export const getLogStats = async (
     return stats;
   } catch (error) {
     console.error('Error fetching log stats for user:', error);
+    throw error;
+  }
+};
+
+export const getAllLogs = async (
+  userId: string, 
+  since: Date,
+  filters?: LogFilters
+): Promise<ILog[]> => {
+  try {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    
+    const dateConditions: any[] = [
+      { $in: ["$sourceApp", "$$appIds"] },
+      { $gt: ["$date", since] }
+    ];
+    
+    if (filters?.fromDate) {
+      dateConditions.push({ $gte: ["$date", filters.fromDate] });
+    }
+    
+    if (filters?.toDate) {
+      dateConditions.push({ $lte: ["$date", filters.toDate] });
+    }
+    
+    const result = await Group.aggregate([
+      // Stage 1: Find groups where user is a member
+      {
+        $match: {
+          memberIDs: userObjectId,
+          active: true,
+          deleted: false
+        }
+      },
+      // Stage 2: Unwind applicationIDs array to work with individual app IDs
+      {
+        $unwind: "$applicationIDs"
+      },
+      // Stage 3: Group by null to collect all unique application IDs
+      {
+        $group: {
+          _id: null,
+          applicationIds: { $addToSet: "$applicationIDs" }
+        }
+      },
+      // Stage 4: Lookup logs from the Log collection
+      {
+        $lookup: {
+          from: "logs",
+          let: { appIds: "$applicationIds" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: dateConditions
+                }
+              }
+            },
+            {
+              $sort: { date: -1 }
+            },
+            // Stage 5: Lookup application details to get application name
+            {
+              $lookup: {
+                from: "applications",
+                localField: "sourceApp",
+                foreignField: "_id",
+                as: "applicationDetails"
+              }
+            },
+            // Stage 6: Add application name field and clean up
+            {
+              $addFields: {
+                sourceAppName: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$applicationDetails.name", 0] },
+                    "Unknown Application"
+                  ]
+                },
+                sourceAppId: "$sourceApp"
+              }
+            },
+            // Stage 7: Apply application ID filter if provided
+            ...(filters?.applications && filters.applications.length > 0 ? [{
+              $match: {
+                sourceApp: { $in: filters.applications.map(id => new mongoose.Types.ObjectId(id)) }
+              }
+            }] : []),
+            // Stage 8: Apply log level filter if provided
+            ...(filters?.logLevels && filters.logLevels.length > 0 ? [{
+              $match: {
+                logLevel: { $in: filters.logLevels }
+              }
+            }] : []),
+            // Stage 9: Replace sourceApp with the application name
+            {
+              $addFields: {
+                sourceApp: "$sourceAppName"
+              }
+            },
+            // Stage 10: Remove temporary fields
+            {
+              $project: {
+                applicationDetails: 0,
+                sourceAppName: 0
+              }
+            }
+          ],
+          as: "logs"
+        }
+      },
+      // Stage 5: Unwind and replace root to get flat array of logs
+      {
+        $unwind: "$logs"
+      },
+      {
+        $replaceRoot: { newRoot: "$logs" }
+      }
+    ]);
+    
+    return result as ILog[];
+    
+  } catch (error) {
+    console.error('Error fetching all logs for user:', error);
     throw error;
   }
 };

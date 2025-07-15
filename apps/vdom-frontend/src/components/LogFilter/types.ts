@@ -15,6 +15,7 @@ export interface LogFilterProps {
     fromDate: string;
     toDate: string;
   };
+  showExport?: boolean;
 }
 
 export interface DropdownOption {

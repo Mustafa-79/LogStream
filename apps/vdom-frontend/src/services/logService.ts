@@ -29,6 +29,12 @@ interface LogFilters {
   toDate?: string;
 }
 
+interface ExportResponse {
+  message: string;
+  exportId?: string;
+  status?: string;
+}
+
 class LogService {
   private static readonly FETCH_INTERVAL = 5000;
 
@@ -142,6 +148,65 @@ class LogService {
       return json.data;
     } catch (error) {
       console.error('Error fetching log stats:', error);
+      throw error;
+    }
+  }
+
+  static async exportLogs(
+    filters?: LogFilters,
+    format: 'csv' | 'json' = 'csv'
+  ): Promise<ExportResponse> {
+    if (!AuthManager.isAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const params = new URLSearchParams();
+
+      if (filters?.applications && filters.applications.length > 0) {
+        params.append('applications', filters.applications.join(','));
+      }
+
+      if (filters?.logLevels && filters.logLevels.length > 0) {
+        params.append('logLevels', filters.logLevels.join(','));
+      }
+
+      if (filters?.fromDate) {
+        params.append('fromDate', filters.fromDate);
+      }
+
+      if (filters?.toDate) {
+        params.append('toDate', filters.toDate);
+      }
+
+      params.append('format', format);
+
+      const url = `${ApiLinks.EXPORT_LOGS}?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('UNAUTHORIZED');
+        }
+        
+        let errorMessage = `Export failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const data: ApiResponse<ExportResponse> = await response.json();
+      return data.data || { message: data.message };
+    } catch (error) {
+      console.error('Error exporting logs:', error);
       throw error;
     }
   }

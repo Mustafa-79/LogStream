@@ -4,13 +4,13 @@ import MutableArrayDataProvider = require('ojs/ojmutablearraydataprovider');
 import { DropdownOption, FilterState } from "../../LogFilter/types";
 import LogFilter from "../../LogFilter/index";
 import useLogs from "../../../hooks/useLogs";
+import { getDefaultDateFilters } from "../../../utils/dateUtils";
 
 import 'oj-c/table';
 import "ojs/ojbutton";
 import "oj-c/progress-circle";
 import "ojs/ojpagingcontrol";
 import "oj-c/action-card";
-import { log } from "ojs/ojlogger";
 import { useApplicationNames } from "../../../hooks/useApplications";
 
 interface TableLog {
@@ -40,11 +40,15 @@ export const Dashboard = () => {
   const [dataProvider, setDataProvider] = useState<any>(null);
   const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
 
-  const [filters, setFilters] = useState<FilterState>({
-    applications: [],
-    logLevels: [],
-    fromDate: null,
-    toDate: null,
+  // Initialize filters with default dates for better UX
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const defaultDates = getDefaultDateFilters();
+    return {
+      applications: [],
+      logLevels: [],
+      fromDate: defaultDates?.fromDate || null,
+      toDate: defaultDates?.toDate || null,
+    };
   });
 
   useEffect(() => {
@@ -461,11 +465,14 @@ export const Dashboard = () => {
         )}
       </div>
 
+      {/* LogFilter with Export functionality enabled */}
       <LogFilter
         onFilterChange={handleFilterChange}
         initialFilters={filters}
         applications={applicationNames}
         applyingFilters={applyingFilters}
+        defaultDates={getDefaultDateFilters()}
+        showExport={true}
       />
       
       <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); overflow: hidden;">

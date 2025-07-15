@@ -9,6 +9,8 @@ router.use(authenticateJWT);
 
 router.get('/', logController.getLogs);
 
+router.get('/export', logController.exportLogs);
+
 router.get('/stats', logController.getLogStats);
 
 export default router;
