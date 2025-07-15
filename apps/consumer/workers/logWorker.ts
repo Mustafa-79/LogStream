@@ -1,47 +1,15 @@
-// import { Worker, Job } from "bullmq";
-// import { appendFileSync, mkdirSync } from "fs";
-// import path from "path";
-
-// // Output file path setup
-// const outputDir = path.join(__dirname, "..", "out_logs");
-// const outputFile = path.join(outputDir, "consumer.log");
-
-// // Make sure output directory exists
-// mkdirSync(outputDir, { recursive: true });
-
-// // Redis connection options
-// const redisConnection = {
-//   host: "redis",
-//   port: 6379,
-// };
-
-// // Create BullMQ Worker
-// export const worker = new Worker(
-//   "log_queue",
-//   async (job: Job) => {
-//     const logEntry = typeof job.data === "string" ? job.data : JSON.stringify(job.data);
-//     appendFileSync(outputFile, logEntry + "\n");
-//     console.log(`Processed job ${job.id}`);
-//   },
-//   { connection: redisConnection }
-// );
-
-// // Handle success/failure
-// worker.on("completed", (job) => {
-//   console.log(`✅ Job ${job.id} completed.`);
-// });
-
-// worker.on("failed", (job, err) => {
-//   console.error(`❌ Job ${job?.id} failed: ${err.message}`);
-// });
 
 import { Worker, Job } from "bullmq";
 import mongoose from "mongoose";
 import Log from "./logSchema";
 import { parseLogLine } from "./logParser";
+import { alertingService } from "../alertingService";
 
 // Connect to MongoDB (use your connection string)
-const mongoUrl = process.env.MONGODB_URL || "mongodb://mongo:27017/logstream";
+const mongoUrl = process.env.MONGODB_URL;
+if (!mongoUrl) {
+  throw new Error("MONGODB_URL environment variable is not set");
+}
 mongoose.connect(mongoUrl)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
@@ -86,6 +54,9 @@ export const worker = new Worker(
 
       await Log.create(logEntry);
       console.log(`Saved log to MongoDB:`, logEntry);
+      
+      // Check for alerts on ERROR logs
+      await alertingService.checkAndAlert(logEntry.sourceApp, logEntry.logLevel);
     } else {
       console.warn(`Could not parse log: ${JSON.stringify(job.data)}`);
     }
