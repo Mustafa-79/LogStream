@@ -8,6 +8,7 @@
 import { h } from "preact";
 import { useRef, useState, useEffect } from "preact/hooks";
 import * as ResponsiveUtils from "ojs/ojresponsiveutils";
+import { AuthManager } from "../utils/auth";
 import "ojs/ojtoolbar";
 import "ojs/ojmenu";
 import "ojs/ojbutton";
@@ -50,6 +51,12 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer, isAuthen
     }
   }
 
+  // Get user role for display
+  function getUserRole(): string {
+    const user = AuthManager.getCurrentUser();
+    return user?.isAdmin ? 'Admin' : 'User';
+  }
+
   return (
     <header role="banner" class="oj-web-applayout-header">
       <div class="oj-flex-bar oj-sm-align-items-center" style="width: 100%;">
@@ -67,6 +74,12 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer, isAuthen
               <span>{userLogin}</span>
               <span slot="endIcon" class={getEndIconClass()}></span>
               <oj-menu id="menu1" slot="menu" onojMenuAction={handleMenuAction}>
+                <oj-option id="role" value="role" disabled>
+                  <span style="color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+                    Role: {getUserRole()}
+                  </span>
+                </oj-option>
+                <oj-option id="divider" disabled style="border-bottom: 1px solid #e5e7eb; margin: 4px 0;"></oj-option>
                 <oj-option id="out" value="out">Sign Out</oj-option>
               </oj-menu>
             </oj-menu-button>
