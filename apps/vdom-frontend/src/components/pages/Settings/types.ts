@@ -26,5 +26,5 @@ export interface SettingsFormData {
   selectedApplication: string | null;
   alertThreshold: string;
   timePeriod: string;
-  dataRetentionPeriod: string;
+  dataRetentionPeriod: number;
 }

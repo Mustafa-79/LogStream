@@ -70,10 +70,31 @@ export function Settings() {
     }
   };
 
+  // Fetch DRP from API
+  const fetchDRP = async () => {
+    try {
+      const drp = await SettingsService.fetchDRP();
+      console.log('Fetched DRP:', drp);
+      setDataRetentionPeriod(drp);
+    } catch (err) {
+      console.error('Error fetching DRP:', err);
+      // Keep the default value if API call fails
+    }
+  };
+
+  // Load all data (applications and DRP if admin)
+  const loadAllData = async () => {
+    await fetchUserApplications();
+    // Only fetch DRP if user is admin
+    if (isAdmin) {
+      await fetchDRP();
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
-    fetchUserApplications();
-  }, []);
+    loadAllData();
+  }, [isAdmin]);
 
   const handleReset = () => {
     setSelectedApplication(null);
@@ -81,7 +102,7 @@ export function Settings() {
     setTimePeriod("");
     setEnableAlerts(true);
     // Reload data from API
-    fetchUserApplications();
+    loadAllData();
   };
 
   const handleSaveChanges = () => {

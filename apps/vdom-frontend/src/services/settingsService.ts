@@ -54,6 +54,35 @@ class SettingsService {
       throw error;
     }
   }
+
+  static async fetchDRP(): Promise<number> {
+    try {
+      const response = await fetch(ApiLinks.GET_DRP, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AuthManager.getToken()}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('DRP API Response:', data);
+
+      // Extract the dataRetentionPeriod from the response
+      if (data.data && typeof data.data.dataRetentionPeriod === 'number') {
+        return data.data.dataRetentionPeriod;
+      }
+
+      throw new Error('Invalid DRP response format');
+    } catch (error) {
+      console.error('Error fetching DRP:', error);
+      throw error;
+    }
+  }
 }
 
 export default SettingsService;
