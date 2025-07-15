@@ -12,6 +12,7 @@ interface NotificationsSectionProps {
   readonly alertThreshold: string;
   readonly timePeriod: string;
   readonly applicationStatus: ApplicationStatus[];
+  readonly validationErrors: Record<string, string>;
   readonly onAlertsToggle: (enabled: boolean) => void;
   readonly onApplicationChange: (event: any) => void;
   readonly onThresholdChange: (event: any) => void;
@@ -28,6 +29,7 @@ export function NotificationsSection({
   alertThreshold,
   timePeriod,
   applicationStatus,
+  validationErrors,
   onAlertsToggle,
   onApplicationChange,
   onThresholdChange,
@@ -72,6 +74,7 @@ export function NotificationsSection({
               selectedApplication={selectedApplication}
               alertThreshold={alertThreshold}
               timePeriod={timePeriod}
+              validationErrors={validationErrors}
               onApplicationChange={onApplicationChange}
               onThresholdChange={onThresholdChange}
               onTimePeriodChange={onTimePeriodChange}

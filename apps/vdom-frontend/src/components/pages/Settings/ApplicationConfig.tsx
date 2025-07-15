@@ -9,6 +9,7 @@ interface ApplicationConfigProps {
   readonly selectedApplication: string | null;
   readonly alertThreshold: string;
   readonly timePeriod: string;
+  readonly validationErrors: Record<string, string>;
   readonly onApplicationChange: (event: any) => void;
   readonly onThresholdChange: (event: any) => void;
   readonly onTimePeriodChange: (event: any) => void;
@@ -20,6 +21,7 @@ export function ApplicationConfig({
   selectedApplication,
   alertThreshold,
   timePeriod,
+  validationErrors,
   onApplicationChange,
   onThresholdChange,
   onTimePeriodChange
@@ -55,9 +57,14 @@ export function ApplicationConfig({
           id="alert-threshold"
           value={alertThreshold}
           onvalueChanged={onThresholdChange}
-          placeholder="e.g., 100"
+          placeholder="e.g., 100 (max: 1000)"
           class="oj-form-control-full-width"
         />
+        {validationErrors.alertThreshold && (
+          <div class="oj-text-color-danger oj-typography-body-sm" style="margin-top: 4px;">
+            {validationErrors.alertThreshold}
+          </div>
+        )}
       </div>
 
       <div class="oj-sm-margin-4x-bottom">

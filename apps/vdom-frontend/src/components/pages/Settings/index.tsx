@@ -22,6 +22,7 @@ export function Settings() {
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   const isAdmin = AuthManager.getCurrentUser()?.isAdmin || false;
 
@@ -33,6 +34,58 @@ export function Settings() {
       const hours = Math.floor(minutes / 60);
       return `${hours} hour${hours > 1 ? 's' : ''}`;
     }
+  };
+
+  const convertPeriodToSeconds = (periodDisplay: string): number => {
+      // Extract number and unit from strings like "5 minutes", "1 hour", "30 minutes"
+      const regex = /(\d+)\s*(minute|minutes|hour|hours?)/i;
+      const match = regex.exec(periodDisplay);
+      
+      if (!match) {
+        return 300; // Default to 5 minutes if parsing fails
+      }
+      
+      const value = parseInt(match[1], 10);
+      const unit = match[2].toLowerCase();
+      
+      // Convert to seconds based on unit
+      if (unit.startsWith('minute')) {
+        return value * 60; // minutes to seconds
+      } else if (unit.startsWith('hour')) {
+        return value * 3600; // hours to seconds
+      }
+      
+      return 300; // Default fallback
+    };
+
+  // Validation function for alert threshold
+  const validateAlertThreshold = (value: string): string | null => {
+    if (!value || value.trim() === "") {
+      return "Alert threshold is required";
+    }
+
+    // Remove any whitespace
+    const trimmedValue = value.trim();
+    
+    // Check if the value contains only digits and at most one decimal point
+    const numericRegex = /^\d+(\.\d+)?$/;
+    if (!numericRegex.test(trimmedValue)) {
+      return "Alert threshold must be a valid number (digits only)";
+    }
+
+    const numValue = parseFloat(trimmedValue);
+    
+    // Check if it's positive
+    if (numValue <= 0) {
+      return "Alert threshold must be a positive number";
+    }
+
+    // Check upper limit
+    if (numValue > 1000) {
+      return "Alert threshold cannot exceed 1000";
+    }
+
+    return null; // Valid
   };
 
   // Fetch user applications from API
@@ -101,34 +154,12 @@ export function Settings() {
     setAlertThreshold("");
     setTimePeriod("");
     setEnableAlerts(true);
+    setValidationErrors({});
     // Reload data from API
     loadAllData();
   };
 
   const handleSaveChanges = () => {
-    // Helper function to convert time period display format to seconds
-    const convertPeriodToSeconds = (periodDisplay: string): number => {
-      // Extract number and unit from strings like "5 minutes", "1 hour", "30 minutes"
-      const regex = /(\d+)\s*(minute|minutes|hour|hours?)/i;
-      const match = regex.exec(periodDisplay);
-      
-      if (!match) {
-        return 300; // Default to 5 minutes if parsing fails
-      }
-      
-      const value = parseInt(match[1], 10);
-      const unit = match[2].toLowerCase();
-      
-      // Convert to seconds based on unit
-      if (unit.startsWith('minute')) {
-        return value * 60; // minutes to seconds
-      } else if (unit.startsWith('hour')) {
-        return value * 3600; // hours to seconds
-      }
-      
-      return 300; // Default fallback
-    };
-
     // Transform applicationStatus into the requested format
     const applicationsData = applicationStatus.reduce((acc, app, index) => {
       acc[index + 1] = {
@@ -153,6 +184,12 @@ export function Settings() {
   const handleApplicationChange = (event: any) => {
     const selectedAppId = event.detail.value;
     setSelectedApplication(selectedAppId);
+    
+    // Clear validation errors when changing application
+    setValidationErrors(prev => ({
+      ...prev,
+      alertThreshold: ""
+    }));
     
     // Find the corresponding application status by MongoDB ID
     const statusEntry = applicationStatus.find(app => app.id === selectedAppId);
@@ -192,8 +229,21 @@ export function Settings() {
 
   const handleThresholdChange = (event: any) => {
     const newThreshold = event.detail.value;
+    
+    // Set the value regardless (for user to see what they typed)
     setAlertThreshold(newThreshold);
-    updateApplicationStatus(newThreshold);
+
+    // Validate the threshold
+    const validationError = validateAlertThreshold(newThreshold);
+    setValidationErrors(prev => ({
+      ...prev,
+      alertThreshold: validationError || ""
+    }));
+
+    // Only update application status if validation passes
+    if (!validationError) {
+      updateApplicationStatus(newThreshold);
+    }
   };
 
   const handleTimePeriodChange = (event: any) => {
@@ -254,6 +304,7 @@ export function Settings() {
         alertThreshold={alertThreshold}
         timePeriod={timePeriod}
         applicationStatus={applicationStatus}
+        validationErrors={validationErrors}
         onAlertsToggle={setEnableAlerts}
         onApplicationChange={handleApplicationChange}
         onThresholdChange={handleThresholdChange}
