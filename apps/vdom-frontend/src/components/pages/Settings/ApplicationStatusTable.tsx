@@ -22,7 +22,7 @@ export function ApplicationStatusTable({
            style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; max-height: 400px; overflow-y: auto;">
         {/* Table Header */}
         <div class="oj-flex oj-sm-padding-4x settings-table-header" 
-             style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);">
+             style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; position: sticky; top: -3%; z-index: 10; backdrop-filter: blur(8px);">
           <div class="oj-flex-item oj-typography-body-xs oj-text-color-secondary" 
                style="flex: 2; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
             Application
