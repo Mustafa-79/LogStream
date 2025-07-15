@@ -369,10 +369,7 @@ export function Settings() {
           .settings-status-table {
             overflow-x: auto;
             min-width: 320px;
-          }
-
-          .settings-period-col {
-            display: none !important;
+            width: 100%;
           }
 
           .settings-table-header,
