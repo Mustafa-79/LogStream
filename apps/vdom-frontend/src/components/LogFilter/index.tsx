@@ -79,7 +79,6 @@ const LogFilter = ({
     toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
   
-  const [errors, setErrors] = useState<{ fromDate?: string, toDate?: string }>({});
   const [exportFormat, setExportFormat] = useState<string>("csv");
   const [exporting, setExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<any[]>([]);
@@ -139,9 +138,6 @@ const LogFilter = ({
     }
     const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
-    if (errors.fromDate) {
-      setErrors(prev => ({ ...prev, fromDate: undefined }));
-    }
   };
 
   // Handle to date change
@@ -155,9 +151,6 @@ const LogFilter = ({
     }
     const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
-    if (errors.toDate) {
-      setErrors(prev => ({ ...prev, toDate: undefined }));
-    }
   };
 
   // Handle export format change in modal
@@ -167,9 +160,6 @@ const LogFilter = ({
 
   // Open export modal
   const openExportModal = () => {
-    if (!validateDates()) {
-      return;
-    }
     // Use Oracle JET dialog API to open
     const dialog = document.getElementById('export-dialog') as any;
     if (dialog) {
@@ -204,14 +194,11 @@ const LogFilter = ({
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
-    setErrors({});
   };
 
   // Apply filters
   const applyFilters = () => {
-    if (validateDates()) {
-      onFilterChange(filters);
-    }
+    onFilterChange(filters);
   };
 
   // Export logs functionality (called from modal)
@@ -261,38 +248,6 @@ const LogFilter = ({
     } finally {
       setExporting(false);
     }
-  };
-
-  // Validate date filters
-  const validateDates = (): boolean => {
-    const newErrors: { fromDate?: string; toDate?: string } = {};
-    const { fromDate, toDate } = filters;
-
-    if (fromDate && !toDate) {
-      newErrors.toDate = "Please select a 'to' date.";
-    } else if (!fromDate && toDate) {
-      newErrors.fromDate = "Please select a 'from' date.";
-    }
-
-    if (fromDate && toDate) {
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
-
-      if (from > to) {
-        newErrors.fromDate = "'From' date cannot be after 'to' date.";
-      }
-
-      const now = new Date();
-      if (from > now) {
-        newErrors.fromDate = "'From' date cannot be in the future.";
-      }
-      if (to > now) {
-        newErrors.toDate = "'To' date cannot be in the future.";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // Auto-hide messages after timeout
@@ -407,13 +362,9 @@ const LogFilter = ({
             onvalueChanged={handleFromDateChange}
             converter={timeFullConverter}
             label-hint="Select from date and time"
-            class={errors.fromDate ? 'oj-invalid' : ''}
+            max={filters.toDate || new Date().toISOString()}
+            
           ></oj-input-date-time>
-          {errors.fromDate && (
-            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
-              {errors.fromDate}
-            </div>
-          )}
         </div>
 
         {/* To Date */}
@@ -427,13 +378,9 @@ const LogFilter = ({
             onvalueChanged={handleToDateChange}
             converter={timeFullConverter}
             label-hint="Select to date and time"
-            class={errors.toDate ? 'oj-invalid' : ''}
+            min={filters.fromDate || undefined}
+            max={new Date().toISOString()}
           ></oj-input-date-time>
-          {errors.toDate && (
-            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
-              {errors.toDate}
-            </div>
-          )}
         </div>
       </div>
 
