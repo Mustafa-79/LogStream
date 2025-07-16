@@ -344,7 +344,7 @@ export function Applications() {
   }
 
   return (
-    <div class="oj-web-applayout-page" style="padding: 40px; padding-top: 20px;">
+    <div class="oj-web-applayout-page" style="padding: 40px;">
       {successMessage && (
         <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
           <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
@@ -408,11 +408,9 @@ export function Applications() {
           <h1 class="oj-typography-heading-lg" style="margin: 0;">
             Applications
           </h1>
-          <div class="oj-flex oj-align-items-center" style="margin-top: 4px; gap: 8px;">
-            <span style="color: #6b7280; font-size: 0.975rem; font-family: 'Poppins', sans-serif;">
-              Manage and monitor all your connected applications. ({pagination.totalCount} total)
-            </span>
-          </div>
+          <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+            Manage and monitor all your connected applications. ({pagination.totalCount} total)
+          </p>
         </div>
         <div style="flex-shrink: 0; margin-left: 16px;">
           <oj-button

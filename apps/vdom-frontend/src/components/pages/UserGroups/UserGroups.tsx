@@ -600,15 +600,16 @@ export function UserGroups() {
       )}
 
       {/* Page Header */}
-      <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-1x-vertical">
-        <div>
+      <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
+        <div style="flex: 1;">
           <h1 class="oj-typography-heading-lg" style="margin: 0;">
             User Groups
           </h1>
-
-          <p class="oj-typography-body-md">Organize users into groups and manage their application access.</p>
+          <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+            Organize users into groups and manage their application access.
+          </p>
         </div>
-        <div class="oj-flex oj-sm-flex-items-center oj-sm-margin-1x-vertical" style={{ minHeight: '120px' }}>
+        <div style="flex-shrink: 0; margin-left: 16px;">
           <oj-button
             class="oj-button-primary"
             onojAction={handleCreateGroup}

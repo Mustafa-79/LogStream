@@ -362,9 +362,17 @@ export const Dashboard = () => {
 
   return (
     <div class="oj-web-applayout-page" style="padding: 40px;">
-      <h1 class="oj-typography-heading-lg" style="margin: 0;">
-        Dashboard
-      </h1>
+      {/* Page Header */}
+      <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
+        <div style="flex: 1;">
+          <h1 class="oj-typography-heading-lg" style="margin: 0;">
+            Dashboard
+          </h1>
+          <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+            Monitor system activity, view log statistics, and track application performance.
+          </p>
+        </div>
+      </div>
 
       <div style="margin-bottom: 30px;">
         <h2 style="margin: 0 0 20px 0; font-size: 1.5rem; font-weight: 600; color: #374151;">
