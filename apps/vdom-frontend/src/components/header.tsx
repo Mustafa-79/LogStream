@@ -1,10 +1,4 @@
-/**
- * @license
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
- * Licensed under The Universal Permissive License (UPL), Version 1.0
- * as shown at https://oss.oracle.com/licenses/upl/
- * @ignore
- */
+
 import { h } from "preact";
 import { useRef, useState, useEffect } from "preact/hooks";
 import * as ResponsiveUtils from "ojs/ojresponsiveutils";
@@ -12,6 +6,7 @@ import "ojs/ojtoolbar";
 import "ojs/ojmenu";
 import "ojs/ojbutton";
 import "oj-c/button";
+import { Notifications } from "./notifications";
 
 type Props = Readonly<{
   appName: string,
@@ -61,7 +56,8 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer, isAuthen
         </div>
         <div class="oj-flex-bar-middle oj-sm-align-items-baseline oj-web-applayout-max-width">
         </div>
-        <div class="oj-flex-bar-end" style="padding-right: 0; margin-right: 0;">
+        <div class="oj-flex-bar-end" style="padding-right: 0; margin-right: 0; display: flex; align-items: center;">
+          <Notifications />
           <oj-toolbar>
             <oj-menu-button id="userMenu" display={getDisplayType()} chroming="borderless">
               <span>{userLogin}</span>

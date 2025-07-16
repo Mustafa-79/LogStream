@@ -21,6 +21,10 @@ class ApiLinks {
   static readonly GET_USER_APPLICATIONS: string = `${ApiLinks.API_BASE_URL}/settings/user-applications`;
   static readonly GET_DRP: string = `${ApiLinks.API_BASE_URL}/settings/drp`;
   static readonly SAVE_SETTINGS: string = `${ApiLinks.API_BASE_URL}/settings`;
+
+  // Alert APIs
+  static readonly GET_ALERTS: string = `${ApiLinks.API_BASE_URL}/alerts`;
+  static readonly RESOLVE_ALERT = (id: string): string => `${ApiLinks.API_BASE_URL}/alerts/${id}/resolve`;
 }
 
 export default ApiLinks;
