@@ -118,8 +118,17 @@ export function UserGroups() {
   };
 
   // Search handlers
-  const handleSearchChange = (event: any) => {
-    setSearchTerm(event.detail.value);
+  const handleSearchChange = async (event: any) => {
+    const newSearchTerm = event.detail.value.trim();
+    setSearchTerm(newSearchTerm);
+    
+    // Trigger search immediately
+    setIsSearching(true);
+    const statusValue = getStatusFilterValue();
+    const applicationIds = Array.from(selectedApplications);
+    console.log('Auto-search parameters:', { searchTerm: newSearchTerm, statusValue, applicationIds });
+    await fetchUserGroups(1, newSearchTerm, statusValue, applicationIds.length > 0 ? applicationIds : undefined);
+    setIsSearching(false);
   };
 
   const handleStatusFilterChange = (event: any) => {
@@ -669,21 +678,6 @@ export function UserGroups() {
                 item-text="label"
                 style="flex: 1; margin-right: 8px; min-height: 40px;"
               ></oj-c-select-multiple>
-              <oj-button
-                class="oj-button-sm oj-button-outlined-chrome"
-                onojAction={() => {
-                  const allSelected = selectedStatuses.size === 2;
-                  if (allSelected) {
-                    setSelectedStatuses(new Set());
-                  } else {
-                    setSelectedStatuses(new Set(['active', 'inactive']));
-                  }
-                }}
-                title={selectedStatuses.size === 2 ? "Clear All Status" : "Select All Status"}
-                style="min-height: 40px;"
-              >
-                <span slot="startIcon" class={selectedStatuses.size === 2 ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-              </oj-button>
             </div>
           </div>
 
@@ -703,21 +697,6 @@ export function UserGroups() {
                 item-text="label"
                 style="flex: 1; margin-right: 8px; min-height: 40px;"
               ></oj-c-select-multiple>
-              <oj-button
-                class="oj-button-sm oj-button-outlined-chrome"
-                onojAction={() => {
-                  const allSelected = selectedApplications.size === availableApplications.length;
-                  if (allSelected) {
-                    setSelectedApplications(new Set());
-                  } else {
-                    setSelectedApplications(new Set(availableApplications.map(app => app._id)));
-                  }
-                }}
-                title={selectedApplications.size === availableApplications.length ? "Clear All Applications" : "Select All Applications"}
-                style="min-height: 40px;"
-              >
-                <span slot="startIcon" class={selectedApplications.size === availableApplications.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-              </oj-button>
             </div>
           </div>
         </div>

@@ -186,37 +186,7 @@ const LogFilter = ({
     }
   };
 
-  // Toggle all applications
-  const toggleAllApplications = () => {
-    const allSelected = applicationsValue.size === applications.length;
-    if (allSelected) {
-      const emptySet = new Set<string>();
-      setApplicationsValue(emptySet);
-      const newFilters = { ...filters, applications: [] };
-      setFilters(newFilters);
-    } else {
-      const allAppsSet = new Set(applications.map(app => app.value));
-      setApplicationsValue(allAppsSet);
-      const newFilters = { ...filters, applications: applications.map(app => app.value) };
-      setFilters(newFilters);
-    }
-  };
-
-  // Toggle all log levels
-  const toggleAllLogLevels = () => {
-    const allSelected = logLevelsValue.size === LOG_LEVELS.length;
-    if (allSelected) {
-      const emptySet = new Set<string>();
-      setLogLevelsValue(emptySet);
-      const newFilters = { ...filters, logLevels: [] };
-      setFilters(newFilters);
-    } else {
-      const allLevelsSet = new Set(LOG_LEVELS);
-      setLogLevelsValue(allLevelsSet);
-      const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
-      setFilters(newFilters);
-    }
-  };
+ 
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -402,13 +372,7 @@ const LogFilter = ({
               item-text="label"
               style="flex: 1; margin-right: 8px;"
             />
-            <oj-button
-              class="oj-button-sm oj-button-outlined-chrome"
-              onojAction={toggleAllApplications}
-              title={applicationsValue.size === applications.length ? "Clear All Applications" : "Select All Applications"}
-            >
-              <span slot="startIcon" class={applicationsValue.size === applications.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-            </oj-button>
+
           </div>
         </div>
 
@@ -428,13 +392,7 @@ const LogFilter = ({
               item-text="label"
               style="flex: 1; margin-right: 8px;"
             />
-            <oj-button
-              class="oj-button-sm oj-button-outlined-chrome"
-              onojAction={toggleAllLogLevels}
-              title={logLevelsValue.size === LOG_LEVELS.length ? "Clear All Log Levels" : "Select All Log Levels"}
-            >
-              <span slot="startIcon" class={logLevelsValue.size === LOG_LEVELS.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-            </oj-button>
+
           </div>
         </div>
 
