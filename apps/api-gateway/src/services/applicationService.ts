@@ -1,5 +1,6 @@
 import Application, { IApplication } from '../models/Application.model';
 import { Log } from '../models/Log.model';
+import { Group } from '../models/Group.model';
 
 export const getAllApplications = async (
   page: number = 1,
@@ -125,7 +126,16 @@ export const createApplication = async (data: Partial<IApplication>): Promise<IA
     }
 
     const application = new Application(data);
-    return await application.save();
+    await application.save();
+
+    // Add applicationID to Administrator group
+    const adminGroup = await Group.findOne({ name: 'Administrator', deleted: false });
+    if (adminGroup) {
+      adminGroup.applicationIDs.push(application._id);
+      await adminGroup.save();
+    }
+    return application;
+
   } catch (error: any) {
     console.error('Error in createApplication:', error);
     throw error;
