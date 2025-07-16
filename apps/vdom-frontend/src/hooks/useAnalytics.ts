@@ -8,21 +8,14 @@ export const useAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [initialApplications, setInitialApplications] = useState<Array<{ value: string; label: string }>>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [refetching, setRefetching] = useState<boolean>(false);
   const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<FilterState | undefined>(undefined);
   const [defaultDates] = useState(() => getDefaultDateFilters()); // Calculate once and store
 
-  const fetchAnalytics = async (filters?: FilterState, isRefetch = false, isFilterApply = false) => {
+  const fetchAnalytics = async (filters?: FilterState, isFilterApply = false) => {
     try {
-      if (isRefetch) {
-        setRefetching(true);
-        // Clear previous refetch errors
-        if (analyticsData) {
-          setError(null);
-        }
-      } else if (isFilterApply) {
+      if (isFilterApply) {
         setApplyingFilters(true);
         // Clear previous filter errors
         if (analyticsData) {
@@ -30,16 +23,13 @@ export const useAnalytics = () => {
         }
       } else {
         setLoading(true);
-      }
-
-      const response = await AnalyticsService.fetchAnalytics(filters);
+      }      const response = await AnalyticsService.fetchAnalytics(filters);
       setAnalyticsData(response.data);
       setCurrentFilters(filters);
       
 
-
       // Store initial applications list only on first load (when no application filters are applied)
-      if (!isRefetch && !isFilterApply) {
+      if (!isFilterApply) {
         setInitialApplications(response.data.applicationCounts.map(app => ({
           value: app._id,
           label: app.applicationName
@@ -60,9 +50,7 @@ export const useAnalytics = () => {
         setError('Failed to fetch analytics data');
       }
     } finally {
-      if (isRefetch) {
-        setRefetching(false);
-      } else if (isFilterApply) {
+      if (isFilterApply) {
         setApplyingFilters(false);
       } else {
         setLoading(false);
@@ -82,10 +70,13 @@ export const useAnalytics = () => {
     fetchAnalytics(defaultFilters, false);
   }, []);
 
-  const refetch = () => fetchAnalytics(currentFilters, true, false);
   
   const applyFilters = (filters: FilterState) => {
-    fetchAnalytics(filters, false, true);
+    fetchAnalytics(filters, true);
+  };
+
+  const retry = () => {
+    fetchAnalytics(currentFilters, false);
   };
 
   // Use initial applications list for dropdown (not filtered data)
@@ -94,11 +85,10 @@ export const useAnalytics = () => {
   return {
     analyticsData,
     loading,
-    refetching,
     applyingFilters,
     error,
-    refetch,
     applyFilters,
+    retry,
     applications,
     defaultDates
   };
