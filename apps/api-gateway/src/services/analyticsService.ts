@@ -48,15 +48,15 @@ interface MongoQuery {
 export class AnalyticsService {
   static async getAnalytics(userId: string, filters: AnalyticsFilters = {}): Promise<AnalyticsResponse> {
     const userApps = await this.getUserApps(userId);
-    
+
     if (userApps.length === 0) {
       return this.emptyResponse(filters);
     }
 
     // Process filters with defaults
-    const appIds = filters.applicationIDs?.length ? 
+    const appIds = filters.applicationIDs?.length ?
       filters.applicationIDs.filter(id => userApps.includes(id)) : userApps;
-    
+
     const from = filters.from || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const to = filters.to || new Date();
     const granularity = this.getGranularity(from, to);
@@ -65,11 +65,11 @@ export class AnalyticsService {
     const query: MongoQuery = {
       date: { $gte: from, $lte: to }
     };
-    
+
     if (appIds.length) {
       query.sourceApp = { $in: appIds.map(id => new mongoose.Types.ObjectId(id)) };
     }
-    
+
     if (filters.logLevels?.length) {
       query.logLevel = { $in: filters.logLevels };
     }
@@ -118,7 +118,7 @@ export class AnalyticsService {
   private static emptyResponse(filters: AnalyticsFilters): AnalyticsResponse {
     const from = filters.from || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const to = filters.to || new Date();
-    
+
     return {
       logLevelDistribution: [],
       applicationCounts: [],
@@ -130,7 +130,7 @@ export class AnalyticsService {
 
   private static getGranularity(from: Date, to: Date): string {
     const minutes = (to.getTime() - from.getTime()) / (1000 * 60);
-    
+
     if (minutes <= 120) return 'minute';
     if (minutes <= 2880) return 'hour';
     return 'day';
@@ -144,7 +144,7 @@ export class AnalyticsService {
     ]);
 
     const total = results.reduce((sum, item) => sum + item.count, 0);
-    
+
     return results.map(item => ({
       _id: item._id,
       count: item.count,
@@ -155,7 +155,7 @@ export class AnalyticsService {
   private static async getAppCounts(query: MongoQuery, userAppIds: string[]): Promise<ApplicationCount[]> {
     // Import Application model
     const Application = (await import('../models/Application.model')).default;
-    
+
     // Get all user applications
     const userApps = await Application.find({
       _id: { $in: userAppIds.map(id => new mongoose.Types.ObjectId(id)) },
@@ -189,13 +189,13 @@ export class AnalyticsService {
   }
 
   private static async getVolumeTrend(
-    query: MongoQuery, 
+    query: MongoQuery,
     granularity: string,
     from: Date,
     to: Date
   ): Promise<VolumeDataPoint[]> {
     const groupFields = this.getGroupFields(granularity);
-    
+
     const results = await Log.aggregate([
       { $match: query },
       { $group: { _id: groupFields, count: { $sum: 1 } } },
@@ -221,7 +221,7 @@ export class AnalyticsService {
   private static getGroupFields(granularity: string): Record<string, Record<string, Record<string, string>>> {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const base = { date: '$date', timezone };
-    
+
     const fields: Record<string, Record<string, Record<string, string>>> = {
       year: { $year: base },
       month: { $month: base },
@@ -241,63 +241,64 @@ export class AnalyticsService {
 
   private static formatId(groupId: Record<string, number>, granularity: string): string {
     const parts = [groupId.year.toString()];
-    
+
     if (granularity !== 'year') {
       parts.push(groupId.month.toString().padStart(2, '0'));
       parts.push(groupId.day.toString().padStart(2, '0'));
     }
-    
+
     if (granularity === 'hour' || granularity === 'minute') {
       parts.push(groupId.hour.toString().padStart(2, '0'));
     }
-    
+
     if (granularity === 'minute') {
       parts.push(groupId.minute.toString().padStart(2, '0'));
     }
-    
+
     return parts.join('-');
   }
 
   private static generateIntervals(from: Date, to: Date, granularity: string): Array<{ id: string; timestamp: Date }> {
     const intervals: Array<{ id: string; timestamp: Date }> = [];
     const current = new Date(from.getTime());
-    
+
     // Normalize to granularity boundary
     if (granularity === 'minute') current.setSeconds(0, 0);
     if (granularity === 'hour') current.setMinutes(0, 0, 0);
     if (granularity === 'day') current.setHours(0, 0, 0, 0);
-    
+
     while (current <= to) {
+      // Create timestamp in local timezone
       const timestamp = new Date(current);
       const id = this.createId(timestamp, granularity);
-      
+
       intervals.push({ id, timestamp });
-      
+
       // Increment by granularity
       if (granularity === 'minute') current.setMinutes(current.getMinutes() + 1);
       else if (granularity === 'hour') current.setHours(current.getHours() + 1);
       else current.setDate(current.getDate() + 1);
     }
-    
+
     return intervals;
   }
 
   private static createId(date: Date, granularity: string): string {
     const parts = [date.getFullYear().toString()];
-    
+
     if (granularity !== 'year') {
       parts.push((date.getMonth() + 1).toString().padStart(2, '0'));
       parts.push(date.getDate().toString().padStart(2, '0'));
     }
-    
+
     if (granularity === 'hour' || granularity === 'minute') {
       parts.push(date.getHours().toString().padStart(2, '0'));
     }
-    
+
     if (granularity === 'minute') {
       parts.push(date.getMinutes().toString().padStart(2, '0'));
     }
-    
+
     return parts.join('-');
   }
 }
