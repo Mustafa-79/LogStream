@@ -377,10 +377,10 @@ export const Dashboard = () => {
             <span class="oj-typography-body-md oj-sm-margin-2x-start">Loading statistics...</span>
           </div>
         ) : logStats ? (
-          <div class="oj-flex oj-sm-flex-wrap" style="gap: 20px;">
-            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+          <div class="oj-flex oj-flex-wrap oj-sm-align-items-stretch oj-sm-flex-direction-row">
+            <div class="oj-flex-item oj-sm-12 oj-md-3 oj-sm-padding-1x-horizontal oj-sm-padding-2x-bottom">
               <oj-c-action-card
-                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+                style="cursor: default; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%; width: 100%;"
               >
                 <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
                   <div>
@@ -398,9 +398,9 @@ export const Dashboard = () => {
               </oj-c-action-card>
             </div>
 
-            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+            <div class="oj-flex-item oj-sm-12 oj-md-3 oj-sm-padding-1x-horizontal oj-sm-padding-2x-bottom">
               <oj-c-action-card
-                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+                style="background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%; width: 100%;"
               >
                 <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
                   <div>
@@ -418,9 +418,9 @@ export const Dashboard = () => {
               </oj-c-action-card>
             </div>
 
-            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+            <div class="oj-flex-item oj-sm-12 oj-md-3 oj-sm-padding-1x-horizontal oj-sm-padding-2x-bottom">
               <oj-c-action-card
-                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+                style="background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%; width: 100%;"
               >
                 <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
                   <div>
@@ -438,9 +438,9 @@ export const Dashboard = () => {
               </oj-c-action-card>
             </div>
 
-            <div class="oj-sm-flex-initial" style="flex: 1 1 280px;">
+            <div class="oj-flex-item oj-sm-12 oj-md-3 oj-sm-padding-1x-horizontal oj-sm-padding-2x-bottom">
               <oj-c-action-card
-                style="min-width: 250px; cursor: pointer; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%;"
+                style="background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); height: 100%; width: 100%;"
               >
                 <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
                   <div>
