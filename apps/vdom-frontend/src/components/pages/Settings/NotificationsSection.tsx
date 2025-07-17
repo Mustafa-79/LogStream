@@ -95,7 +95,6 @@ export function NotificationsSection({
       {!enableAlerts && (
         <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center oj-sm-padding-8x">
           <div class="oj-typography-body-md oj-text-color-secondary" style="text-align: center;">
-            <div style="margin-bottom: 8px;">📵</div>
             <div>Alerts are currently disabled</div>
             <div class="oj-typography-body-sm" style="margin-top: 4px;">
               Enable alerts above to configure application thresholds and notifications

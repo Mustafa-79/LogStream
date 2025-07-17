@@ -24,6 +24,14 @@ export function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
+  // Store initial states for reset functionality
+  const [initialState, setInitialState] = useState({
+    enableAlerts: true,
+    applications: [] as Application[],
+    applicationStatus: [] as ApplicationStatus[],
+    dataRetentionPeriod: 30
+  });
+  
   const isAdmin = AuthManager.getCurrentUser()?.isAdmin || false;
 
   // Helper function to convert time period from minutes to display format
@@ -115,6 +123,22 @@ export function Settings() {
       }));
       setApplicationStatus(statusData);
       
+      // Check if all applications have notifications disabled
+      // If all are disabled (or no applications exist), set enableAlerts to false
+      const allNotificationsDisabled = sortedUserApps.length === 0 || 
+        sortedUserApps.every(app => !app.notificationsEnabled);
+      
+      const initialAlertsState = !allNotificationsDisabled;
+      setEnableAlerts(initialAlertsState);
+      
+      // Store initial state for reset functionality
+      setInitialState({
+        enableAlerts: initialAlertsState,
+        applications: appOptions,
+        applicationStatus: statusData,
+        dataRetentionPeriod: dataRetentionPeriod // Use current DRP value
+      });
+      
     } catch (err) {
       setError('Failed to load user applications');
       console.error('Error fetching user applications:', err);
@@ -129,9 +153,11 @@ export function Settings() {
       const drp = await SettingsService.fetchDRP();
       console.log('Fetched DRP:', drp);
       setDataRetentionPeriod(drp);
+      return drp;
     } catch (err) {
       console.error('Error fetching DRP:', err);
       // Keep the default value if API call fails
+      return dataRetentionPeriod;
     }
   };
 
@@ -140,7 +166,12 @@ export function Settings() {
     await fetchUserApplications();
     // Only fetch DRP if user is admin
     if (isAdmin) {
-      await fetchDRP();
+      const drpValue = await fetchDRP();
+      // Update initial state with fetched DRP
+      setInitialState(prev => ({
+        ...prev,
+        dataRetentionPeriod: drpValue
+      }));
     }
   };
 
@@ -150,12 +181,17 @@ export function Settings() {
   }, [isAdmin]);
 
   const handleReset = () => {
+    // Reset to initial state without backend calls
     setSelectedApplication(null);
     setAlertThreshold("");
     setTimePeriod("");
     setValidationErrors({});
-    // Reload data from API
-    loadAllData();
+    
+    // Restore from initial state
+    setEnableAlerts(initialState.enableAlerts);
+    setApplications(initialState.applications);
+    setApplicationStatus(initialState.applicationStatus);
+    setDataRetentionPeriod(initialState.dataRetentionPeriod);
   };
 
   const handleSaveChanges = async () => {
@@ -185,6 +221,14 @@ export function Settings() {
       
       // Refetch data after successful save to reflect DB changes
       await loadAllData();
+      
+      // Update initial state with the current state after successful save
+      setInitialState({
+        enableAlerts,
+        applications,
+        applicationStatus,
+        dataRetentionPeriod
+      });
       
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -219,6 +263,19 @@ export function Settings() {
     setApplicationStatus(prev => 
       prev.map(app => app.name === appName ? { ...app, notificationsEnabled: enabled } : app)
     );
+  };
+
+  const handleAlertsToggle = (enabled: boolean) => {
+    setEnableAlerts(enabled);
+    
+    if (!enabled) {
+      // If disabling alerts, disable all application notifications
+      setApplicationStatus(prev => 
+        prev.map(app => ({ ...app, notificationsEnabled: false }))
+      );
+    }
+    // When enabling alerts, don't automatically enable any applications
+    // Let the user manually choose which applications to enable
   };
 
   const updateApplicationStatus = (threshold?: string, period?: string) => {
@@ -272,7 +329,7 @@ export function Settings() {
     return (
       <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
         <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
-          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading applications...</div>
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading Settings...</div>
           <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
             <oj-c-progress-circle
               class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
@@ -315,7 +372,7 @@ export function Settings() {
         timePeriod={timePeriod}
         applicationStatus={applicationStatus}
         validationErrors={validationErrors}
-        onAlertsToggle={setEnableAlerts}
+        onAlertsToggle={handleAlertsToggle}
         onApplicationChange={handleApplicationChange}
         onThresholdChange={handleThresholdChange}
         onTimePeriodChange={handleTimePeriodChange}

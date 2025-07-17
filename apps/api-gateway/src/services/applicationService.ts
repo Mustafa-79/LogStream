@@ -199,7 +199,7 @@ export const getApplicationNames = async (userId: string): Promise<{ value: stri
 
 export const getApplications = async (): Promise<IApplication[]> => {
   try {
-    return await Application.find({ deleted: false });
+    return await Application.find({ deleted: false }).sort({ name: 1 });
   } catch (error) {
     console.error('Error in getApplications:', error);
     throw new Error('Failed to fetch applications.');
