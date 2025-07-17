@@ -26,6 +26,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
   // Initialize with default sorting state
   const [currentSortBy, setCurrentSortBy] = useState<string | undefined>(undefined);
   const [currentSortOrder, setCurrentSortOrder] = useState<'asc' | 'desc' | 'default' | undefined>('default');
+  const [isFetching, setIsFetching] = useState<boolean>(false);
 
   const fetchLogs = async (
     page: number = 1, 
@@ -41,6 +42,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     }
 
     try {
+      setIsFetching(true);
       if (isInitialLoad) {
         setLoading(true);
       } else {
@@ -48,6 +50,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       }
       setError(null);
 
+      // Use current state if not explicitly provided
       const filtersToUse = filters !== undefined ? filters : currentFilters;
       const searchToUse = searchTerm !== undefined ? searchTerm : currentSearchTerm;
       
@@ -74,13 +77,14 @@ export const useLogs = (options: UseLogsOptions = {}) => {
         pageSize, 
         filtersToUse, 
         searchToUse, 
-        sortBy, 
+        sortByToUse, 
         sortOrderToUse
       );
 
       setLogs(response.logs);
       setPagination(response.pagination);
       
+      // Update current state only if new values were provided
       if (filters !== undefined) {
         setCurrentFilters(filters);
       }
@@ -100,6 +104,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
       setError("Failed to fetch logs");
     } finally {
+      setIsFetching(false);
       if (isInitialLoad) {
         setLoading(false);
       } else {
@@ -109,7 +114,12 @@ export const useLogs = (options: UseLogsOptions = {}) => {
   };
 
   const fetchLogsWithFilters = async (filters: LogFilters, searchTerm?: string) => {
-    await fetchLogs(1, undefined, filters, searchTerm, false);
+    if (isFetching) {
+      console.log('Already fetching, skipping duplicate call');
+      return;
+    }
+    const searchToUse = searchTerm !== undefined ? searchTerm : currentSearchTerm;
+    await fetchLogs(1, undefined, filters, searchToUse, false);
   };
 
   const fetchLogsWithSearch = async (searchTerm: string) => {
@@ -120,44 +130,64 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     sortBy?: string,
     sortOrder?: 'asc' | 'desc' | 'default'
   ) => {
+    console.log("Fetching logs with sort:", sortBy, sortOrder);
     await fetchLogs(1, undefined, currentFilters, currentSearchTerm, false, sortBy, sortOrder);
   };
 
   const goToPage = async (page: number) => {
     if (page >= 1 && page <= pagination.totalPages && page !== pagination.currentPage) {
-      await fetchLogs(page, undefined, undefined, undefined, false);
+      await fetchLogs(page, undefined, currentFilters, currentSearchTerm, false);
     }
   };
 
   const goToNextPage = async () => {
     if (pagination.hasNextPage) {
-      await fetchLogs(pagination.currentPage + 1, undefined, undefined, undefined, false);
+      await fetchLogs(pagination.currentPage + 1, undefined, currentFilters, currentSearchTerm, false);
     }
   };
 
   const goToPrevPage = async () => {
     if (pagination.hasPrevPage) {
-      await fetchLogs(pagination.currentPage - 1, undefined, undefined, undefined, false);
+      await fetchLogs(pagination.currentPage - 1, undefined, currentFilters, currentSearchTerm, false);
     }
   };
 
   const goToFirstPage = async () => {
     if (pagination.currentPage !== 1) {
-      await fetchLogs(1, undefined, undefined, undefined, false);
+      await fetchLogs(1, undefined, currentFilters, currentSearchTerm, false);
     }
   };
 
   const goToLastPage = async () => {
     if (pagination.currentPage !== pagination.totalPages) {
-      await fetchLogs(pagination.totalPages, undefined, undefined, undefined, false);
+      await fetchLogs(pagination.totalPages, undefined, currentFilters, currentSearchTerm, false);
     }
   };
 
   const refreshCurrentPage = async () => {
-    await fetchLogs(pagination.currentPage, undefined, undefined, undefined, false);
+    // Retain current filters and search when refreshing
+    await fetchLogs(pagination.currentPage, undefined, currentFilters, currentSearchTerm, false);
+    await fetchLogStats();
   };
 
-  const fetchLogStats = async (searchTerm?: string) => {
+  const clearAllFiltersAndSearch = async () => {
+    try {
+      setDataLoading(true);
+      setError(null);
+      
+      setCurrentFilters({});
+      setCurrentSearchTerm("");
+      
+      await fetchLogs(1, undefined, {}, "", false);
+    } catch (err) {
+      console.error("Error clearing filters and search:", err);
+      setError("Failed to clear filters");
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const fetchLogStats = async () => {
     if (!AuthManager.isAuthenticated()) {
       return;
     }
@@ -166,6 +196,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       setStatsLoading(true);
       setStatsError(null);
       
+      // Include current filters and search in stats
       const stats = await LogService.fetchLogStats(currentFilters);
       setLogStats(stats);
     } catch (error) {
@@ -196,14 +227,15 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       },
       fetchLogsWithSearch,
       fetchLogsWithSort, 
-      fetchLogStats: (searchTerm?: string) => fetchLogStats(searchTerm),
+      fetchLogStats: () => fetchLogStats(),
       refetch: refreshCurrentPage,
       goToPage,
       goToNextPage,
       goToPrevPage,
       goToFirstPage,
       goToLastPage,
-      refreshCurrentPage
+      refreshCurrentPage,
+      clearAllFiltersAndSearch
     }
   };
 };
