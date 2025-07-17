@@ -1,8 +1,7 @@
-import { AlertToggle } from "./AlertToggle";
 import { ApplicationConfig } from "./ApplicationConfig";
 import { ApplicationStatusTable } from "./ApplicationStatusTable";
-import { InfoNote } from "./InfoNote";
 import { Application, TimePeriod, ApplicationStatus } from "./types";
+import "ojs/ojswitch";
 
 interface NotificationsSectionProps {
   readonly enableAlerts: boolean;
@@ -61,7 +60,23 @@ export function NotificationsSection({
         </div>
       </div>
 
-      <AlertToggle enableAlerts={enableAlerts} onToggle={onAlertsToggle} />
+      {/* Inline AlertToggle */}
+      <div class="oj-sm-margin-4x-bottom oj-sm-padding-6x" style="border-bottom: 1px solid #d5d7db;">
+        <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+          <div>
+            <h4 class="oj-typography-body-md oj-text-color-primary" style="margin: 0; font-weight: 500;">
+              Enable Alerts
+            </h4>
+            <p class="oj-typography-body-sm oj-text-color-secondary" style="margin: 0;">
+              Receive notifications when log thresholds are exceeded
+            </p>
+          </div>
+          <oj-switch
+            value={enableAlerts}
+            onvalueChanged={(event: any) => onAlertsToggle(event.detail.value)}
+          />
+        </div>
+      </div>
 
       {/* Conditionally render configuration and status table only when alerts are enabled */}
       {enableAlerts && (
@@ -87,7 +102,17 @@ export function NotificationsSection({
             />
           </div>
 
-          <InfoNote message="You'll receive notifications via email alerts when thresholds are exceeded." />
+          {/* Inline InfoNote - simple notification message */}
+          <div class="oj-panel oj-panel-shadow-sm oj-sm-margin-4x-top oj-sm-padding-4x" 
+               style="background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 6px;">
+            <div class="oj-flex oj-sm-align-items-flex-start" style="gap: 8px;">
+              <div>
+                <p class="oj-typography-body-sm" style="margin: 0; color: #0c4a6e; line-height: 1.4;">
+                  <strong>Note:</strong> You'll receive notifications via email alerts when thresholds are exceeded.
+                </p>
+              </div>
+            </div>
+          </div>
         </>
       )}
 

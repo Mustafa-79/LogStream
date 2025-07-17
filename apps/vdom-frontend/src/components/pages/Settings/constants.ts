@@ -17,13 +17,6 @@ export const retentionPeriods: RetentionPeriod[] = [
   { value: 30, label: "30 days" }
 ];
 
-export const getTimePeriodDisplay = (period: string): string => {
-  const periodMap: Record<string, string> = {
-    "5 minutes": "5 min",
-    "10 minutes": "10 min", 
-    "15 minutes": "15 min",
-    "30 minutes": "30 min",
-    "1 hour": "1 hour"
-  };
-  return periodMap[period] || period;
-};
+// Simple display formatter (inline where needed)
+export const getTimePeriodDisplay = (period: string): string => 
+  period.replace("minutes", "min");

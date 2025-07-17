@@ -1,8 +1,8 @@
 import { useState, useEffect } from "preact/hooks";
 import "oj-c/progress-circle";
+import "oj-c/button";
 import { AuthManager } from "../../../utils/auth";
 import SettingsService from "../../../services/settingsService";
-import { SettingsHeader } from "./SettingsHeader";
 import { NotificationsSection } from "./NotificationsSection";
 import { DataRetentionSection } from "./DataRetentionSection";
 import { Application, ApplicationStatus } from "./types";
@@ -13,18 +13,29 @@ import {
 } from "./constants";
 
 export function Settings() {
-  const [enableAlerts, setEnableAlerts] = useState(true);
-  const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
-  const [alertThreshold, setAlertThreshold] = useState("");
-  const [timePeriod, setTimePeriod] = useState("");
-  const [dataRetentionPeriod, setDataRetentionPeriod] = useState(30);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  // Consolidated form state
+  const [formData, setFormData] = useState({
+    enableAlerts: true,
+    selectedApplication: null as string | null,
+    alertThreshold: "",
+    timePeriod: "",
+    dataRetentionPeriod: 30
+  });
   
-  // Store initial states for reset functionality
+  // Data state
+  const [dataState, setDataState] = useState({
+    applications: [] as Application[],
+    applicationStatus: [] as ApplicationStatus[]
+  });
+  
+  // UI state
+  const [uiState, setUIState] = useState({
+    loading: true,
+    error: null as string | null,
+    validationErrors: {} as Record<string, string>
+  });
+  
+  // Store initial state for reset functionality
   const [initialState, setInitialState] = useState({
     enableAlerts: true,
     applications: [] as Application[],
@@ -34,73 +45,35 @@ export function Settings() {
   
   const isAdmin = AuthManager.getCurrentUser()?.isAdmin || false;
 
-  // Helper function to convert time period from minutes to display format
+  // Simplified helper functions (inline)
   const convertTimePeriodToDisplay = (minutes: number): string => {
-    if (minutes < 60) {
-      return `${minutes} minutes`;
-    } else {
-      const hours = Math.floor(minutes / 60);
-      return `${hours} hour${hours > 1 ? 's' : ''}`;
-    }
+    if (minutes < 60) return `${minutes} minutes`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours} hour${hours > 1 ? 's' : ''}`;
   };
 
   const convertPeriodToSeconds = (periodDisplay: string): number => {
-      // Extract number and unit from strings like "5 minutes", "1 hour", "30 minutes"
-      const regex = /(\d+)\s*(minute|minutes|hour|hours?)/i;
-      const match = regex.exec(periodDisplay);
-      
-      if (!match) {
-        return 300; // Default to 5 minutes if parsing fails
-      }
-      
-      const value = parseInt(match[1], 10);
-      const unit = match[2].toLowerCase();
-      
-      // Convert to seconds based on unit
-      if (unit.startsWith('minute')) {
-        return value * 60; // minutes to seconds
-      } else if (unit.startsWith('hour')) {
-        return value * 3600; // hours to seconds
-      }
-      
-      return 300; // Default fallback
-    };
+    const match = /(\d+)\s*(minute|hour)s?/i.exec(periodDisplay);
+    if (!match) return 300;
+    const value = parseInt(match[1], 10);
+    return match[2].toLowerCase().startsWith('minute') ? value * 60 : value * 3600;
+  };
 
-  // Validation function for alert threshold
+  // Simplified validation function
   const validateAlertThreshold = (value: string): string | null => {
-    if (!value || value.trim() === "") {
-      return "Alert threshold is required";
-    }
-
-    // Remove any whitespace
-    const trimmedValue = value.trim();
+    if (!value?.trim()) return "Alert threshold is required";
     
-    // Check if the value contains only digits and at most one decimal point
-    const numericRegex = /^\d+(\.\d+)?$/;
-    if (!numericRegex.test(trimmedValue)) {
-      return "Alert threshold must be a valid number (digits only)";
-    }
-
-    const numValue = parseFloat(trimmedValue);
+    const numValue = parseFloat(value.trim());
+    if (isNaN(numValue) || numValue <= 0) return "Alert threshold must be a positive number";
+    if (numValue > 1000) return "Alert threshold cannot exceed 1000";
     
-    // Check if it's positive
-    if (numValue <= 0) {
-      return "Alert threshold must be a positive number";
-    }
-
-    // Check upper limit
-    if (numValue > 1000) {
-      return "Alert threshold cannot exceed 1000";
-    }
-
-    return null; // Valid
+    return null;
   };
 
   // Fetch user applications from API
   const fetchUserApplications = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setUIState(prev => ({ ...prev, loading: true, error: null }));
       const userApps = await SettingsService.fetchUserApplications();
       
       // Sort applications by name alphabetically
@@ -111,7 +84,6 @@ export function Settings() {
         value: app.id, // Use the actual MongoDB ID as the value
         label: app.name
       }));
-      setApplications(appOptions);
       
       // Transform user applications to status format
       const statusData: ApplicationStatus[] = sortedUserApps.map((app, index) => ({
@@ -121,29 +93,29 @@ export function Settings() {
         timePeriod: convertTimePeriodToDisplay(app.timePeriod),
         notificationsEnabled: app.notificationsEnabled
       }));
-      setApplicationStatus(statusData);
+      
+      setDataState({ applications: appOptions, applicationStatus: statusData });
       
       // Check if all applications have notifications disabled
-      // If all are disabled (or no applications exist), set enableAlerts to false
       const allNotificationsDisabled = sortedUserApps.length === 0 || 
         sortedUserApps.every(app => !app.notificationsEnabled);
       
       const initialAlertsState = !allNotificationsDisabled;
-      setEnableAlerts(initialAlertsState);
+      setFormData(prev => ({ ...prev, enableAlerts: initialAlertsState }));
       
       // Store initial state for reset functionality
       setInitialState({
         enableAlerts: initialAlertsState,
         applications: appOptions,
         applicationStatus: statusData,
-        dataRetentionPeriod: dataRetentionPeriod // Use current DRP value
+        dataRetentionPeriod: formData.dataRetentionPeriod // Use current DRP value
       });
       
     } catch (err) {
-      setError('Failed to load user applications');
+      setUIState(prev => ({ ...prev, error: 'Failed to load user applications' }));
       console.error('Error fetching user applications:', err);
     } finally {
-      setLoading(false);
+      setUIState(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -152,12 +124,12 @@ export function Settings() {
     try {
       const drp = await SettingsService.fetchDRP();
       console.log('Fetched DRP:', drp);
-      setDataRetentionPeriod(drp);
+      setFormData(prev => ({ ...prev, dataRetentionPeriod: drp }));
       return drp;
     } catch (err) {
       console.error('Error fetching DRP:', err);
       // Keep the default value if API call fails
-      return dataRetentionPeriod;
+      return formData.dataRetentionPeriod;
     }
   };
 
@@ -182,22 +154,24 @@ export function Settings() {
 
   const handleReset = () => {
     // Reset to initial state without backend calls
-    setSelectedApplication(null);
-    setAlertThreshold("");
-    setTimePeriod("");
-    setValidationErrors({});
-    
-    // Restore from initial state
-    setEnableAlerts(initialState.enableAlerts);
-    setApplications(initialState.applications);
-    setApplicationStatus(initialState.applicationStatus);
-    setDataRetentionPeriod(initialState.dataRetentionPeriod);
+    setFormData({
+      enableAlerts: initialState.enableAlerts,
+      selectedApplication: null,
+      alertThreshold: "",
+      timePeriod: "",
+      dataRetentionPeriod: initialState.dataRetentionPeriod
+    });
+    setDataState({
+      applications: initialState.applications,
+      applicationStatus: initialState.applicationStatus
+    });
+    setUIState(prev => ({ ...prev, validationErrors: {} }));
   };
 
   const handleSaveChanges = async () => {
     try {
       // Transform applicationStatus into the requested format
-      const applicationsData = applicationStatus.reduce((acc, app, index) => {
+      const applicationsData = dataState.applicationStatus.reduce((acc, app, index) => {
         acc[index + 1] = {
           id: app.id, // MongoDB object ID
           name: app.name,
@@ -209,9 +183,9 @@ export function Settings() {
       }, {} as Record<number, { id: string; name: string; threshold: string; period: number; status: boolean }>);
 
       const saveData = {
-        enableAlerts,
+        enableAlerts: formData.enableAlerts,
         applications: applicationsData,
-        dataRetentionPeriod: dataRetentionPeriod
+        dataRetentionPeriod: formData.dataRetentionPeriod
       };
 
       console.log('Saving settings:', saveData);
@@ -224,10 +198,10 @@ export function Settings() {
       
       // Update initial state with the current state after successful save
       setInitialState({
-        enableAlerts,
-        applications,
-        applicationStatus,
-        dataRetentionPeriod
+        enableAlerts: formData.enableAlerts,
+        applications: dataState.applications,
+        applicationStatus: dataState.applicationStatus,
+        dataRetentionPeriod: formData.dataRetentionPeriod
       });
       
     } catch (error) {
@@ -236,54 +210,97 @@ export function Settings() {
     }
   };
 
-  const handleApplicationChange = (event: any) => {
-    const selectedAppId = event.detail.value;
-    setSelectedApplication(selectedAppId);
-    
-    // Clear validation errors when changing application
-    setValidationErrors(prev => ({
-      ...prev,
-      alertThreshold: ""
-    }));
-    
-    // Find the corresponding application status by MongoDB ID
-    const statusEntry = applicationStatus.find(app => app.id === selectedAppId);
-    if (statusEntry) {
-      setAlertThreshold(statusEntry.threshold);
-      // Match the time period from status display format to dropdown value
-      const periodValue = timePeriods.find(p => p.label === statusEntry.timePeriod)?.value || "";
-      setTimePeriod(periodValue);
-    } else {
-      setAlertThreshold("");
-      setTimePeriod("");
+  // Consolidated form handler
+  const handleFormChange = (field: string, value: any, event?: any) => {
+    switch (field) {
+      case 'selectedApplication': {
+        const selectedAppId = event?.detail?.value || value;
+        setFormData(prev => ({ ...prev, selectedApplication: selectedAppId }));
+        
+        // Clear validation errors when changing application
+        setUIState(prev => ({
+          ...prev,
+          validationErrors: { ...prev.validationErrors, alertThreshold: "" }
+        }));
+        
+        // Find the corresponding application status by MongoDB ID
+        const statusEntry = dataState.applicationStatus.find(app => app.id === selectedAppId);
+        if (statusEntry) {
+          setFormData(prev => ({
+            ...prev,
+            alertThreshold: statusEntry.threshold,
+            timePeriod: timePeriods.find(p => p.label === statusEntry.timePeriod)?.value || ""
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            alertThreshold: "",
+            timePeriod: ""
+          }));
+        }
+        break;
+      }
+        
+      case 'alertThreshold': {
+        const newThreshold = event?.detail?.value || value;
+        setFormData(prev => ({ ...prev, alertThreshold: newThreshold }));
+
+        // Validate the threshold
+        const validationError = validateAlertThreshold(newThreshold);
+        setUIState(prev => ({
+          ...prev,
+          validationErrors: { ...prev.validationErrors, alertThreshold: validationError || "" }
+        }));
+
+        // Only update application status if validation passes
+        if (!validationError) {
+          updateApplicationStatus(newThreshold);
+        }
+        break;
+      }
+        
+      case 'timePeriod': {
+        const newPeriod = event?.detail?.value || value;
+        setFormData(prev => ({ ...prev, timePeriod: newPeriod }));
+        const periodDisplay = timePeriods.find(p => p.value === newPeriod)?.label || newPeriod;
+        updateApplicationStatus(undefined, periodDisplay);
+        break;
+      }
+        
+      case 'dataRetentionPeriod':
+        setFormData(prev => ({ ...prev, dataRetentionPeriod: event?.detail?.value || value }));
+        break;
     }
   };
 
-  const handleStatusToggle = (appName: string, enabled: boolean) => {
-    setApplicationStatus(prev => 
-      prev.map(app => app.name === appName ? { ...app, notificationsEnabled: enabled } : app)
-    );
-  };
-
-  const handleAlertsToggle = (enabled: boolean) => {
-    setEnableAlerts(enabled);
-    
-    if (!enabled) {
-      // If disabling alerts, disable all application notifications
-      setApplicationStatus(prev => 
-        prev.map(app => ({ ...app, notificationsEnabled: false }))
-      );
+  // Consolidated toggle handler
+  const handleToggleChange = (type: string, identifier: string, enabled: boolean) => {
+    if (type === 'alerts') {
+      setFormData(prev => ({ ...prev, enableAlerts: enabled }));
+      if (!enabled) {
+        // If disabling alerts, disable all application notifications
+        setDataState(prev => ({
+          ...prev,
+          applicationStatus: prev.applicationStatus.map(app => ({ ...app, notificationsEnabled: false }))
+        }));
+      }
+    } else if (type === 'status') {
+      setDataState(prev => ({
+        ...prev,
+        applicationStatus: prev.applicationStatus.map(app => 
+          app.name === identifier ? { ...app, notificationsEnabled: enabled } : app
+        )
+      }));
     }
-    // When enabling alerts, don't automatically enable any applications
-    // Let the user manually choose which applications to enable
   };
 
   const updateApplicationStatus = (threshold?: string, period?: string) => {
-    if (!selectedApplication) return;
+    if (!formData.selectedApplication) return;
     
-    setApplicationStatus(prev => 
-      prev.map(app => {
-        if (app.id === selectedApplication) {
+    setDataState(prev => ({
+      ...prev,
+      applicationStatus: prev.applicationStatus.map(app => {
+        if (app.id === formData.selectedApplication) {
           return {
             ...app,
             threshold: threshold ?? app.threshold,
@@ -292,40 +309,10 @@ export function Settings() {
         }
         return app;
       })
-    );
-  };
-
-  const handleThresholdChange = (event: any) => {
-    const newThreshold = event.detail.value;
-    
-    // Set the value regardless (for user to see what they typed)
-    setAlertThreshold(newThreshold);
-
-    // Validate the threshold
-    const validationError = validateAlertThreshold(newThreshold);
-    setValidationErrors(prev => ({
-      ...prev,
-      alertThreshold: validationError || ""
     }));
-
-    // Only update application status if validation passes
-    if (!validationError) {
-      updateApplicationStatus(newThreshold);
-    }
   };
 
-  const handleTimePeriodChange = (event: any) => {
-    const newPeriod = event.detail.value;
-    setTimePeriod(newPeriod);
-    const periodDisplay = timePeriods.find(p => p.value === newPeriod)?.label || newPeriod;
-    updateApplicationStatus(undefined, periodDisplay);
-  };
-
-  const handleDataRetentionChange = (event: any) => {
-    setDataRetentionPeriod(event.detail.value);
-  };
-
-  if (loading) {
+  if (uiState.loading) {
     return (
       <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
         <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
@@ -343,14 +330,14 @@ export function Settings() {
     );
   }
 
-  if (error) {
+  if (uiState.error) {
     return (
       <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
         <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
           <div class="oj-typography-heading-md oj-sm-margin-2x-bottom" style={{ color: 'var(--oj-core-color-danger)' }}>
             Error loading settings page
           </div>
-          <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
+          <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{uiState.error}</p>
           <oj-button class="oj-button-primary" onojAction={fetchUserApplications}>
             Retry
           </oj-button>
@@ -361,109 +348,67 @@ export function Settings() {
 
   return (
     <div class="oj-web-applayout-page" style="padding: 40px;">
-      <SettingsHeader onReset={handleReset} onSaveChanges={handleSaveChanges} />
+      {/* Inline Settings Header */}
+      <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
+        <div style="flex: 1;">
+          <h1 class="oj-typography-heading-lg" style="margin: 0;">
+            Settings
+          </h1>
+          <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+            Customize your logging dashboard experience and preferences.
+          </p>
+        </div>
+        <div style="flex-shrink: 0; margin-left: 16px; display: flex; gap: 12px;">
+          <oj-c-button 
+            label="Reset"
+            chroming="outlined"
+            onojAction={handleReset}
+          />
+          <oj-c-button 
+            label="Save Changes"
+            chroming="callToAction"
+            onojAction={handleSaveChanges}
+          />
+        </div>
+      </div>
 
       <NotificationsSection
-        enableAlerts={enableAlerts}
-        applications={applications}
+        enableAlerts={formData.enableAlerts}
+        applications={dataState.applications}
         timePeriods={timePeriods}
-        selectedApplication={selectedApplication}
-        alertThreshold={alertThreshold}
-        timePeriod={timePeriod}
-        applicationStatus={applicationStatus}
-        validationErrors={validationErrors}
-        onAlertsToggle={handleAlertsToggle}
-        onApplicationChange={handleApplicationChange}
-        onThresholdChange={handleThresholdChange}
-        onTimePeriodChange={handleTimePeriodChange}
-        onStatusToggle={handleStatusToggle}
+        selectedApplication={formData.selectedApplication}
+        alertThreshold={formData.alertThreshold}
+        timePeriod={formData.timePeriod}
+        applicationStatus={dataState.applicationStatus}
+        validationErrors={uiState.validationErrors}
+        onAlertsToggle={(enabled: boolean) => handleToggleChange('alerts', '', enabled)}
+        onApplicationChange={(event: any) => handleFormChange('selectedApplication', null, event)}
+        onThresholdChange={(event: any) => handleFormChange('alertThreshold', null, event)}
+        onTimePeriodChange={(event: any) => handleFormChange('timePeriod', null, event)}
+        onStatusToggle={(appName: string, enabled: boolean) => handleToggleChange('status', appName, enabled)}
         getTimePeriodDisplay={getTimePeriodDisplay}
       />
 
       {isAdmin && (
         <DataRetentionSection
           retentionPeriods={retentionPeriods}
-          dataRetentionPeriod={dataRetentionPeriod}
-          onRetentionChange={handleDataRetentionChange}
+          dataRetentionPeriod={formData.dataRetentionPeriod}
+          onRetentionChange={(event: any) => handleFormChange('dataRetentionPeriod', null, event)}
         />
       )}
 
       <style>{`
-        .settings-main-layout {
-          margin: 0 2rem;
-        }
-
-        .settings-config-section {
-          flex: 1;
-          max-width: 100%;
-        }
-
+        .settings-config-section,
         .settings-status-section {
           flex: 1;
           max-width: 100%;
         }
-
-        .settings-status-table {
-          width: 100%;
-          overflow-x: auto;
-        }
         
         @media (max-width: 768px) {
-          .settings-main-layout {
-            margin: 0 1rem;
-            flex-direction: column !important;
-            gap: 24px !important;
-          }
-
           .settings-config-section,
           .settings-status-section {
             min-width: unset !important;
             width: 100%;
-            max-width: 100%;
-          }
-
-          .settings-status-table {
-            overflow-x: auto;
-            min-width: 320px;
-            width: 100%;
-          }
-
-          .settings-table-header,
-          .settings-table-row {
-            padding: 0.75rem 0.5rem !important;
-          }
-
-          .settings-threshold-col {
-            flex: 0.8 !important;
-          }
-
-          .settings-status-col {
-            width: 60px !important;
-          }
-        }
-        
-        @media (max-width: 640px) {
-          .settings-main-layout {
-            margin: 0 0.5rem;
-          }
-
-          .settings-table-header,
-          .settings-table-row {
-            padding: 0.5rem 0.25rem !important;
-          }
-
-          .settings-status-col {
-            width: 50px !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .settings-threshold-col {
-            text-align: left !important;
-          }
-
-          .settings-status-table {
-            min-width: 280px;
           }
         }
       `}</style>

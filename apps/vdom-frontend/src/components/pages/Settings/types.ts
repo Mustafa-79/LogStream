@@ -1,3 +1,4 @@
+// Simplified types - removed redundant interfaces
 export interface Application {
   value: string;
   label: string;
@@ -19,12 +20,4 @@ export interface ApplicationStatus {
   threshold: string;
   timePeriod: string;
   notificationsEnabled: boolean;
-}
-
-export interface SettingsFormData {
-  enableAlerts: boolean;
-  selectedApplication: string | null;
-  alertThreshold: string;
-  timePeriod: string;
-  dataRetentionPeriod: number;
 }
