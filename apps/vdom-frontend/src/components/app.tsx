@@ -140,34 +140,39 @@ export const App = registerCustomElement(
     }
 
     return (
-      <div id="appContainer" class="oj-web-applayout-page">
-        <Header 
-          appName={appState.appName}
-          userLogin={appState.currentUser} 
-          onToggleDrawer={appState.actions.toggleDrawer}
-          onLogout={appState.actions.handleLogout}
-          isAuthenticated={appState.isAuthenticated}
-        />
+      <div id="appContainer" class="oj-web-applayout-page" style="height: 100vh; display: flex; flex-direction: column;">
+        <div style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: white; border-bottom: 1px solid #e5e7eb;">
+          <Header 
+            appName={appState.appName}
+            userLogin={appState.currentUser} 
+            onToggleDrawer={appState.actions.toggleDrawer}
+            onLogout={appState.actions.handleLogout}
+            isAuthenticated={appState.isAuthenticated}
+          />
+        </div>
 
-        <Sidebar 
-          isOpen={appState.isDrawerOpen}
-          routes={appState.visibleRoutes}
-          currentPath={appState.currentPath}
-          onNavigate={appState.actions.navigate}
-        >
-          <div style="transition: opacity 0.2s ease-in-out;">
-            {appState.currentComponent || (
-              <ProtectedRoute 
-                requireAuth={true} 
-                onRedirect={appState.actions.handleRedirect}
-              >
-                <Dashboard />
-              </ProtectedRoute>
-            )}
-          </div>
-        </Sidebar>
+        <div style="margin-top: 52px; flex: 1; overflow: hidden;">
+          <Sidebar 
+            isOpen={appState.isDrawerOpen}
+            routes={appState.visibleRoutes}
+            currentPath={appState.currentPath}
+            onNavigate={appState.actions.navigate}
+          >
+            <div style="transition: opacity 0.2s ease-in-out;">
+              {appState.currentComponent || (
+                <ProtectedRoute 
+                  requireAuth={true} 
+                  onRedirect={appState.actions.handleRedirect}
+                >
+                  <Dashboard />
+                </ProtectedRoute>
+              )}
+            </div>
+          </Sidebar>
+        </div>
 
-        <Footer />
+              {/* TODO: Implement Footer */}
+        {/* <Footer /> */}
       </div>
     );
   }
