@@ -10,7 +10,6 @@ interface EditUserGroupModalProps {
   onSubmit?: (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[], usersToRemove?: string[]) => void | Promise<void>;
   loading?: boolean;
   error?: string | null;
-  existingGroups?: IGroup[];
 }
 
 export function EditUserGroupModal({ 
@@ -20,7 +19,6 @@ export function EditUserGroupModal({
   onSubmit, 
   loading = false, 
   error = null, 
-  existingGroups = [] 
 }: EditUserGroupModalProps) {
   return (
     <UserGroupFormModal

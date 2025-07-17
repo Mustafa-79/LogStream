@@ -816,7 +816,6 @@ export function UserGroups() {
         onSubmit={handleCreateGroupSubmit}
         loading={createGroupLoading}
         error={createGroupError}
-        existingGroups={userGroups}
       />
 
       {/* Edit User Group Modal */}
@@ -828,7 +827,6 @@ export function UserGroups() {
           userGroup={selectedGroupForEdit}
           loading={createGroupLoading}
           error={createGroupError}
-          existingGroups={userGroups}
         />
       )}
     </div>
