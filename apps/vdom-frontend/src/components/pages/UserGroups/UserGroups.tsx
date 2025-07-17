@@ -118,8 +118,17 @@ export function UserGroups() {
   };
 
   // Search handlers
-  const handleSearchChange = (event: any) => {
-    setSearchTerm(event.detail.value);
+  const handleSearchChange = async (event: any) => {
+    const newSearchTerm = event.detail.value.trim();
+    setSearchTerm(newSearchTerm);
+    
+    // Trigger search immediately
+    setIsSearching(true);
+    const statusValue = getStatusFilterValue();
+    const applicationIds = Array.from(selectedApplications);
+    console.log('Auto-search parameters:', { searchTerm: newSearchTerm, statusValue, applicationIds });
+    await fetchUserGroups(1, newSearchTerm, statusValue, applicationIds.length > 0 ? applicationIds : undefined);
+    setIsSearching(false);
   };
 
   const handleStatusFilterChange = (event: any) => {
@@ -482,40 +491,6 @@ export function UserGroups() {
     loadReferenceData(); // Load reference data when component mounts
   }, []);
 
-  if (loading) {
-    return (
-      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
-        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
-          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading user groups...</div>
-          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <oj-c-progress-circle
-              class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
-              aria-labelledby="lgLabel indetLabel"
-              size="lg"
-              value={-1}
-            ></oj-c-progress-circle>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
-        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
-          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom" style={{ color: 'var(--oj-core-color-danger)' }}>
-            Error loading user groups
-          </div>
-          <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
-          <oj-button class="oj-button-primary" onojAction={() => fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined)}>
-            Retry
-          </oj-button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div class="oj-web-applayout-page" style="padding: 40px;">
       {/* Success Message */}
@@ -591,18 +566,20 @@ export function UserGroups() {
       )}
 
       {/* Page Header */}
-      <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-1x-vertical">
-        <div>
+      <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
+        <div style="flex: 1;">
           <h1 class="oj-typography-heading-lg" style="margin: 0;">
             User Groups
           </h1>
-
-          <p class="oj-typography-body-md">Organize users into groups and manage their application access.</p>
+          <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+            Organize users into groups and manage their application access.
+          </p>
         </div>
-        <div class="oj-flex oj-sm-flex-items-center oj-sm-margin-1x-vertical" style={{ minHeight: '120px' }}>
+        <div style="flex-shrink: 0; margin-left: 16px;">
           <oj-button
             class="oj-button-primary"
             onojAction={handleCreateGroup}
+            disabled={loading || isSearching}
           >
             <span slot='startIcon' class='oj-ux-ico-plus'></span>
             Create Group
@@ -621,6 +598,7 @@ export function UserGroups() {
             <oj-button
               class="oj-button-sm oj-button-outlined-chrome"
               onojAction={clearSearch}
+              disabled={loading || isSearching}
             >
               <span slot="startIcon" class="oj-ux-ico-eraser"></span>
               Clear All
@@ -630,7 +608,7 @@ export function UserGroups() {
               class="oj-button-sm oj-button-primary"
               onojAction={handleSearchSubmit}
               style="margin-left: 8px;"
-              disabled={isSearching}
+              disabled={loading || isSearching}
             >
               <span slot="startIcon" class={isSearching ? "oj-ux-ico-clock" : "oj-ux-ico-filter"}></span>
               {isSearching ? "Searching..." : "Apply Filters"}
@@ -669,21 +647,6 @@ export function UserGroups() {
                 item-text="label"
                 style="flex: 1; margin-right: 8px; min-height: 40px;"
               ></oj-c-select-multiple>
-              <oj-button
-                class="oj-button-sm oj-button-outlined-chrome"
-                onojAction={() => {
-                  const allSelected = selectedStatuses.size === 2;
-                  if (allSelected) {
-                    setSelectedStatuses(new Set());
-                  } else {
-                    setSelectedStatuses(new Set(['active', 'inactive']));
-                  }
-                }}
-                title={selectedStatuses.size === 2 ? "Clear All Status" : "Select All Status"}
-                style="min-height: 40px;"
-              >
-                <span slot="startIcon" class={selectedStatuses.size === 2 ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-              </oj-button>
             </div>
           </div>
 
@@ -703,21 +666,6 @@ export function UserGroups() {
                 item-text="label"
                 style="flex: 1; margin-right: 8px; min-height: 40px;"
               ></oj-c-select-multiple>
-              <oj-button
-                class="oj-button-sm oj-button-outlined-chrome"
-                onojAction={() => {
-                  const allSelected = selectedApplications.size === availableApplications.length;
-                  if (allSelected) {
-                    setSelectedApplications(new Set());
-                  } else {
-                    setSelectedApplications(new Set(availableApplications.map(app => app._id)));
-                  }
-                }}
-                title={selectedApplications.size === availableApplications.length ? "Clear All Applications" : "Select All Applications"}
-                style="min-height: 40px;"
-              >
-                <span slot="startIcon" class={selectedApplications.size === availableApplications.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-              </oj-button>
             </div>
           </div>
         </div>
@@ -750,7 +698,33 @@ export function UserGroups() {
       </div>
 
       {/* User Group Cards */}
-      {userGroups.length === 0 ? (
+      {loading ? (
+        <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+          <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+            <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading user groups...</div>
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <oj-c-progress-circle
+                class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
+                aria-labelledby="lgLabel indetLabel"
+                size="lg"
+                value={-1}
+              ></oj-c-progress-circle>
+            </div>
+          </div>
+        </div>
+      ) : error ? (
+        <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+          <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+            <div class="oj-typography-heading-md oj-sm-margin-2x-bottom" style={{ color: 'var(--oj-core-color-danger)' }}>
+              Error loading user groups
+            </div>
+            <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
+            <oj-button class="oj-button-primary" onojAction={() => fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined)}>
+              Retry
+            </oj-button>
+          </div>
+        </div>
+      ) : userGroups.length === 0 ? (
         <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
           <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
             <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">No user groups found</div>
@@ -826,7 +800,7 @@ export function UserGroups() {
         </>
       )}
 
-      {userGroups.length > 0 && (
+      {!loading && !error && userGroups.length > 0 && (
         <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; font-size: 0.875rem; color: #6b7280;">
           <p style="margin: 0;">
             Page {pagination.currentPage} of {pagination.totalPages} • 
@@ -842,7 +816,6 @@ export function UserGroups() {
         onSubmit={handleCreateGroupSubmit}
         loading={createGroupLoading}
         error={createGroupError}
-        existingGroups={userGroups}
       />
 
       {/* Edit User Group Modal */}
@@ -854,7 +827,6 @@ export function UserGroups() {
           userGroup={selectedGroupForEdit}
           loading={createGroupLoading}
           error={createGroupError}
-          existingGroups={userGroups}
         />
       )}
     </div>

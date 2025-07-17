@@ -11,7 +11,7 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 export const Analytics = () => {
-  const { analyticsData, loading, refetching, applyingFilters, error, refetch, applyFilters, applications, defaultDates } = useAnalytics();
+  const { analyticsData, loading, applyingFilters, error, applyFilters, retry, applications, defaultDates } = useAnalytics();
   const [filters, setFilters] = useState<FilterState>({
     applications: [],
     logLevels: [],
@@ -63,7 +63,7 @@ export const Analytics = () => {
             Error loading analytics data
           </div>
           <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
-          <oj-button class="oj-button-primary" onojAction={refetch}>
+          <oj-button class="oj-button-primary" onojAction={retry}>
             Retry
           </oj-button>
         </div>
@@ -97,17 +97,6 @@ export const Analytics = () => {
           <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
             Visualize log patterns, application performance, and system insights.
           </p>
-        </div>
-        <div style="flex-shrink: 0; margin-left: 16px;">
-          <oj-button
-            class="oj-button-outlined-chrome"
-            onojAction={refetch}
-            title="Refresh analytics data"
-            disabled={refetching}
-            style="border-radius: 8px;">
-            <span slot="startIcon" class={refetching ? "oj-ux-ico-clock" : "oj-ux-ico-refresh"}></span>
-            {refetching ? "Refreshing..." : "Refresh"}
-          </oj-button>
         </div>
       </div>
 

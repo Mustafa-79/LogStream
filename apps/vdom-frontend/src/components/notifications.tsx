@@ -78,17 +78,17 @@ export function Notifications() {
             </div>
           </div>
         ) : error ? (
-          <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
-            <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
-              <div class="oj-typography-body-md oj-sm-margin-2x-bottom oj-text-color-danger">
+              <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+              <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+                <div class="oj-typography-heading-md oj-sm-margin-2x-bottom" style={{ color: 'var(--oj-core-color-danger)' }}>
                 Error loading alerts
-              </div>
-              <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
-              <oj-c-button class="oj-button-primary" onojAction={() => refetch()}>
+                </div>
+                <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
+                <oj-button class="oj-button-primary" onojAction={() => refetch()}>
                 Retry
-              </oj-c-button>
-            </div>
-          </div>
+                </oj-button>
+              </div>
+              </div>
         ) : alerts.length === 0 ? (
           <div class="oj-sm-padding-4x oj-sm-text-align-center">
             <span class="oj-typography-body-md oj-text-color-secondary">No alerts</span>

@@ -4,6 +4,14 @@ import { CreateUserGroupFormData, FormValidationErrors, IUser, IApplication, IGr
 import { UserGroupsAPI, GoogleDirectoryUser } from '../../../services/userGroupService';
 import { UserSelector } from './UserSelector';
 import { ApplicationSelector } from './ApplicationSelector';
+import { 
+  getDefaultFormData, 
+  initializeFormData, 
+  validateForm, 
+  isFormValid, 
+  isAdministratorsGroup, 
+  getModalConfig 
+} from './FormUtils';
 import "ojs/ojbutton";
 import "ojs/ojinputtext";
 import "ojs/ojformlayout";
@@ -31,16 +39,7 @@ export function UserGroupFormModal({
   loading = false,
   error = null,
 }: UserGroupFormModalProps) {
-  const [formData, setFormData] = useState<CreateUserGroupFormData>({
-    name: '',
-    description: '',
-    active: true,
-    selectedApplications: [],
-    selectedUsers: [],
-    selectedUserObjects: [],
-    selectedApplicationObjects: []
-  });
-
+  const [formData, setFormData] = useState<CreateUserGroupFormData>(getDefaultFormData());
   const [errors, setErrors] = useState<FormValidationErrors>({});
   const [users, setUsers] = useState<IUser[]>([]);
   const [applications, setApplications] = useState<IApplication[]>([]);
@@ -51,11 +50,7 @@ export function UserGroupFormModal({
   const [clearGoogleUsers, setClearGoogleUsers] = useState(false);
   const [usersToRemove, setUsersToRemove] = useState<string[]>([]);
 
-  // Check if the current group is the "Administrators" group (only for edit mode)
-  const isAdministratorsGroup = mode === 'edit' && (
-    userGroup?.name?.toLowerCase() === 'administrators' ||
-    userGroup?.name?.toLowerCase() === 'admins'
-  );
+  const isAdminGroup = isAdministratorsGroup(mode, userGroup);
 
   // Load users and applications when modal opens
   useEffect(() => {
@@ -86,30 +81,8 @@ export function UserGroupFormModal({
   // Initialize form data based on mode
   useEffect(() => {
     if (isOpen) {
-      if (mode === 'create') {
-        // Reset form for create mode
-        setFormData({
-          name: '',
-          description: '',
-          active: true,
-          selectedApplications: [],
-          selectedUsers: [],
-          selectedUserObjects: [],
-          selectedApplicationObjects: []
-        });
-      } else if (mode === 'edit' && userGroup) {
-        // Pre-fill form for edit mode
-        setFormData({
-          name: userGroup.name || '',
-          description: userGroup.description || '',
-          active: userGroup.active,
-          selectedApplications: userGroup.applications?.map(app => app._id) || [],
-          selectedUsers: userGroup.members?.map(user => user._id) || [],
-          selectedUserObjects: userGroup.members || [],
-          selectedApplicationObjects: userGroup.applications || []
-        });
-
-        // Set current applications for edit mode
+      setFormData(initializeFormData(mode, userGroup));
+      if (mode === 'edit' && userGroup) {
         setCurrentApplications(userGroup.applications || []);
       }
       setErrors({});
@@ -119,75 +92,22 @@ export function UserGroupFormModal({
 
   // Reset form when modal closes
   const handleClose = () => {
-    setFormData({
-      name: '',
-      description: '',
-      active: true,
-      selectedApplications: [],
-      selectedUsers: [],
-      selectedUserObjects: [],
-      selectedApplicationObjects: []
-    });
+    setFormData(getDefaultFormData());
     setErrors({});
     setIsSubmitting(false);
     onClose();
   };
 
   // Validate form data
-  const validateForm = (): boolean => {
-    const newErrors: FormValidationErrors = {};
-
-    // Required name validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Group name is required';
-    } else if (formData.name.trim().length < 5) {
-      newErrors.name = 'Group name must be at least 5 characters long';
-    } else if (formData.name.trim().length > 20) {
-      newErrors.name = 'Group name must be less than 20 characters';
-    } else if (!/^[a-zA-Z0-9\s\-_.,:;\[\]\(\)'""]+$/.test(formData.name.trim())) {
-      newErrors.name = 'Group name contains invalid characters. Allowed: letters, numbers, spaces, hyphens (-), underscores (_), periods (.), commas (,), colons (:), semicolons (;), parentheses (), brackets [], apostrophes (\'), and quotation marks (").';
-    }
-
-    // Description validation 
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
-    } else if (formData.description.length < 10) {
-      newErrors.description = 'Description must be at least 10 characters';
-    } else if (formData.description.length > 100) {
-      newErrors.description = 'Description must be less than 100 characters';
-    } else if (!/^[a-zA-Z0-9\s\-_.,:;\[\]\(\)'""]+$/.test(formData.description)) {
-      newErrors.description = 'Description contains invalid characters. Allowed: letters, numbers, spaces, hyphens (-), underscores (_), periods (.), commas (,), colons (:), semicolons (;), parentheses (), brackets [], apostrophes (\'), and quotation marks (").';
-    }
-
-
-
-    // Applications validation
-    if (formData.selectedApplications.length === 0) {
-      newErrors.applications = mode === 'create'
-        ? 'Please select at least one application'
-        : 'At least one application must be selected';
-    }
-
-    // Users validation - check both existing users and Google Directory users
-    console.log('Validating users:', {
-      selectedUsers: formData.selectedUsers.length,
-      selectedGoogleUsers: selectedGoogleUsers.length,
-      mode
-    });
-    
-    if (formData.selectedUsers.length === 0 && selectedGoogleUsers.length === 0) {
-      newErrors.users = mode === 'create'
-        ? 'Please select at least one user'
-        : 'At least one user must be selected';
-    }
-
+  const validateFormData = (): boolean => {
+    const newErrors = validateForm(formData, selectedGoogleUsers, mode, usersToRemove);
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isFormValid(newErrors);
   };
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (!validateFormData()) {
       return;
     }
 
@@ -282,20 +202,7 @@ export function UserGroupFormModal({
   }
 
   // Modal configuration based on mode
-  const modalConfig = {
-    create: {
-      title: 'Create New User Group',
-      icon: 'oj-ux-ico-contact-group',
-      submitText: loading || isSubmitting ? 'Creating...' : 'Create Group'
-    },
-    edit: {
-      title: 'Edit User Group',
-      icon: 'oj-ux-ico-edit',
-      submitText: loading || isSubmitting ? 'Updating...' : 'Update Group'
-    }
-  };
-
-  const config = modalConfig[mode];
+  const config = getModalConfig(mode, loading, isSubmitting);
 
   return (
     <div class="oj-overlay-backdrop" style={{
@@ -354,14 +261,14 @@ export function UserGroupFormModal({
                 onvalueChanged={handleNameChange}
                 class={errors.name ? 'oj-invalid' : ''}
                 aria-describedby={errors.name ? `${mode}GroupNameError` : undefined}
-                disabled={isAdministratorsGroup}
+                disabled={isAdminGroup}
               />
               {errors.name && (
                 <div id={`${mode}GroupNameError`} class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
                   {errors.name}
                 </div>
               )}
-              {isAdministratorsGroup && (
+              {isAdminGroup && (
                 <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
                   The administrators group name cannot be changed
                 </div>
@@ -378,7 +285,7 @@ export function UserGroupFormModal({
                 onrawValueChanged={handleDescriptionChange}
                 class={errors.description ? 'oj-invalid' : ''}
                 aria-describedby={errors.description ? `${mode}GroupDescriptionError` : undefined}
-                disabled={isAdministratorsGroup}
+                disabled={isAdminGroup}
               />
               {errors.description && (
                 <div id={`${mode}GroupDescriptionError`} class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
@@ -389,7 +296,7 @@ export function UserGroupFormModal({
               <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
                 {formData.description.length}/100 characters
               </div>
-              {isAdministratorsGroup && (
+              {isAdminGroup && (
                 <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
                   The administrators group description cannot be changed
                 </div>
@@ -405,7 +312,7 @@ export function UserGroupFormModal({
                   value={formData.active}
                   onvalueChanged={mode === 'edit' ? handleStatusChange : undefined}
                   style={{ alignSelf: 'center' }}
-                  disabled={mode === 'create' || isAdministratorsGroup}
+                  disabled={mode === 'create' || isAdminGroup}
                 />
                 <span class="oj-typography-body-sm oj-sm-margin-2x-start oj-text-color-secondary" style={{ display: 'inline-flex', alignItems: 'center' }}>
                   {mode === 'create'
@@ -414,7 +321,7 @@ export function UserGroupFormModal({
                   }
                 </span>
               </div>
-              {isAdministratorsGroup && (
+              {isAdminGroup && (
                 <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top">
                   The administrators group status cannot be changed
                 </div>
@@ -429,7 +336,7 @@ export function UserGroupFormModal({
                 selectedApplications={formData.selectedApplications}
                 onSelectionChange={handleApplicationsChange}
                 error={errors.applications}
-                disabled={isAdministratorsGroup}
+                disabled={isAdminGroup}
                 currentApplications={currentApplications}
               />
             </div>

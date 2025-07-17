@@ -3,16 +3,7 @@ import { AnalyticsService, AnalyticsFilters } from '../services/analyticsService
 import createResponse from '../utils/responseHelper';
 
 export class AnalyticsController {
-  /**
-   * Get comprehensive analytics data for the authenticated user (filtered by accessible applications)
-   * GET /analytics
-   * 
-   * Query Parameters:
-   * - applicationIDs: comma-separated list of application IDs to filter by
-   * - logLevels: comma-separated list of log levels to filter by (info, warn, error, debug)
-   * - from: start date for filtering (ISO string)
-   * - to: end date for filtering (ISO string)
-   */
+
   static async getAnalytics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user?.userId;
@@ -36,9 +27,7 @@ export class AnalyticsController {
     }
   }
 
-  /**
-   * Parse filters from request query parameters
-   */
+
   private static parseFilters(req: Request): AnalyticsFilters {
     const { applicationIDs, logLevels, from, to } = req.query;
 
@@ -74,7 +63,6 @@ export class AnalyticsController {
   }
 }
 
-// Export the main function for easier imports
 export const getAnalytics = AnalyticsController.getAnalytics;
 
 export default AnalyticsController;

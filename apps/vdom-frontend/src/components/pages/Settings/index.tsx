@@ -303,7 +303,7 @@ export function Settings() {
   }
 
   return (
-    <div class="oj-web-applayout-page oj-sm-padding-8x">
+    <div class="oj-web-applayout-page" style="padding: 40px;">
       <SettingsHeader onReset={handleReset} onSaveChanges={handleSaveChanges} />
 
       <NotificationsSection

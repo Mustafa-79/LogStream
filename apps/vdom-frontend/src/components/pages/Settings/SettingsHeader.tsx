@@ -7,16 +7,16 @@ interface SettingsHeaderProps {
 
 export function SettingsHeader({ onReset, onSaveChanges }: SettingsHeaderProps) {
   return (
-    <div class="oj-flex oj-justify-content-space-between oj-align-items-start oj-sm-margin-6x-bottom">
-      <div class="oj-flex-item">
-        <h1 class="oj-typography-heading-lg" style="color:rgb(0, 0, 0); margin: 0; font-family: 'Poppins', sans-serif;">
+    <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
+      <div style="flex: 1;">
+        <h1 class="oj-typography-heading-lg" style="margin: 0;">
           Settings
         </h1>
-        <p class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-2x-top">
+        <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
           Customize your logging dashboard experience and preferences.
         </p>
       </div>
-      <div class="oj-flex oj-sm-margin-4x-start" style="gap: 12px;">
+      <div style="flex-shrink: 0; margin-left: 16px; display: flex; gap: 12px;">
         <oj-c-button 
           label="Reset"
           chroming="outlined"
