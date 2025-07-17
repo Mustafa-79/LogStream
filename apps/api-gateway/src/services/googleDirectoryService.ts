@@ -1,7 +1,5 @@
 import { google, admin_directory_v1 } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import fs from 'fs';
-import path from 'path';
 import 'dotenv/config'; // Load environment variables from .env file
 
 interface GoogleDirectoryUser {
@@ -28,14 +26,12 @@ class GoogleDirectoryService {
     try {
       // Check if we have Google service account configuration
       console.log('Initializing Google Directory API...');
-      const serviceAccountKeyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
       const adminEmail = process.env.GOOGLE_ADMIN_IMPERSONATION_EMAIL;
       const workspaceDomain = process.env.GOOGLE_WORKSPACE_DOMAIN;
+      const clientEmail = process.env.CLIENT_EMAIL;
+      const privateKey = process.env.PRIVATE_KEY;
+      const adminScopes = process.env.GOOGLE_ADMIN_SCOPES;
 
-      if(!serviceAccountKeyPath) {
-        console.warn('GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable is not set.');
-        return;
-      }
       if(!adminEmail) {
         console.warn('GOOGLE_ADMIN_IMPERSONATION_EMAIL environment variable is not set.');
         return;
@@ -44,22 +40,12 @@ class GoogleDirectoryService {
         console.warn('GOOGLE_WORKSPACE_DOMAIN environment variable is not set.');
         return;
       }
-
-      const keyPath = path.resolve(serviceAccountKeyPath);
-      
-      if (!fs.existsSync(keyPath)) {
-        console.warn(`Google service account key file not found at: ${keyPath}`);
-        return;
-      }
-
-      const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-      console.log('✅ Service account key loaded successfully:', serviceAccount.client_email);
       
       // Create JWT auth with proper constructor
       this.auth = new google.auth.JWT({
-        email: serviceAccount.client_email,
-        key: serviceAccount.private_key,
-        scopes: ['https://www.googleapis.com/auth/admin.directory.user'],
+        email: clientEmail,
+        key: privateKey,
+        scopes: adminScopes,
         subject: adminEmail
       });
 
@@ -211,7 +197,6 @@ class GoogleDirectoryService {
       });
 
       const userCount = response.data.users?.length ?? 0;
-      
       return {
         success: true,
         message: `Successfully connected to Google Directory API. Found domain with ${userCount} users (showing max 1).`,
