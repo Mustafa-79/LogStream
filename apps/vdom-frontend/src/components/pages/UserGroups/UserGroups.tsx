@@ -49,13 +49,13 @@ export function UserGroups() {
   // Search state
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
-  
+
   // Status filter state - default to both selected (equivalent to 'all')
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set(['active', 'inactive']));
-  
+
   // Application filter state - default to none selected (show all)
   const [selectedApplications, setSelectedApplications] = useState<Set<string>>(new Set());
-  
+
   // Data provider for status dropdown
   const [statusDataProvider] = useState(
     new ArrayDataProvider([
@@ -63,7 +63,7 @@ export function UserGroups() {
       { value: 'inactive', label: 'Inactive' }
     ], { keyAttributes: 'value' })
   );
-  
+
   // Data provider for application dropdown
   const [applicationDataProvider, setApplicationDataProvider] = useState(
     new ArrayDataProvider([], { keyAttributes: 'value' })
@@ -80,10 +80,10 @@ export function UserGroups() {
 
       // Update userGroups with the groups array from the response
       setUserGroups(backendResponse.groups || []);
-      
+
       // Update pagination state
       setPagination(backendResponse.pagination);
-      
+
     } catch (err) {
       console.error('Error fetching user groups from API:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch user groups');
@@ -91,7 +91,7 @@ export function UserGroups() {
       setLoading(false);
     }
   };
-  
+
 
   // Load reference data (users and applications) for form usage
   const loadReferenceData = async () => {
@@ -103,14 +103,14 @@ export function UserGroups() {
 
       setAvailableUsers(usersData || []);
       setAvailableApplications(applicationsData || []);
-      
+
       // Update application data provider for the dropdown
       const applicationOptions = (applicationsData || []).map(app => ({
         value: app._id,
         label: app.name
       }));
       setApplicationDataProvider(new ArrayDataProvider(applicationOptions, { keyAttributes: 'value' }));
-      
+
       console.log('Loaded reference data:', { users: usersData || 0, applications: applicationsData || 0 });
     } catch (error) {
       console.error('Error loading reference data:', error);
@@ -121,7 +121,7 @@ export function UserGroups() {
   const handleSearchChange = async (event: any) => {
     const newSearchTerm = event.detail.value.trim();
     setSearchTerm(newSearchTerm);
-    
+
     // Trigger search immediately
     setIsSearching(true);
     const statusValue = getStatusFilterValue();
@@ -236,7 +236,7 @@ export function UserGroups() {
 
         // Refresh to first page to get updated data from backend with current search
         await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
-        
+
         console.log(`User group "${deletedGroup.name}" restored`);
       } catch (error) {
         console.error('Error restoring user group:', error);
@@ -305,7 +305,7 @@ export function UserGroups() {
 
       // Refresh to first page to get updated data from backend with current search
       await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
-      
+
       // Refresh available users to include any newly created ones
       await loadReferenceData();
 
@@ -405,7 +405,7 @@ export function UserGroups() {
 
       // Refresh current page to get updated data from backend with current search
       await fetchUserGroups(pagination.currentPage, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
-      
+
       // Also refresh available users to include any newly created ones
       await loadReferenceData();
 
@@ -464,7 +464,7 @@ export function UserGroups() {
     const { currentPage, totalPages } = pagination;
     const visiblePages: number[] = [];
     const maxVisiblePages = 7;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         visiblePages.push(i);
@@ -473,16 +473,16 @@ export function UserGroups() {
       const halfVisible = Math.floor(maxVisiblePages / 2);
       let startPage = Math.max(1, currentPage - halfVisible);
       let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
+
       if (endPage - startPage + 1 < maxVisiblePages) {
         startPage = Math.max(1, endPage - maxVisiblePages + 1);
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         visiblePages.push(i);
       }
     }
-    
+
     return visiblePages;
   };
 
@@ -675,17 +675,17 @@ export function UserGroups() {
           <div class="oj-typography-body-sm" style="color: #6b7280;">
             <strong>Active Filters:</strong>
             {searchTerm && (
-              <span style="margin-left: 8px;">
+              <span style="margin-left: 8px; white-space: pre;">
                 Search: "{searchTerm}"
               </span>
             )}
             {(selectedStatuses.size === 0 || selectedStatuses.size === 2) ? (
               <span style="margin-left: 8px;">
-              Status: All
+                Status: All
               </span>
             ) : (
               <span style="margin-left: 8px;">
-              Status: {Array.from(selectedStatuses).join(', ')}
+                Status: {Array.from(selectedStatuses).join(', ')}
               </span>
             )}
             {selectedApplications.size > 0 && (
@@ -745,7 +745,7 @@ export function UserGroups() {
                 <div class="oj-typography-body-sm" style="color: #6b7280;">
                   Showing {((pagination.currentPage - 1) * pagination.groupsPerPage) + 1} to {Math.min(pagination.currentPage * pagination.groupsPerPage, pagination.totalGroups)} of {pagination.totalGroups} entries
                 </div>
-                
+
                 <div class="oj-flex oj-sm-align-items-center" style="gap: 8px;">
                   <oj-button
                     class="oj-button-outlined-chrome"
@@ -755,7 +755,7 @@ export function UserGroups() {
                   >
                     <span class="oj-typography-body-sm">First</span>
                   </oj-button>
-                  
+
                   <oj-button
                     class="oj-button-outlined-chrome"
                     disabled={!pagination.hasPrev}
@@ -764,7 +764,7 @@ export function UserGroups() {
                   >
                     <span class="oj-typography-body-sm">‹ Prev</span>
                   </oj-button>
-                  
+
                   {getVisiblePageNumbers().map((pageNum) => (
                     <oj-button
                       key={pageNum}
@@ -775,7 +775,7 @@ export function UserGroups() {
                       <span class="oj-typography-body-sm">{pageNum}</span>
                     </oj-button>
                   ))}
-                  
+
                   <oj-button
                     class="oj-button-outlined-chrome"
                     disabled={!pagination.hasNext}
@@ -784,7 +784,7 @@ export function UserGroups() {
                   >
                     <span class="oj-typography-body-sm">Next ›</span>
                   </oj-button>
-                  
+
                   <oj-button
                     class="oj-button-outlined-chrome"
                     disabled={!pagination.hasNext}
@@ -803,7 +803,7 @@ export function UserGroups() {
       {!loading && !error && userGroups.length > 0 && (
         <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; font-size: 0.875rem; color: #6b7280;">
           <p style="margin: 0;">
-            Page {pagination.currentPage} of {pagination.totalPages} • 
+            Page {pagination.currentPage} of {pagination.totalPages} •
             Last updated: {new Date().toLocaleTimeString()}
           </p>
         </div>

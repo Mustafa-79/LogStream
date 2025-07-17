@@ -1,9 +1,10 @@
 import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
-import { CreateUserGroupFormData, FormValidationErrors, IUser, IApplication, IGroup } from './types';
+import { CreateUserGroupFormData, FormValidationErrors, IUser, IApplication, IGroup, OriginalFormValues } from './types';
 import { UserGroupsAPI, GoogleDirectoryUser } from '../../../services/userGroupService';
 import { UserSelector } from './UserSelector';
 import { ApplicationSelector } from './ApplicationSelector';
+import { DiscardChangesModal } from '../Applications/DiscardChangesModal';
 import { 
   getDefaultFormData, 
   initializeFormData, 
@@ -49,6 +50,8 @@ export function UserGroupFormModal({
   const [selectedGoogleUsers, setSelectedGoogleUsers] = useState<GoogleDirectoryUser[]>([]);
   const [clearGoogleUsers, setClearGoogleUsers] = useState(false);
   const [usersToRemove, setUsersToRemove] = useState<string[]>([]);
+  const [originalFormValues, setOriginalFormValues] = useState<OriginalFormValues | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState<boolean>(false);
 
   const isAdminGroup = isAdministratorsGroup(mode, userGroup);
 
@@ -81,7 +84,18 @@ export function UserGroupFormModal({
   // Initialize form data based on mode
   useEffect(() => {
     if (isOpen) {
-      setFormData(initializeFormData(mode, userGroup));
+      const initialFormData = initializeFormData(mode, userGroup);
+      setFormData(initialFormData);
+      
+      // Set original form values for discard changes functionality
+      setOriginalFormValues({
+        name: initialFormData.name,
+        description: initialFormData.description,
+        active: initialFormData.active,
+        selectedApplications: [...initialFormData.selectedApplications],
+        selectedUsers: [...initialFormData.selectedUsers]
+      });
+      
       if (mode === 'edit' && userGroup) {
         setCurrentApplications(userGroup.applications || []);
       }
@@ -90,12 +104,48 @@ export function UserGroupFormModal({
     }
   }, [isOpen, mode, userGroup]);
 
+  // Check if form has changes
+  const hasFormChanges = (): boolean => {
+    if (!originalFormValues) return false;
+    
+    return (
+      formData.name.trim() !== originalFormValues.name ||
+      formData.description.trim() !== originalFormValues.description ||
+      formData.active !== originalFormValues.active ||
+      JSON.stringify([...formData.selectedApplications].sort()) !== JSON.stringify([...originalFormValues.selectedApplications].sort()) ||
+      JSON.stringify([...formData.selectedUsers].sort()) !== JSON.stringify([...originalFormValues.selectedUsers].sort()) ||
+      selectedGoogleUsers.length > 0 ||
+      usersToRemove.length > 0
+    );
+  };
+
   // Reset form when modal closes
   const handleClose = () => {
+    if (hasFormChanges()) {
+      setShowDiscardConfirm(true);
+    } else {
+      performCloseModal();
+    }
+  };
+
+  const performCloseModal = () => {
     setFormData(getDefaultFormData());
     setErrors({});
     setIsSubmitting(false);
+    setOriginalFormValues(null);
+    setSelectedGoogleUsers([]);
+    setUsersToRemove([]);
+    setCurrentApplications([]);
     onClose();
+  };
+
+  const handleDiscardChanges = () => {
+    setShowDiscardConfirm(false);
+    performCloseModal();
+  };
+
+  const handleCancelDiscard = () => {
+    setShowDiscardConfirm(false);
   };
 
   // Validate form data
@@ -396,6 +446,12 @@ export function UserGroupFormModal({
           </div>
         </div>
       </div>
+
+      <DiscardChangesModal
+        showDiscardConfirm={showDiscardConfirm}
+        onConfirm={handleDiscardChanges}
+        onCancel={handleCancelDiscard}
+      />
     </div>
   );
 }

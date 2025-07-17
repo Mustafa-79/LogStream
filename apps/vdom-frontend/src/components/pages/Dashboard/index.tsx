@@ -34,7 +34,6 @@ export const Dashboard = () => {
   
   const { applicationNames, loading: appNamesLoading, error: appNamesError } = useApplicationNames();
   const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const [filters, setFilters] = useState<FilterState>(() => {
     return {
@@ -56,7 +55,7 @@ export const Dashboard = () => {
     
     try {
       const apiFilters = convertFiltersToApiFormat(newFilters);
-      await actions.fetchLogsWithFilters(apiFilters, searchTerm);
+      await actions.fetchLogsWithFilters(apiFilters, currentSearchTerm);
       console.log('Filters applied successfully:', newFilters);
     } catch (error) {
       console.error('Error applying filters:', error);
@@ -65,11 +64,13 @@ export const Dashboard = () => {
     }
   };
 
-  const handleSearchChange = async (newSearchTerm: string) => {
-    setSearchTerm(newSearchTerm);
-    
+  const handleSearchChange = async (newSearchTerm: string, filtersFromSearch?: any) => {
     try {
-      await actions.fetchLogsWithSearch(newSearchTerm);
+      if (filtersFromSearch) {
+        await actions.fetchLogsWithFilters(filtersFromSearch, newSearchTerm);
+      } else {
+        await actions.fetchLogsWithSearch(newSearchTerm);
+      }
     } catch (error) {
       console.error('Error searching logs:', error);
     }
@@ -83,7 +84,6 @@ export const Dashboard = () => {
     }
   };
 
-  // Pagination handlers
   const handlePageChange = async (page: number) => {
     await actions.goToPage(page);
   };
@@ -104,7 +104,22 @@ export const Dashboard = () => {
     await actions.goToLastPage();
   };
 
-  // Only show full page loading on initial load
+  const handleClearAll = async (newFilters: FilterState, searchTerm: string) => {
+    setFilters(newFilters);
+    setApplyingFilters(true);
+    
+    try {
+      const apiFilters = convertFiltersToApiFormat(newFilters);
+      // Make a single API call with both cleared filters and cleared search
+      await actions.fetchLogsWithFilters(apiFilters, searchTerm);
+      console.log('All filters and search cleared successfully:', newFilters);
+    } catch (error) {
+      console.error('Error clearing filters:', error);
+    } finally {
+      setApplyingFilters(false);
+    }
+  };
+
   if (loading) {
     return (
       <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
@@ -169,15 +184,15 @@ export const Dashboard = () => {
         onFilterChange={handleFilterChange}
         onSearchChange={handleSearchChange}
         initialFilters={filters}
-        searchTerm={searchTerm}
+        onClearAll={handleClearAll}
+        searchTerm={currentSearchTerm}
         applications={applicationNames}
         applyingFilters={applyingFilters}
-        defaultDates={getDefaultDateFilters()}
+        defaultDates={undefined}
         showExport={true}
         showSearch={true}
       />
       
-      {/* Pass sort handler to LogTable */}
       <LogTable
         logs={logs} 
         pagination={pagination}
@@ -197,9 +212,9 @@ export const Dashboard = () => {
       {logs.length > 0 && (
         <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; font-size: 0.875rem; color: #6b7280;">
           <p style="margin: 0;">
-            {searchTerm.trim() ? (
+            {currentSearchTerm.trim() ? (
               <>
-                Showing {pagination.totalCount} logs matching "{searchTerm}" • 
+                Showing {pagination.totalCount} logs matching "{currentSearchTerm}" • 
                 Page {pagination.currentPage} of {pagination.totalPages}
               </>
             ) : (
@@ -211,18 +226,6 @@ export const Dashboard = () => {
             • Last updated: {new Date().toLocaleTimeString()}
             {dataLoading && " • Updating..."}
             {currentSortBy && currentSortOrder && ` • Sorted by ${currentSortBy} (${currentSortOrder})`}
-          </p>
-        </div>
-      )}
-
-      {/* No results message when search returns empty */}
-      {searchTerm.trim() && logs.length === 0 && !loading && !dataLoading && (
-        <div style="margin-top: 20px; padding: 20px; background: #fef3f2; border: 1px solid #fecaca; border-radius: 8px; text-align: center;">
-          <p style="margin: 0; color: #dc2626; font-weight: 500;">
-            No logs found matching "{searchTerm}"
-          </p>
-          <p style="margin: 8px 0 0 0; color: #7f1d1d; font-size: 0.875rem;">
-            Try adjusting your search term or applying different filters.
           </p>
         </div>
       )}

@@ -15,6 +15,7 @@ import "ojs/ojdialog";
 import { getDefaultDateFilters, calculateDRPMinDate } from "../../utils/dateUtils";
 import LogService from "../../services/logService";
 import SettingsService from "../../services/settingsService";
+import { convertFiltersToApiFormat } from "../../utils/logUtils";
 
 // Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
@@ -45,9 +46,14 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit' 
 });
 
+interface UpdatedLogFilterProps extends LogFilterProps {
+  onClearAll?: (filters: FilterState, searchTerm: string) => void;
+}
+
 const LogFilter = ({ 
   onFilterChange, 
   onSearchChange,
+  onClearAll,
   initialFilters = {}, 
   searchTerm = "",
   className = "", 
@@ -56,7 +62,7 @@ const LogFilter = ({
   defaultDates, 
   showExport = false,
   showSearch = false
-}: LogFilterProps) => {
+}: UpdatedLogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
     logLevels: initialFilters.logLevels || [],
@@ -89,7 +95,6 @@ const LogFilter = ({
     fetchDRP();
   }, []);
 
-
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
     keyAttributes: 'value'
@@ -99,7 +104,6 @@ const LogFilter = ({
     keyAttributes: 'value'
   });
 
-  // Convert arrays to Sets for oj-c-select-multiple (as per Oracle JET requirements)
   const [applicationsValue, setApplicationsValue] = useState<Set<string>>(new Set(initialFilters.applications || []));
   const [logLevelsValue, setLogLevelsValue] = useState<Set<string>>(new Set(initialFilters.logLevels || []));
 
@@ -115,7 +119,9 @@ const LogFilter = ({
     
     const timeout = window.setTimeout(() => {
       if (onSearchChange) {
-        onSearchChange(value);
+        // Convert current filter state to API format and pass with search
+        const apiFilters = convertFiltersToApiFormat(filters);
+        onSearchChange(value, apiFilters);
       }
       setIsSearching(false);
     }, 500);
@@ -133,7 +139,9 @@ const LogFilter = ({
     setIsSearching(false);
     
     if (onSearchChange) {
-      onSearchChange("");
+      // When clearing search, also pass current filters
+      const apiFilters = convertFiltersToApiFormat(filters);
+      onSearchChange("", apiFilters);
     }
   };
 
@@ -145,7 +153,6 @@ const LogFilter = ({
     };
   }, [searchTimeout]);
 
-  // Handle application filter changes
   const handleApplicationChange = (event: any) => {
     const selectedKeys = event.detail.value;
     if (selectedKeys instanceof Set) {
@@ -160,7 +167,6 @@ const LogFilter = ({
     }
   };
 
-  // Handle log level filter changes
   const handleLogLevelChange = (event: any) => {
     const selectedKeys = event.detail.value;
     if (selectedKeys instanceof Set) {
@@ -176,7 +182,6 @@ const LogFilter = ({
     }
   };
 
-  // Handle from date change
   const handleFromDateChange = (event: any) => {
     const fromDate = event.detail.value;
     let isoFromDate = null;
@@ -189,7 +194,6 @@ const LogFilter = ({
     setFilters(newFilters);
   };
 
-  // Handle to date change
   const handleToDateChange = (event: any) => {
     const toDate = event.detail.value;
     let isoToDate = null;
@@ -202,37 +206,33 @@ const LogFilter = ({
     setFilters(newFilters);
   };
 
-  // Handle export format change in modal
   const handleExportFormatChange = (event: any) => {
     setExportFormat(event.detail.value);
   };
 
-  // Open export modal
   const openExportModal = () => {
-    // Use Oracle JET dialog API to open
     const dialog = document.getElementById('export-dialog') as any;
     if (dialog) {
       dialog.open();
     }
   };
 
-  // Close export modal
   const closeExportModal = () => {
-    // Use Oracle JET dialog API to close
     const dialog = document.getElementById('export-dialog') as any;
     if (dialog) {
       dialog.close();
     }
   };
 
- 
-
-  // Clear all filters
+  // Updated clearAllFilters function to prevent multiple API calls
   const clearAllFilters = () => {
+    // Clear all timeouts first to prevent any pending operations
+    if (searchTimeout) {
+      window.clearTimeout(searchTimeout);
+      setSearchTimeout(null);
+    }
+
     const emptySet = new Set<string>();
-    setApplicationsValue(emptySet);
-    setLogLevelsValue(emptySet);
-    
     const defaultNewDates = defaultDates ? getDefaultDateFilters(): null;
     
     const newFilters: FilterState = {
@@ -241,11 +241,23 @@ const LogFilter = ({
       fromDate: defaultNewDates?.fromDate || null,
       toDate: defaultNewDates?.toDate || null,
     };
+    
+    // Update all state in one batch to prevent multiple renders
+    setApplicationsValue(emptySet);
+    setLogLevelsValue(emptySet);
     setFilters(newFilters);
-    onFilterChange(newFilters);
-
+    
     if (showSearch) {
-      clearSearch();
+      setLocalSearchTerm("");
+      setIsSearching(false);
+    }
+
+    // Use the combined callback if available to prevent multiple API calls
+    if (onClearAll) {
+      onClearAll(newFilters, "");
+    } else {
+      // Fallback: only call onFilterChange when onClearAll is NOT provided
+      onFilterChange(newFilters);
     }
   };
 
@@ -260,7 +272,7 @@ const LogFilter = ({
     closeExportModal(); // Close modal using API
 
     try {
-      // Prepare filters for the service
+      // Prepare filters for the service - use current filter state
       const exportFilters = {
         applications: filters.applications.length > 0 ? filters.applications : undefined,
         logLevels: filters.logLevels.length > 0 ? filters.logLevels : undefined,
@@ -384,19 +396,9 @@ const LogFilter = ({
               disabled={isSearching}
             />
           </div>
-          {localSearchTerm && !isSearching && (
-            <div class="oj-typography-body-sm" style="color: #6b7280; margin-top: 4px;">
-              Searching for: "{localSearchTerm}"
-            </div>
-          )}
           {isSearching && (
             <div class="oj-typography-body-sm" style="color: #6b7280; margin-top: 4px;">
               Searching...
-            </div>
-          )}
-          {showSearch && (
-            <div class="oj-typography-body-xs" style="color: #9ca3af; margin-top: 4px; font-style: italic;">
-              Search results appear automatically as you type
             </div>
           )}
         </div>
@@ -482,7 +484,7 @@ const LogFilter = ({
         <div class="oj-typography-body-sm" style="color: #6b7280;">
           <strong>Active Filters:</strong>
           {showSearch && localSearchTerm && (
-            <span style="margin-left: 8px;">
+            <span style="margin-left: 8px; white-space: pre;">
               Search: "{localSearchTerm}" {isSearching && "(searching...)"}
             </span>
           )}
