@@ -1,21 +1,21 @@
 import { NextFunction, Request, Response } from 'express';
+import httpStatus from 'http-status';
 import createResponse from '../utils/responseHelper';
+import ApiError from '../utils/ApiError';
 import { alertService } from '../services';
 
 export const getAlerts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.userId;
     
+    // This should not happen due to authentication middleware, but keeping as defensive programming
     if (!userId) {
-      res.status(401).json(
-        createResponse(401, 'User authentication required', null)
-      );
-      return;
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'User authentication required');
     }
 
     const alerts = await alertService.getAlerts(userId);
-    res.status(200).json(
-      createResponse(200, 'Alerts fetched successfully', alerts)
+    res.status(httpStatus.OK).json(
+      createResponse(httpStatus.OK, 'Alerts fetched successfully', alerts)
     );
   } catch (error) {
     next(error);
@@ -25,25 +25,26 @@ export const getAlerts = async (req: Request, res: Response, next: NextFunction)
 export const resolveAlert = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
+    const userId = req.user?.userId;
     
+    // This should not happen due to authentication middleware, but keeping as defensive programming
+    if (!userId) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'User authentication required');
+    }
+
+    // Parameter validation is handled by middleware, but adding defensive check
     if (!id) {
-      res.status(400).json(
-        createResponse(400, 'Alert ID is required', null)
-      );
-      return;
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Alert ID is required');
     }
 
     const alert = await alertService.resolveAlert(id);
     
     if (!alert) {
-      res.status(404).json(
-        createResponse(404, 'Alert not found', null)
-      );
-      return;
+      throw new ApiError(httpStatus.NOT_FOUND, 'Alert not found');
     }
 
-    res.status(200).json(
-      createResponse(200, 'Alert resolved successfully', alert)
+    res.status(httpStatus.OK).json(
+      createResponse(httpStatus.OK, 'Alert resolved successfully', alert)
     );
   } catch (error) {
     next(error);
