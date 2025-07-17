@@ -133,19 +133,11 @@ export function ApplicationFiltersComponent({
               </div>
             )}
           </div>
-          {searchQuery && !isSearching && (
-            <div style="color: #6b7280; margin-top: 4px; font-size: 0.875rem;">
-              Searching for: "{searchQuery}"
-            </div>
-          )}
           {isSearching && (
             <div style="color: #6b7280; margin-top: 4px; font-size: 0.875rem;">
               Searching...
             </div>
           )}
-          <div style="color: #9ca3af; margin-top: 4px; font-size: 0.75rem; font-style: italic;">
-            Search results appear automatically as you type
-          </div>
         </div>
 
         {/* Status filter */}

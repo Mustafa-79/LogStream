@@ -309,7 +309,7 @@ export function Applications() {
 
     const getTitle = () => {
       if (hasSearchQuery) {
-        return `No applications found matching "${searchQuery}"`;
+        return `No applications found"`;
       }
       if (hasFilters) {
         const filterText = currentFilters.active === true ? 'active' : 
