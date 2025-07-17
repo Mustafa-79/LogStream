@@ -1,34 +1,11 @@
-type ApplicationStatus = 'active' | 'inactive';
-
-export type Log = {
-  _id: string;
-  message: string;
-  logLevel: string;
-  traceId: string;
-  date: string;
-  sourceApp: string;
-};
-
-export interface Application {
-  _id: string;
-  name: string;
-  description: string;
-  active: boolean;
-  lastUpdate: string;
-  logsToday: number;
-  errorsToday: number;
-  threshold?: number;
-  timePeriod?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  deleted?: boolean;
-}
-
-interface StatusBadgeConfig {
-  class: string;
-  text: string;
-}
-
+import { 
+  Application, 
+  Log, 
+  StatusBadgeConfig, 
+  ApplicationStatus, 
+  FormValidationResult,
+  ApplicationsSummary 
+} from '../components/pages/Applications/types';
 
 export const getLastLogTime = (appId: string, logs: Log[]): string => {
   const appLogs = logs.filter(log => log.sourceApp === appId);
@@ -59,7 +36,6 @@ export const getLastLogTime = (appId: string, logs: Log[]): string => {
   }
 };
 
-
 export const getStatusBadge = (app: Application, errorCount: number): StatusBadgeConfig => {
   let status: ApplicationStatus;
   
@@ -77,7 +53,6 @@ export const getStatusBadge = (app: Application, errorCount: number): StatusBadg
   return statusConfig[status];
 };
 
-
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -89,21 +64,13 @@ export const formatDate = (dateString: string): string => {
   });
 };
 
-
-export function validateApplicationForm(name: string, description: string): {
-  isValid: boolean;
-  errors: {
-    name?: string;
-    description?: string;
-  };
-} {
+export function validateApplicationForm(name: string, description: string): FormValidationResult {
   const errors: { name?: string; description?: string } = {};
 
   const trimmedName = name.trim();
   const trimmedDescription = description.trim();
 
   const namePattern = /^[a-zA-Z0-9 _-]+$/;
-
   const descriptionPattern = /^[a-zA-Z0-9 _\-\.\,\:\;\(\)\[\]'""]+$/;
 
   if (trimmedName.length < 5 || trimmedName.length > 20) {
@@ -124,7 +91,6 @@ export function validateApplicationForm(name: string, description: string): {
   };
 }
 
-
 export const filterApplications = (applications: Application[], searchQuery: string): Application[] => {
   if (!searchQuery.trim()) {
     return applications;
@@ -137,7 +103,6 @@ export const filterApplications = (applications: Application[], searchQuery: str
     app.description.toLowerCase().includes(query)
   );
 };
-
 
 export const sortApplications = (
   applications: Application[], 
@@ -168,11 +133,10 @@ export const sortApplications = (
   });
 };
 
-
 export const getApplicationsSummary = (
   applications: Application[],
   logCounts: Record<string, { logsToday: number; errors: number }>
-) => {
+): ApplicationsSummary => {
   const total = applications.length;
   const active = applications.filter(app => app.active).length;
   const inactive = total - active;
@@ -193,4 +157,29 @@ export const getApplicationsSummary = (
     totalLogs,
     totalErrors
   };
+};
+
+export const getVisiblePageNumbers = (currentPage: number, totalPages: number): number[] => {
+  const visiblePages: number[] = [];
+  const maxVisiblePages = 7;
+  
+  if (totalPages <= maxVisiblePages) {
+    for (let i = 1; i <= totalPages; i++) {
+      visiblePages.push(i);
+    }
+  } else {
+    const halfVisible = Math.floor(maxVisiblePages / 2);
+    let startPage = Math.max(1, currentPage - halfVisible);
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      visiblePages.push(i);
+    }
+  }
+  
+  return visiblePages;
 };

@@ -1,12 +1,16 @@
+import mongoose from 'mongoose';
 import Application, { IApplication } from '../models/Application.model';
 import { Log } from '../models/Log.model';
 import Group from '../models/Group.model';
 import mongoose from 'mongoose';
 
+
 export const getAllApplications = async (
+  userId: string,
   page: number = 1,
   limit: number = 25,
-  active?: boolean
+  active?: boolean,
+  search?: string
 ): Promise<{
   applications: any[];
   pagination: {
@@ -19,16 +23,65 @@ export const getAllApplications = async (
   };
 }> => {
   try {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const skip = (page - 1) * limit;
 
-    const filterQuery: any = { deleted: false };
+    // Step 1: Get all application IDs that the user has access to through their groups
+    const userGroupsResult = await Group.aggregate([
+      // Find groups where user is a member
+      {
+        $match: {
+          memberIDs: userObjectId,
+          active: true,
+          deleted: false
+        }
+      },
+      // Unwind applicationIDs array to work with individual app IDs
+      {
+        $unwind: "$applicationIDs"
+      },
+      // Group by null to collect all unique application IDs
+      {
+        $group: {
+          _id: null,
+          applicationIds: { $addToSet: "$applicationIDs" }
+        }
+      }
+    ]);
+
+    const accessibleAppIds = userGroupsResult[0]?.applicationIds || [];
+    
+    if (accessibleAppIds.length === 0) {
+      return {
+        applications: [],
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalCount: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit
+        }
+      };
+    }
+
+    const filterQuery: any = { 
+      deleted: false,
+      _id: { $in: accessibleAppIds } // Only include applications user has access to
+    };
     
     if (active !== undefined) {
       filterQuery.active = active;
     }
 
+    if (search) {
+      filterQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
 
     const totalCount = await Application.countDocuments(filterQuery);
 
@@ -37,7 +90,6 @@ export const getAllApplications = async (
       .sort({ name: 1 })
       .skip(skip)
       .limit(limit);
-
 
     const logsAggregation = await Log.aggregate([
       {
@@ -97,9 +149,46 @@ export const getAllApplications = async (
   }
 };
 
-export const getApplicationNames = async (): Promise<{ value: string; label: string }[]> => {
+export const getApplicationNames = async (userId: string): Promise<{ value: string; label: string }[]> => {
   try {
-    const applications = await Application.find({ deleted: false }, 'name _id').sort({ createdAt: -1 });
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const userGroupsResult = await Group.aggregate([
+      // Find groups where user is a member
+      {
+        $match: {
+          memberIDs: userObjectId,
+          active: true,
+          deleted: false
+        }
+      },
+      // Unwind applicationIDs array to work with individual app IDs
+      {
+        $unwind: "$applicationIDs"
+      },
+      // Group by null to collect all unique application IDs
+      {
+        $group: {
+          _id: null,
+          applicationIds: { $addToSet: "$applicationIDs" }
+        }
+      }
+    ]);
+
+    const accessibleAppIds = userGroupsResult[0]?.applicationIds || [];
+    
+    if (accessibleAppIds.length === 0) {
+      return [];
+    }
+
+    const applications = await Application.find(
+      { 
+        deleted: false,
+        _id: { $in: accessibleAppIds } // Only include applications user has access to
+      }, 
+      'name _id'
+    ).sort({ name: 1 }); // Sort by name in ascending order
+
     return applications.map(app => ({
       value: (app as any)._id.toString(),
       label: app.name

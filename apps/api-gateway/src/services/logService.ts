@@ -7,6 +7,7 @@ interface LogFilters {
   logLevels?: string[];
   fromDate?: Date;
   toDate?: Date;
+  search?: string;
 }
 
 export const getNewLogs = async (since: Date): Promise<ILog[]> => {
@@ -46,8 +47,7 @@ export const getLogs = async (
     if (filters?.toDate) {
       dateConditions.push({ $lte: ["$date", filters.toDate] });
     }
-    console.log('Fetching logs for user:', dateConditions);
-    
+        
     const result = await Group.aggregate([
       // Stage 1: Find groups where user is a member
       {
@@ -117,13 +117,23 @@ export const getLogs = async (
                 logLevel: { $in: filters.logLevels }
               }
             }] : []),
-            // Stage 9: Replace sourceApp with the application name
+            // Stage 9: Apply search filter if provided (NEW)
+            ...(filters?.search ? [{
+              $match: {
+                $or: [
+                  { message: { $regex: filters.search, $options: 'i' } },
+                  { description: { $regex: filters.search, $options: 'i' } },
+                  { data: { $regex: filters.search, $options: 'i' } }
+                ]
+              }
+            }] : []),
+            // Stage 10: Replace sourceApp with the application name
             {
               $addFields: {
                 sourceApp: "$sourceAppName"
               }
             },
-            // Stage 10: Remove temporary fields
+            // Stage 11: Remove temporary fields
             {
               $project: {
                 applicationDetails: 0,
@@ -150,7 +160,6 @@ export const getLogs = async (
         }
       }
     ]);
-    // console.log('Aggregation result:', JSON.stringify(result, null, 2));
     
     const logs = result[0]?.data || [];
     const totalCount = result[0]?.totalCount[0]?.count || 0;

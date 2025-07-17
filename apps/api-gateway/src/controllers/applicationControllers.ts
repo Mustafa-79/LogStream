@@ -7,6 +7,13 @@ export const getAllApplications = async (req: Request, res: Response, next: Next
     const pageParam = req.query.page as string | undefined;
     const limitParam = req.query.limit as string | undefined;
     const activeParam = req.query.active as string | undefined;
+    const searchParam = req.query.search as string | undefined;
+    const userId = req.user?.userId || req.user?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ error: 'User authentication required' });
+      return;
+    }
     
     const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
     const limit = limitParam ? Math.min(100, Math.max(1, parseInt(limitParam, 10))) : 25;
@@ -16,7 +23,9 @@ export const getAllApplications = async (req: Request, res: Response, next: Next
       activeFilter = activeParam.toLowerCase() === 'true';
     }
 
-    const { applications, pagination } = await applicationService.getAllApplications(page, limit, activeFilter);
+    const search = searchParam ? searchParam.trim() : undefined;
+
+    const { applications, pagination } = await applicationService.getAllApplications(userId, page, limit, activeFilter, search);
 
     res.status(200).json(
       createResponse(200, 'Applications fetched successfully', {
@@ -31,7 +40,14 @@ export const getAllApplications = async (req: Request, res: Response, next: Next
 
 export const getApplicationNames = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const appNames = await applicationService.getApplicationNames();
+    const userId = req.user?.userId || req.user?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ error: 'User authentication required' });
+      return;
+    }
+
+    const appNames = await applicationService.getApplicationNames(userId);
 
     res.status(200).json(
       createResponse(200, 'Application names fetched successfully', appNames)

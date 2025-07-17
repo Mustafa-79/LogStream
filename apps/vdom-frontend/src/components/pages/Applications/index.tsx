@@ -1,30 +1,24 @@
 import { h } from "preact";
 import { useState, useEffect } from "preact/hooks";
 import { useApplications, useCreateApplication, useUpdateApplication, useDeleteApplication } from "../../../hooks/useApplications";
-import { getLastLogTime, getStatusBadge, Log, validateApplicationForm } from "../../../utils/applicationUtils";
+import { validateApplicationForm } from "../../../utils/applicationUtils";
+import { OriginalFormValues, ApplicationFilters } from "./types";
+
+// Components
+import { NotificationBanner } from "./NotificationBanner";
+import { ApplicationFiltersComponent } from "./ApplicationFilters";
+import { ApplicationCard } from "./ApplicationCard";
+import { ApplicationPagination } from "./ApplicationPagination";
 import { ApplicationModal } from "./ApplicationModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
-import { DiscardChangesModal } from "./DiscardChangesModal"; // New modal component
-import ArrayDataProvider = require("ojs/ojarraydataprovider");
+import { DiscardChangesModal } from "./DiscardChangesModal";
+import { AuthManager } from "../../../utils/auth";
+
 import "oj-c/button";
-import "ojs/ojbutton";
 import "oj-c/progress-circle";
-import "oj-c/select-single";
-import "ojs/ojinputtext";
-
-interface ApplicationFilters {
-  active?: boolean;
-}
-
-// Interface for tracking original form values
-interface OriginalFormValues {
-  name: string;
-  description: string;
-  active: boolean;
-}
 
 export function Applications() {
-  const { applications, setApplications, loading, pagination, currentFilters, actions } = useApplications({ pageSize: 5 });
+  const { applications, loading, dataLoading, pagination, currentFilters, currentSearchTerm, actions } = useApplications({ pageSize: 5 });
   const { createApplication, isCreating } = useCreateApplication();
   const { updateApplication, isUpdating } = useUpdateApplication();
   const { deleteApplication, isDeleting } = useDeleteApplication();
@@ -43,11 +37,13 @@ export function Applications() {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState<boolean>(false);
   const [originalFormValues, setOriginalFormValues] = useState<OriginalFormValues | null>(null);
 
+  // Error states
   const [formError, setFormError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Success states
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deletedApplication, setDeletedApplication] = useState<{ name: string } | null>(null);
 
@@ -55,22 +51,10 @@ export function Applications() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
-  const [statusFilterDP, setStatusFilterDP] = useState<any>(null);
+  const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
 
-  // Initialize filter data provider
-  useEffect(() => {
-    const statusOptions = [
-      { value: 'all', label: 'All Applications' },
-      { value: 'active', label: 'Active Only' },
-      { value: 'inactive', label: 'Inactive Only' }
-    ];
-    
-    const dataProvider = new ArrayDataProvider(statusOptions, {
-      keyAttributes: 'value'
-    });
-    
-    setStatusFilterDP(dataProvider);
-  }, []);
+  const currentUser = AuthManager.getCurrentUser();
+  const isAdmin = currentUser?.isAdmin || false;
 
   const hasFormChanges = (): boolean => {
     if (!originalFormValues) return false;
@@ -117,7 +101,6 @@ export function Applications() {
     setOriginalFormValues(null);
   };
 
-  // Handle discard confirmation
   const handleDiscardChanges = () => {
     setShowDiscardConfirm(false);
     performCloseModal();
@@ -141,23 +124,21 @@ export function Applications() {
 
     try {
       if (isEditing && editingAppId) {
-        const updatedApp = await updateApplication(editingAppId, {
+        await updateApplication(editingAppId, {
           name: newAppName.trim(),
           description: newAppDescription.trim(),
           active: newAppActive, 
         });
 
         await actions.refreshCurrentPage();
-        
         setSuccessMessage(`Application "${newAppName.trim()}" has been updated successfully.`);
       } else {
-        const newApp = await createApplication({
+        await createApplication({
           name: newAppName.trim(),
           description: newAppDescription.trim(),
         });
 
         await actions.refreshCurrentPage();
-        
         setSuccessMessage(`Application "${newAppName.trim()}" has been created successfully.`);
       }
 
@@ -206,7 +187,6 @@ export function Applications() {
       const appToDelete = applications.find(app => app._id === deletingAppId);
       
       await deleteApplication(deletingAppId);
-      
       await actions.refreshCurrentPage();
       
       if (appToDelete) {
@@ -220,7 +200,6 @@ export function Applications() {
     }
   };
 
-  // Filter handlers
   const handleFilterChange = async (event: any) => {
     const newStatus = event.detail.value;
     setFilterStatus(newStatus);
@@ -235,14 +214,73 @@ export function Applications() {
         filters.active = false;
       }
       
-      await actions.fetchApplicationsWithFilters(filters);
-      
-      console.log('Filter applied successfully:', newStatus);
+      // Apply filters with current search term
+      await actions.fetchApplicationsWithFilters(filters, searchQuery);
     } catch (error) {
       console.error('Error applying filter:', error);
     } finally {
       setApplyingFilters(false);
     }
+  };
+
+  const handleSearchChange = (event: any) => {
+    const value = event.detail.value || '';
+    setSearchQuery(value);
+    
+    // Clear previous timeout if user is still typing
+    if (searchTimeout) {
+      window.clearTimeout(searchTimeout);
+    }
+    
+    // Debounce search to avoid too many API calls
+    const timeout = window.setTimeout(async () => {
+      try {
+        await actions.fetchApplicationsWithSearch(value);
+      } catch (error) {
+        console.error('Error searching applications:', error);
+      }
+    }, 500); // 500ms delay
+    
+    setSearchTimeout(timeout);
+  };
+
+  const clearSearch = () => {
+    if (searchTimeout) {
+      window.clearTimeout(searchTimeout);
+      setSearchTimeout(null);
+    }
+    
+    setSearchQuery('');
+    
+    actions.fetchApplicationsWithSearch('');
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        window.clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
+
+  const handlePageChange = async (page: number) => {
+    await actions.goToPage(page);
+  };
+
+  const handleFirstPage = async () => {
+    await actions.goToFirstPage();
+  };
+
+  const handlePrevPage = async () => {
+    await actions.goToPrevPage();
+  };
+
+  const handleNextPage = async () => {
+    await actions.goToNextPage();
+  };
+
+  const handleLastPage = async () => {
+    await actions.goToLastPage();
   };
 
   useEffect(() => {
@@ -265,64 +303,79 @@ export function Applications() {
 
   const isProcessing = isCreating || isUpdating || isDeleting;
 
-  const handleSearchChange = (event: any) => {
-    setSearchQuery(event.detail.value || '');
-  };
+  const renderEmptyState = () => {
+    const hasSearchQuery = searchQuery.trim() !== '';
+    const hasFilters = Object.keys(currentFilters).length > 0;
 
-  const clearSearch = () => {
-    setSearchQuery('');
-  };
-  const handlePageChange = async (page: number) => {
-    await actions.goToPage(page);
-  };
-
-  const handleFirstPage = async () => {
-    await actions.goToFirstPage();
-  };
-
-  const handlePrevPage = async () => {
-    await actions.goToPrevPage();
-  };
-
-  const handleNextPage = async () => {
-    await actions.goToNextPage();
-  };
-
-  const handleLastPage = async () => {
-    await actions.goToLastPage();
-  };
-
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = searchQuery.trim() === '' || 
-      app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
-  
-  const getVisiblePageNumbers = () => {
-    const { currentPage, totalPages } = pagination;
-    const visiblePages: number[] = [];
-    const maxVisiblePages = 7;
-    
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        visiblePages.push(i);
+    const getTitle = () => {
+      if (hasSearchQuery) {
+        return `No applications found matching "${searchQuery}"`;
       }
-    } else {
-      const halfVisible = Math.floor(maxVisiblePages / 2);
-      let startPage = Math.max(1, currentPage - halfVisible);
-      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
-      if (endPage - startPage + 1 < maxVisiblePages) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      if (hasFilters) {
+        const filterText = currentFilters.active === true ? 'active' : 
+                          currentFilters.active === false ? 'inactive' : '';
+        return `No ${filterText} applications found`;
       }
-      
-      for (let i = startPage; i <= endPage; i++) {
-        visiblePages.push(i);
+      return 'No applications found';
+    };
+
+    const getSubtitle = () => {
+      if (hasSearchQuery) {
+        return 'Try adjusting your search terms.';
       }
+      if (hasFilters) {
+        return 'Try changing the filter or add a new application.';
+      }
+      return 'Click "Add Application" to get started.';
+    };
+
+    return (
+      <div class="oj-flex oj-justify-content-center oj-align-items-center" style="height: 200px;">
+        <div style="text-align: center;">
+          <h3 style="color: #6b7280; margin-bottom: 8px;">
+            {getTitle()}
+          </h3>
+          <p style="color: #9ca3af;">
+            {getSubtitle()}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderApplicationsGrid = () => {
+    if (dataLoading) {
+      return (
+        <div class="oj-flex oj-justify-content-center oj-align-items-center" style="min-height: 400px;">
+          <div style="text-align: center;">
+            <oj-c-progress-circle
+              size="lg"
+              value={-1}
+              style="width: 48px; height: 48px; margin-bottom: 16px;"
+            ></oj-c-progress-circle>
+            <p style="color: #6b7280; margin: 0;">Loading applications...</p>
+          </div>
+        </div>
+      );
     }
-    
-    return visiblePages;
+
+    if (applications.length === 0) {
+      return renderEmptyState();
+    }
+
+    return (
+      <div class="oj-flex oj-flex-wrap" style="gap: 24px; min-height: 400px;">
+        {applications.map(app => (
+          <ApplicationCard
+            key={app._id}
+            app={app}
+            onEdit={handleApplicationSettings}
+            onDelete={handleDeleteApplication}
+            isDeleting={isDeleting}
+          />
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -345,62 +398,18 @@ export function Applications() {
 
   return (
     <div class="oj-web-applayout-page" style="padding: 40px;">
-      {successMessage && (
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
-          <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
-            backgroundColor: '#d4edda',
-            border: '1px solid #c3e6cb',
-            borderRadius: '8px',
-            color: '#155724',
-            minWidth: '400px',
-            maxWidth: '600px',
-            width: '100%'
-          }}>
-            <div class="oj-flex oj-sm-flex-items-center" style={{ alignItems: 'center' }}>
-              <span class="oj-ux-ico-checkmark-s oj-sm-margin-2x-end" style={{ fontSize: '18px', color: '#28a745' }}></span>
-              <span class="oj-typography-body-md">{successMessage}</span>
-            </div>
-            <oj-button
-              display="icons"
-              chroming="borderless"
-              onojAction={() => setSuccessMessage(null)}
-              style={{ color: '#155724' }}
-            >
-              <span slot='startIcon' class='oj-ux-ico-close'></span>
-            </oj-button>
-          </div>
-        </div>
-      )}
+      {/* Notifications */}
+      <NotificationBanner
+        message={successMessage}
+        onClose={() => setSuccessMessage(null)}
+        type="success"
+      />
 
-      {/* Delete Notification */}
-      {deletedApplication && (
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical">
-          <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
-            backgroundColor: '#d4edda',
-            border: '1px solid #c3e6cb',
-            borderRadius: '8px',
-            color: '#155724',
-            minWidth: '400px',
-            maxWidth: '600px',
-            width: '100%'
-          }}>
-            <div class="oj-flex oj-sm-flex-items-center" style={{ alignItems: 'center' }}>
-              <span class="oj-ux-ico-checkmark-s oj-sm-margin-2x-end" style={{ fontSize: '18px', color: '#28a745' }}></span>
-              <span class="oj-typography-body-md">
-                Application <strong>"{deletedApplication.name}"</strong> has been deleted.
-              </span>
-            </div>
-            <oj-button
-              display="icons"
-              chroming="borderless"
-              onojAction={() => setDeletedApplication(null)}
-              style={{ color: '#155724' }}
-            >
-              <span slot='startIcon' class='oj-ux-ico-close'></span>
-            </oj-button>
-          </div>
-        </div>
-      )}
+      <NotificationBanner
+        message={deletedApplication ? `Application "${deletedApplication.name}" has been deleted.` : null}
+        onClose={() => setDeletedApplication(null)}
+        type="success"
+      />
 
       {/* Header */}
       <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
@@ -408,294 +417,58 @@ export function Applications() {
           <h1 class="oj-typography-heading-lg" style="margin: 0;">
             Applications
           </h1>
-          <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
-            Manage and monitor all your connected applications. ({pagination.totalCount} total)
-          </p>
-        </div>
-        <div style="flex-shrink: 0; margin-left: 16px;">
-          <oj-button
-            class="oj-button-primary custom-add-button"
-            onojAction={handleAddApplication}
-            style="--oj-button-bg-color: #6366f1 !important; border: 0px !important; --oj-button-text-color: white !important; border-radius: 8px !important;">
-            <span slot="startIcon" class="oj-ux-ico-plus"></span>
-            Add Application
-          </oj-button>
-        </div>
-      </div>
 
-      {/* Filter Section */}
-      <div class="oj-panel oj-panel-shadow-sm" style="margin-bottom: 24px; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; background: white;">
-        <div class="oj-flex oj-align-items-center" style="gap: 16px; flex-wrap: wrap;">
-          {/* Search Input */}
-          <div class="oj-flex oj-align-items-center" style="gap: 8px;">
-            <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; white-space: nowrap;">
-              Search:
-            </span>
-            <div class="oj-flex oj-align-items-center" style="position: relative; min-width: 400px;">
-              <oj-input-text
-                value={searchQuery}
-                onrawValueChanged={handleSearchChange}
-                placeholder="Search by name or description..."
-                style="flex: 1; padding-right: 30px;"
-              ></oj-input-text>
-              {searchQuery && (
-                <oj-button
-                  display="icons"
-                  chroming="borderless"
-                  onojAction={clearSearch}
-                  title="Clear search"
-                  style="position: absolute; right: 4px; padding: 2px; min-width: 24px; height: 24px;"
-                >
-                  <span slot="startIcon" class="oj-ux-ico-close" style="font-size: 12px;"></span>
-                </oj-button>
-              )}
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div class="oj-flex oj-align-items-center" style="gap: 8px;">
-            <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; white-space: nowrap;">
-              Filter by Status:
-            </span>
-            <div style="min-width: 150px;">
-              {statusFilterDP && (
-                <oj-c-select-single
-                  data={statusFilterDP}
-                  value={filterStatus}
-                  onvalueChanged={handleFilterChange}
-                  label-hint="Select status"
-                  item-text="label"
-                  style="width: 100%;"
-                ></oj-c-select-single>
-              )}
-            </div>
-          </div>
-
-          {/* Loading Indicator */}
-          {applyingFilters && (
-            <div class="oj-flex oj-align-items-center" style="gap: 8px;">
-              <oj-c-progress-circle size="sm" value={-1}></oj-c-progress-circle>
-              <span style="color: #6b7280; font-size: 0.875rem;">Applying filter...</span>
-            </div>
-          )}
-
-          {/* Active Filters Display */}
-          {(Object.keys(currentFilters).length > 0 || searchQuery.trim() !== '') && (
-            <div class="oj-flex oj-align-items-center" style="gap: 8px; flex-wrap: wrap;">
-              {/* Status Filter Badge */}
-              {Object.keys(currentFilters).length > 0 && (
-                <>
-                  <span style="color: #6b7280; font-size: 0.875rem;">Active filters:</span>
-                  <span style="
-                    background: #e0e7ff; 
-                    color: #3730a3; 
-                    padding: 4px 8px; 
-                    border-radius: 4px; 
-                    font-size: 0.75rem; 
-                    font-weight: 500;
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                  ">
-                    {currentFilters.active === true ? 'Active Apps' : 
-                     currentFilters.active === false ? 'Inactive Apps' : 'All Apps'}
-                  </span>
-                  <oj-button
-                    display="icons"
-                    chroming="borderless"
-                    onojAction={() => handleFilterChange({ detail: { value: 'all' } })}
-                    title="Clear status filter"
-                    style="padding: 0; min-width: 16px; height: 16px; margin-left: 2px;"
-                  >
-                    <span slot="startIcon" class="oj-ux-ico-close" style="font-size: 10px;"></span>
-                  </oj-button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Applications Grid */}
-      <div class="oj-flex oj-flex-wrap" style="gap: 24px; min-height: 400px;">
-        {filteredApplications.map(app => {
-          const appId = app._id.toString();
-          const appLogCounts = { logsToday: 10, errors: 10 };
-          const statusBadge = getStatusBadge(app, appLogCounts.errors);
-
-          return (
-            <div
-              key={appId}
-              class="oj-panel oj-panel-shadow-sm"
-              style="
-                flex: 1;
-                min-width: 400px;
-                max-width: 400px;
-                padding: 20px;
-                border-radius: 8px;
-                border: 1px solid #e5e7eb;
-                background: white;
-              "
-            >
-              <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 16px;">
-                <div style="flex: 1;">
-                  <h3 style="margin: 0 0 4px 0; font-size: 1.125rem; font-weight: 600; font-family: 'Poppins', sans-serif; color: #111827;">
-                    {app.name}
-                  </h3>
-                  <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-family: 'Poppins', sans-serif;">
-                    {app.description}
-                  </p>
-                </div>
-                <div class="oj-flex" style="gap: 4px;">
-                  <oj-button
-                    display="icons"
-                    chroming="borderless"
-                    onojAction={() => handleApplicationSettings(appId)}
-                    title="Edit Application"
-                  >
-                    <span slot="startIcon" class="oj-ux-ico-settings"></span>
-                  </oj-button>
-                  <oj-button
-                    display='icons'
-                    chroming='borderless'
-                    onojAction={() => handleDeleteApplication(appId)}
-                    title="Delete Application"
-                    disabled={isDeleting}
-                  >
-                    <span slot='startIcon' class='oj-ux-ico-trash'></span>
-                  </oj-button>
-                </div>
-              </div>
-
-              {/* Status and Last Update */}
-              <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="margin-bottom: 16px; width: 100%;">
-                <span class={statusBadge.class} style="font-size: 0.75rem; font-family: 'Poppins', sans-serif; padding: 4px 8px; flex-shrink: 0;">
-                  {statusBadge.text}
-                </span>
-                <span style="color: #6b7280; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
-                  Time
-                </span>
-              </div>
-
-              {app.active && <div style="border-top: 1px solid #f3f4f6; padding-top: 16px;">
-                <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="margin-bottom: 8px; width: 100%;">
-                  <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Logs today:</span>
-                  <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
-                    {app.logsToday}
-                  </span>
-                </div>
-                <div class="oj-flex oj-justify-content-space-between oj-align-items-center" style="width: 100%;">
-                  <span style="color: #374151; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0;">Errors:</span>
-                  <span style="color: #374151; font-weight: 600; font-size: 0.875rem; font-family: 'Poppins', sans-serif; flex-shrink: 0; margin-left: auto;">
-                    {app.errorsToday}
-                  </span>
-                </div>
-              </div>}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Empty State */}
-      {filteredApplications.length === 0 && !loading && (
-        <div class="oj-flex oj-justify-content-center oj-align-items-center" style="height: 200px;">
-          <div style="text-align: center;">
-            <h3 style="color: #6b7280; margin-bottom: 8px;">
-              {searchQuery.trim() !== '' ? 
-                `No applications found matching "${searchQuery}"` :
-                Object.keys(currentFilters).length > 0 
-                  ? `No ${currentFilters.active === true ? 'active' : currentFilters.active === false ? 'inactive' : ''} applications found`
-                  : 'No applications found'
-              }
-            </h3>
-            <p style="color: #9ca3af;">
-              {searchQuery.trim() !== '' ? 
-                'Try adjusting your search terms.' :
-                Object.keys(currentFilters).length > 0 
-                  ? 'Try changing the filter or add a new application.'
-                  : 'Click "Add Application" to get started.'
-              }
+          <div class="oj-flex oj-align-items-center" style="margin-top: 4px; gap: 8px;">
+            <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+               Manage and monitor all your connected applications. ({pagination.totalCount} total)
+              {dataLoading && " • Updating..."}
             </p>
           </div>
+
         </div>
+        <div style="flex-shrink: 0; margin-left: 16px;">
+          {isAdmin && <oj-button
+            class="oj-button-primary custom-add-button"
+            onojAction={handleAddApplication}
+            style="--oj-button-bg-color: #6366f1 !important; border: 0px !important; --oj-button-text-color: white !important; border-radius: 8px !important;"
+            disabled={dataLoading}
+          >
+            <span slot="startIcon" class="oj-ux-ico-plus"></span>
+            Add Application
+          </oj-button>}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <ApplicationFiltersComponent
+        searchQuery={searchQuery}
+        filterStatus={filterStatus}
+        currentFilters={currentFilters}
+        applyingFilters={applyingFilters || dataLoading} // Show applying state during data loading
+        onSearchChange={handleSearchChange}
+        onFilterChange={handleFilterChange}
+        onClearSearch={clearSearch}
+      />
+
+      {/* Applications Grid - now with conditional loading */}
+      {renderApplicationsGrid()}
+
+      {/* Pagination - disable during data loading */}
+      {applications.length > 0 && !dataLoading && (
+        <ApplicationPagination
+          pagination={pagination}
+          currentFilters={currentFilters}
+          searchQuery={searchQuery}
+          onPageChange={handlePageChange}
+          onFirstPage={handleFirstPage}
+          onPrevPage={handlePrevPage}
+          onNextPage={handleNextPage}
+          onLastPage={handleLastPage}
+          // disabled={dataLoading} // Disable pagination during data loading
+        />
       )}
 
-      {/* Pagination Controls */}
-      {pagination.totalPages > 1 && (
-        <div style="margin-top: 32px; padding: 20px; border-top: 1px solid #e5e7eb; background: #f9fafb; border-radius: 8px;">
-          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center">
-            <div class="oj-typography-body-sm" style="color: #6b7280;">
-              Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount} applications
-            </div>
-            
-            <div class="oj-flex oj-sm-align-items-center" style="gap: 8px;">
-              <oj-button
-                class="oj-button-outlined-chrome"
-                disabled={!pagination.hasPrevPage}
-                onojAction={handleFirstPage}
-                style="min-width: auto; padding: 8px 12px;"
-              >
-                <span class="oj-typography-body-sm">First</span>
-              </oj-button>
-              
-              <oj-button
-                class="oj-button-outlined-chrome"
-                disabled={!pagination.hasPrevPage}
-                onojAction={handlePrevPage}
-                style="min-width: auto; padding: 8px 12px;"
-              >
-                <span class="oj-typography-body-sm">‹ Prev</span>
-              </oj-button>
-              
-              {getVisiblePageNumbers().map((pageNum) => (
-                <oj-button
-                  key={pageNum}
-                  class={pageNum === pagination.currentPage ? "oj-button-primary" : "oj-button-outlined-chrome"}
-                  onojAction={() => handlePageChange(pageNum)}
-                  style="min-width: 40px; padding: 8px 12px;"
-                >
-                  <span class="oj-typography-body-sm">{pageNum}</span>
-                </oj-button>
-              ))}
-              
-              <oj-button
-                class="oj-button-outlined-chrome"
-                disabled={!pagination.hasNextPage}
-                onojAction={handleNextPage}
-                style="min-width: auto; padding: 8px 12px;"
-              >
-                <span class="oj-typography-body-sm">Next ›</span>
-              </oj-button>
-              
-              <oj-button
-                class="oj-button-outlined-chrome"
-                disabled={!pagination.hasNextPage}
-                onojAction={handleLastPage}
-                style="min-width: auto; padding: 8px 12px;"
-              >
-                <span class="oj-typography-body-sm">Last</span>
-              </oj-button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Page Info */}
-      {filteredApplications.length > 0 && (
-        <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; font-size: 0.875rem; color: #6b7280;">
-          <p style="margin: 0;">
-            Page {pagination.currentPage} of {pagination.totalPages} • 
-            Last updated: {new Date().toLocaleTimeString()}
-            {Object.keys(currentFilters).length > 0 && (
-              <span> • Filtered by: {currentFilters.active === true ? 'Active applications' : currentFilters.active === false ? 'Inactive applications' : 'All applications'}</span>
-            )}
-            {searchQuery.trim() !== '' && (
-              <span> • Search: "{searchQuery}"</span>
-            )}
-          </p>
-        </div>
-      )}
-
+      {/* Modals - keep existing modal code unchanged */}
       <ApplicationModal
         showModal={showModal}
         isEditing={isEditing}
