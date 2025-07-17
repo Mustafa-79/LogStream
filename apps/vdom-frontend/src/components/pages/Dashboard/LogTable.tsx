@@ -1,46 +1,57 @@
 import { h } from "preact";
 import { useState, useEffect } from "preact/hooks";
-import { Log, TableLog, SortableColumn, SortDirection, Pagination } from "./types";
+import { Log, TableLog, SortableColumn, SortDirection, Pagination, LogTableProps } from "./types";
 import { convertLogsToTableFormat, sortTableData, createHeaderText } from "../../../utils/logUtils";
 import MutableArrayDataProvider = require('ojs/ojmutablearraydataprovider');
 import 'oj-c/table';
 import 'oj-c/progress-circle';
 
-interface LogTableProps {
-  logs: Log[];
-  pagination: Pagination;
-  loading?: boolean; // Add loading prop
-}
-
-export function LogTable({ logs, pagination, loading = false }: LogTableProps) {
+export function LogTable({ logs, pagination, loading = false, onSort }: LogTableProps) {
   const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('default');
   const [dataProvider, setDataProvider] = useState<any>(null);
 
   const handleSort = (column: SortableColumn) => {
-    if (sortColumn === column) {
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        setSortDirection(null);
-        setSortColumn(null);
-      } else {
-        setSortDirection('asc');
-      }
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
+  let newDirection: 'asc' | 'desc' | 'default' | null;
+  let newColumn: SortableColumn | null;
 
-  // Update data provider when logs or sorting changes
+  if (sortColumn === column) {
+    if (sortDirection === 'default' || sortDirection === null) {
+      newDirection = 'asc';
+      newColumn = column;
+    } else if (sortDirection === 'asc') {
+      newDirection = 'desc';
+      newColumn = column;
+    } else {
+      // Going back to default
+      newDirection = 'default';
+      newColumn = null;
+    }
+  } else {
+    newDirection = 'asc';
+    newColumn = column;
+  }
+
+  setSortColumn(newColumn);
+  setSortDirection(newDirection);
+
+  // ✅ Avoid forcing fallback to timestamp. Reset to undefined.
+  if (onSort) {
+    if (newDirection === 'default' || newColumn === null) {
+      onSort(undefined, undefined); 
+    } else {
+      onSort(newColumn, newDirection);
+    }
+  }
+};
+
+
   useEffect(() => {
     if (logs.length > 0) {
       const tableData: TableLog[] = convertLogsToTableFormat(logs);
-      const sortedData = sortTableData(tableData, sortColumn, sortDirection);
       
       const newDataProvider = new MutableArrayDataProvider<string, TableLog>(
-        sortedData,
+        tableData, 
         { 
           keyAttributes: 'id'
         }
@@ -50,7 +61,7 @@ export function LogTable({ logs, pagination, loading = false }: LogTableProps) {
     } else {
       setDataProvider(null);
     }
-  }, [logs, sortColumn, sortDirection]);
+  }, [logs]);
 
   // Add click handlers to headers after table renders
   useEffect(() => {
@@ -120,6 +131,14 @@ export function LogTable({ logs, pagination, loading = false }: LogTableProps) {
     fetchSize: 10
   };
 
+  const getSortDisplayText = () => {
+    if (!sortColumn || !sortDirection || sortDirection === 'default') {
+      return null;
+    }
+    
+    return `${sortColumn} (${sortDirection === 'asc' ? 'ascending' : 'descending'})`;
+  };
+
   return (
     <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); overflow: hidden;">
       <div style="padding: 20px; border-bottom: 1px solid #e5e7eb;">
@@ -168,9 +187,9 @@ export function LogTable({ logs, pagination, loading = false }: LogTableProps) {
       ) : null}
 
       {/* Sort Info */}
-      {logs.length > 0 && sortColumn && sortDirection && !loading && (
+      {logs.length > 0 && getSortDisplayText() && !loading && (
         <div style="padding: 12px 20px; border-top: 1px solid #e5e7eb; background: #f8fafc; color: #64748b; font-size: 0.875rem;">
-          Sorted by {sortColumn} ({sortDirection === 'asc' ? 'ascending' : 'descending'})
+          Sorted by {getSortDisplayText()}
         </div>
       )}
     </div>

@@ -6,8 +6,8 @@ import { Log, UseLogsOptions, Pagination, LogFilters } from "../components/pages
 export const useLogs = (options: UseLogsOptions = {}) => {
   const { onUnauthorized, pageSize = 25 } = options;
   const [logs, setLogs] = useState<Log[]>([]);
-  const [loading, setLoading] = useState<boolean>(false); // Initial page load
-  const [dataLoading, setDataLoading] = useState<boolean>(false); // Filter/search/pagination operations
+  const [loading, setLoading] = useState<boolean>(false);
+  const [dataLoading, setDataLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<Pagination>({
     currentPage: 1,
@@ -22,8 +22,20 @@ export const useLogs = (options: UseLogsOptions = {}) => {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<LogFilters>({});
   const [currentSearchTerm, setCurrentSearchTerm] = useState<string>("");
+  
+  // Initialize with default sorting state
+  const [currentSortBy, setCurrentSortBy] = useState<string | undefined>(undefined);
+  const [currentSortOrder, setCurrentSortOrder] = useState<'asc' | 'desc' | 'default' | undefined>('default');
 
-  const fetchLogs = async (page: number = 1, since?: string, filters?: LogFilters, searchTerm?: string, isInitialLoad: boolean = false) => {
+  const fetchLogs = async (
+    page: number = 1, 
+    since?: string, 
+    filters?: LogFilters, 
+    searchTerm?: string, 
+    isInitialLoad: boolean = false,
+    sortBy?: string, 
+    sortOrder?: 'asc' | 'desc' | 'default'
+  ) => {
     if (!AuthManager.isAuthenticated()) {
       return;
     }
@@ -39,7 +51,32 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       const filtersToUse = filters !== undefined ? filters : currentFilters;
       const searchToUse = searchTerm !== undefined ? searchTerm : currentSearchTerm;
       
-      const response = await LogService.fetchLogs(since, page, pageSize, filtersToUse, searchToUse);
+      let sortByToUse: string | undefined;
+      let sortOrderToUse: 'asc' | 'desc' | 'default' | undefined;
+      
+      if (sortBy !== undefined) {
+        sortByToUse = sortBy;
+        setCurrentSortBy(sortBy);
+      } else {
+        sortByToUse = currentSortBy;
+      }
+      
+      if (sortOrder !== undefined) {
+        sortOrderToUse = sortOrder;
+        setCurrentSortOrder(sortOrder);
+      } else {
+        sortOrderToUse = currentSortOrder;
+      }
+      
+      const response = await LogService.fetchLogs(
+        since, 
+        page, 
+        pageSize, 
+        filtersToUse, 
+        searchToUse, 
+        sortBy, 
+        sortOrderToUse
+      );
 
       setLogs(response.logs);
       setPagination(response.pagination);
@@ -77,6 +114,13 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
   const fetchLogsWithSearch = async (searchTerm: string) => {
     await fetchLogs(1, undefined, currentFilters, searchTerm, false);
+  };
+
+  const fetchLogsWithSort = async (
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc' | 'default'
+  ) => {
+    await fetchLogs(1, undefined, currentFilters, currentSearchTerm, false, sortBy, sortOrder);
   };
 
   const goToPage = async (page: number) => {
@@ -122,7 +166,6 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       setStatsLoading(true);
       setStatsError(null);
       
-      const searchToUse = searchTerm !== undefined ? searchTerm : currentSearchTerm;
       const stats = await LogService.fetchLogStats(currentFilters);
       setLogStats(stats);
     } catch (error) {
@@ -144,13 +187,15 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     statsError,
     currentFilters,
     currentSearchTerm,
+    currentSortBy,
+    currentSortOrder,
     actions: {
       fetchLogs: () => fetchLogs(1, undefined, undefined, undefined, true),
       fetchLogsWithFilters: async (filters: LogFilters, searchTerm?: string) => {
         await fetchLogsWithFilters(filters, searchTerm);
-        await fetchLogStats(searchTerm);
       },
       fetchLogsWithSearch,
+      fetchLogsWithSort, 
       fetchLogStats: (searchTerm?: string) => fetchLogStats(searchTerm),
       refetch: refreshCurrentPage,
       goToPage,

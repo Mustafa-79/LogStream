@@ -20,7 +20,9 @@ export const getLogs = async (req: Request, res: Response, next: NextFunction): 
     const logLevelsParam = req.query.logLevels as string | undefined;
     const fromDateParam = req.query.fromDate as string | undefined;
     const toDateParam = req.query.toDate as string | undefined;
-    const searchParam = req.query.search as string | undefined; // New search parameter
+    const searchParam = req.query.search as string | undefined;
+    const sortByParam = req.query.sortBy as string | undefined;
+    const sortOrderParam = req.query.sortOrder as string | undefined;
     
     const since = sinceParam ? new Date(sinceParam) : new Date(0);
     const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
@@ -28,7 +30,12 @@ export const getLogs = async (req: Request, res: Response, next: NextFunction): 
     
     const applications = applicationsParam ? applicationsParam.split(',').map(app => app.trim()).filter(app => app.length > 0) : undefined;
     const logLevels = logLevelsParam ? logLevelsParam.split(',').map(level => level.trim()).filter(level => level.length > 0) : undefined;
-    const search = searchParam ? searchParam.trim() : undefined; // Clean search term
+    const search = searchParam ? searchParam.trim() : undefined;
+    
+    const sortBy = sortByParam ? sortByParam.trim() : undefined;
+    const sortOrder = sortOrderParam && ['asc', 'desc'].includes(sortOrderParam.toLowerCase()) 
+      ? sortOrderParam.toLowerCase() as 'asc' | 'desc' 
+      : undefined;
     
     const fromDate = fromDateParam ? new Date(fromDateParam) : undefined;
     const toDate = toDateParam ? new Date(toDateParam) : undefined;
@@ -63,7 +70,7 @@ export const getLogs = async (req: Request, res: Response, next: NextFunction): 
       search
     };
 
-    const { logs, pagination } = await logService.getLogs(userId, since, page, limit, filters);
+    const { logs, pagination } = await logService.getLogs(userId, since, page, limit, filters, sortBy, sortOrder);
 
     res.status(200).json(
       createResponse(200, 'Logs fetched successfully', {

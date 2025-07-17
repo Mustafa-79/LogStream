@@ -16,7 +16,22 @@ import "ojs/ojbutton";
 import "oj-c/progress-circle";
 
 export const Dashboard = () => {
-  const { logs, loading, dataLoading, error, pagination, logStats, statsLoading, statsError, currentFilters, currentSearchTerm, actions } = useLogs({ pageSize: 25 });
+  const { 
+    logs, 
+    loading, 
+    dataLoading, 
+    error, 
+    pagination, 
+    logStats, 
+    statsLoading, 
+    statsError, 
+    currentFilters, 
+    currentSearchTerm, 
+    currentSortBy, 
+    currentSortOrder, 
+    actions 
+  } = useLogs({ pageSize: 25 });
+  
   const { applicationNames, loading: appNamesLoading, error: appNamesError } = useApplicationNames();
   const [applyingFilters, setApplyingFilters] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -35,17 +50,13 @@ export const Dashboard = () => {
     actions.fetchLogStats();
   }, []);
 
-  // Handle filter changes (excludes search - search is handled separately)
   const handleFilterChange = async (newFilters: FilterState) => {
     setFilters(newFilters);
     setApplyingFilters(true);
     
     try {
       const apiFilters = convertFiltersToApiFormat(newFilters);
-      
       await actions.fetchLogsWithFilters(apiFilters, searchTerm);
-      // await actions.fetchLogStats(searchTerm);
-      
       console.log('Filters applied successfully:', newFilters);
     } catch (error) {
       console.error('Error applying filters:', error);
@@ -54,19 +65,25 @@ export const Dashboard = () => {
     }
   };
 
-  // Handle search changes (triggered automatically as user types)
   const handleSearchChange = async (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
-    // console.log('Search term changed:', newSearchTerm);
     
     try {
       await actions.fetchLogsWithSearch(newSearchTerm);
-      // await actions.fetchLogStats(newSearchTerm);
     } catch (error) {
       console.error('Error searching logs:', error);
     }
   };
 
+  const handleSort = async (sortBy?: string, sortOrder?: 'asc' | 'desc') => {
+    try {
+      await actions.fetchLogsWithSort(sortBy, sortOrder);
+    } catch (error) {
+      console.error('Error sorting logs:', error);
+    }
+  };
+
+  // Pagination handlers
   const handlePageChange = async (page: number) => {
     await actions.goToPage(page);
   };
@@ -146,7 +163,6 @@ export const Dashboard = () => {
           statsLoading={statsLoading}
           statsError={statsError}
         />
-
       </div>
 
       <LogFilter
@@ -161,14 +177,14 @@ export const Dashboard = () => {
         showSearch={true}
       />
       
-      {/* Pass dataLoading state to LogTable */}
+      {/* Pass sort handler to LogTable */}
       <LogTable
         logs={logs} 
         pagination={pagination}
         loading={dataLoading}
+        onSort={handleSort}
       />
 
-      {/* Disable pagination controls during data loading */}
       <LogPagination
         pagination={pagination}
         onPageChange={handlePageChange}
@@ -176,7 +192,6 @@ export const Dashboard = () => {
         onPrevPage={handlePrevPage}
         onNextPage={handleNextPage}
         onLastPage={handleLastPage}
-        // disabled={dataLoading} 
       />
       
       {logs.length > 0 && (
@@ -195,6 +210,7 @@ export const Dashboard = () => {
             )}
             • Last updated: {new Date().toLocaleTimeString()}
             {dataLoading && " • Updating..."}
+            {currentSortBy && currentSortOrder && ` • Sorted by ${currentSortBy} (${currentSortOrder})`}
           </p>
         </div>
       )}
