@@ -64,3 +64,12 @@ export interface FormValidationErrors {
   applications?: string;
   users?: string;
 }
+
+// Track original form values for discard changes functionality
+export interface OriginalFormValues {
+  name: string;
+  description: string;
+  active: boolean;
+  selectedApplications: string[];
+  selectedUsers: string[];
+}
