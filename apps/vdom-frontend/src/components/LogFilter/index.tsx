@@ -243,7 +243,6 @@ const LogFilter = ({
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
-    // setErrors({});
 
     if (showSearch) {
       clearSearch();

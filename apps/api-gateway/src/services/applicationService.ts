@@ -3,7 +3,6 @@ import Application, { IApplication } from '../models/Application.model';
 import { Log } from '../models/Log.model';
 import Group from '../models/Group.model';
 
-
 export const getAllApplications = async (
   userId: string,
   page: number = 1,

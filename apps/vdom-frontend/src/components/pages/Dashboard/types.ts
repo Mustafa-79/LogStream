@@ -69,7 +69,7 @@ export interface LogCounts {
 
 export type LogCountsRecord = Record<string, LogCounts>;
 
-export type SortDirection = 'asc' | 'desc' | null;
+export type SortDirection = 'asc' | 'desc' | 'default';
 export type SortableColumn = 'timestamp' | 'logLevel' | 'sourceApp' | 'traceId' | 'message';
 
 export interface FilterState {
@@ -82,4 +82,11 @@ export interface FilterState {
 export interface DropdownOption {
   value: string;
   label: string;
+}
+
+export interface LogTableProps {
+  logs: Log[];
+  pagination: Pagination;
+  loading?: boolean;
+  onSort?: (sortBy?: string, sortOrder?: 'asc' | 'desc') => void;
 }

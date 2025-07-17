@@ -23,7 +23,9 @@ class LogService {
     page: number = 1, 
     limit: number = 25,
     filters?: LogFilters,
-    searchTerm?: string
+    searchTerm?: string,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc' | 'default'
   ): Promise<LogsResponse> {
     if (!AuthManager.isAuthenticated()) {
       throw new Error('User not authenticated');
@@ -59,6 +61,12 @@ class LogService {
         params.append('search', searchTerm.trim());
       }
 
+      // Only add sort parameters if not default
+      if (sortBy && sortOrder && sortOrder !== 'default') {
+        params.append('sortBy', sortBy);
+        params.append('sortOrder', sortOrder);
+      }
+
       const url = `${ApiLinks.GET_LOGS}?${params.toString()}`;
 
       const response = await fetch(url, {
@@ -88,25 +96,7 @@ class LogService {
     try {
       const params = new URLSearchParams();
 
-      if (filters?.applications && filters.applications.length > 0) {
-        params.append('applications', filters.applications.join(','));
-      }
-
-      if (filters?.logLevels && filters.logLevels.length > 0) {
-        params.append('logLevels', filters.logLevels.join(','));
-      }
-
-      if (filters?.fromDate) {
-        params.append('fromDate', filters.fromDate);
-      }
-
-      if (filters?.toDate) {
-        params.append('toDate', filters.toDate);
-      }
-
-      const url = params.toString() 
-        ? `${ApiLinks.GET_LOG_STATS}?${params.toString()}`
-        : ApiLinks.GET_LOG_STATS;
+      const url = ApiLinks.GET_LOG_STATS;
 
       const response = await fetch(url, {
         headers: this.getAuthHeaders(),
@@ -127,7 +117,9 @@ class LogService {
   static async exportLogs(
     filters?: LogFilters,
     format: 'csv' | 'json' = 'csv',
-    searchTerm?: string
+    searchTerm?: string,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc' | 'default'
   ): Promise<ExportResponse> {
     if (!AuthManager.isAuthenticated()) {
       throw new Error('User not authenticated');
@@ -154,6 +146,11 @@ class LogService {
 
       if (searchTerm && searchTerm.trim()) {
         params.append('search', searchTerm.trim());
+      }
+
+      if (sortBy && sortOrder && sortOrder !== 'default') {
+        params.append('sortBy', sortBy);
+        params.append('sortOrder', sortOrder);
       }
 
       params.append('format', format);

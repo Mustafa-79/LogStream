@@ -19,7 +19,9 @@ export const getLogs = async (
   since: Date,
   page: number = 1,
   limit: number = 25,
-  filters?: LogFilters
+  filters?: LogFilters,
+  sortBy?: string,
+  sortOrder?: 'asc' | 'desc'
 ): Promise<{
   logs: ILog[];
   pagination: {
@@ -47,6 +49,27 @@ export const getLogs = async (
     if (filters?.toDate) {
       dateConditions.push({ $lte: ["$date", filters.toDate] });
     }
+
+    const buildSortStage = () => {
+      if (!sortBy || !sortOrder) {
+        return { date: -1 } as Record<string, 1 | -1>;
+      }
+      
+      const sortDirection = sortOrder === 'desc' ? -1 : 1;
+      
+      const fieldMapping: { [key: string]: string } = {
+        'timestamp': 'date',
+        'logLevel': 'logLevel',
+        'sourceApp': 'sourceAppName',
+        'traceId': 'traceId',
+        'message': 'message'
+      };
+      
+      const backendField = fieldMapping[sortBy] || 'date';
+      return { [backendField]: sortDirection } as Record<string, 1 | -1>;
+    };
+
+    const isSourceAppSort = sortBy === 'sourceApp';
         
     const result = await Group.aggregate([
       // Stage 1: Find groups where user is a member
@@ -81,10 +104,11 @@ export const getLogs = async (
                 }
               }
             },
-            {
-              $sort: { date: -1 }
-            },
-            // Stage 5: Lookup application details to get application name
+            // Stage 5: Apply initial sorting for non-sourceApp fields
+            ...(!isSourceAppSort ? [{
+              $sort: buildSortStage()
+            }] : []),
+            // Stage 6: Lookup application details to get application name
             {
               $lookup: {
                 from: "applications",
@@ -93,7 +117,7 @@ export const getLogs = async (
                 as: "applicationDetails"
               }
             },
-            // Stage 6: Add application name field and clean up
+            // Stage 7: Add application name field and clean up
             {
               $addFields: {
                 sourceAppName: {
@@ -105,19 +129,19 @@ export const getLogs = async (
                 sourceAppId: "$sourceApp"
               }
             },
-            // Stage 7: Apply application ID filter if provided
+            // Stage 8: Apply application ID filter if provided
             ...(filters?.applications && filters.applications.length > 0 ? [{
               $match: {
                 sourceApp: { $in: filters.applications.map(id => new mongoose.Types.ObjectId(id)) }
               }
             }] : []),
-            // Stage 8: Apply log level filter if provided
+            // Stage 9: Apply log level filter if provided
             ...(filters?.logLevels && filters.logLevels.length > 0 ? [{
               $match: {
                 logLevel: { $in: filters.logLevels }
               }
             }] : []),
-            // Stage 9: Apply search filter if provided (NEW)
+            // Stage 10: Apply search filter if provided
             ...(filters?.search ? [{
               $match: {
                 $or: [
@@ -127,13 +151,17 @@ export const getLogs = async (
                 ]
               }
             }] : []),
-            // Stage 10: Replace sourceApp with the application name
+            // Stage 11: Apply sorting for sourceApp after lookup
+            ...(isSourceAppSort ? [{
+              $sort: buildSortStage()
+            }] : []),
+            // Stage 12: Replace sourceApp with the application name
             {
               $addFields: {
                 sourceApp: "$sourceAppName"
               }
             },
-            // Stage 11: Remove temporary fields
+            // Stage 13: Remove temporary fields
             {
               $project: {
                 applicationDetails: 0,
@@ -144,7 +172,7 @@ export const getLogs = async (
           as: "logs"
         }
       },
-      // Stage 5: Use $facet to get both paginated data and total count
+      // Stage 14: Use $facet to get both paginated data and total count
       {
         $facet: {
           data: [
