@@ -270,12 +270,17 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div class="oj-web-applayout-page oj-sm-padding-8x">
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="min-height: 200px;">
-          <oj-progress-circle size="sm"></oj-progress-circle>
-          <span class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-4x-start">
-            Loading applications...
-          </span>
+      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading applications...</div>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <oj-c-progress-circle
+              class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
+              aria-labelledby="lgLabel indetLabel"
+              size="lg"
+              value={-1}
+            ></oj-c-progress-circle>
+          </div>
         </div>
       </div>
     );
@@ -283,28 +288,22 @@ export function Settings() {
 
   if (error) {
     return (
-      <div class="oj-web-applayout-page oj-sm-padding-8x">
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="min-height: 200px;">        <div class="oj-panel oj-panel-shadow-sm oj-sm-padding-6x" style="border: 1px solid #ef4444; background: #fef2f2;">
-          <div class="oj-flex oj-sm-align-items-center">
-            <div style="background: #ef4444; color: white; margin-right: 1rem; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">!</div>
-            <div>
-              <div class="oj-typography-body-md oj-text-color-danger">{error}</div>
-              <button 
-                class="oj-button-sm oj-sm-margin-2x-top"
-                onClick={fetchUserApplications}
-              >
-                Try Again
-              </button>
-            </div>
+      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom" style={{ color: 'var(--oj-core-color-danger)' }}>
+            Error loading settings page
           </div>
-        </div>
+          <p class="oj-typography-body-md oj-sm-margin-2x-bottom">{error}</p>
+          <oj-button class="oj-button-primary" onojAction={fetchUserApplications}>
+            Retry
+          </oj-button>
         </div>
       </div>
     );
   }
 
   return (
-    <div class="oj-web-applayout-page oj-sm-padding-8x">
+    <div class="oj-web-applayout-page" style="padding: 40px;">
       <SettingsHeader onReset={handleReset} onSaveChanges={handleSaveChanges} />
 
       <NotificationsSection

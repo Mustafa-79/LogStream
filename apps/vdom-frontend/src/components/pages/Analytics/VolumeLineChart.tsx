@@ -20,14 +20,47 @@ const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
 
   console.log("📊 Volume line chart rendered with:", data);
 
+  // Helper function to determine granularity and format local time ID
+  const formatLocalTimeId = (timestamp: string, originalId: string) => {
+    const localDate = new Date(timestamp);
+    
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getDate()).padStart(2, '0');
+    const hour = String(localDate.getHours()).padStart(2, '0');
+    const minute = String(localDate.getMinutes()).padStart(2, '0');
+    
+    // Determine granularity based on original ID format
+    const idParts = originalId.split('-');
+    
+    if (idParts.length === 3) {
+      // Daily granularity: YYYY-MM-DD
+      return `${year}-${month}-${day}`;
+    } else if (idParts.length === 4) {
+      // Hourly granularity: YYYY-MM-DD-HH
+      return `${year}-${month}-${day}-${hour}`;
+    } else if (idParts.length === 5) {
+      // Minute granularity: YYYY-MM-DD-HH-MM
+      return `${year}-${month}-${day}-${hour}-${minute}`;
+    }
+    
+    // Fallback to original format if unrecognized
+    return originalId;
+  };
+
   // Transform the analytics data to chart format
   const chartData = useMemo(() => {
-    return data.map((item, index) => ({
-      id: index,
-      series: "Log Volume",
-      quarter: item._id,
-      value: item.count
-    }));
+    return data.map((item, index) => {
+      // Convert UTC timestamp to local time with appropriate granularity
+      const localId = formatLocalTimeId(item.timestamp, item._id);
+      
+      return {
+        id: index,
+        series: "Log Volume",
+        quarter: localId,
+        value: item.count
+      };
+    });
   }, [data]);
 
   const chartDataProvider = useMemo(() =>

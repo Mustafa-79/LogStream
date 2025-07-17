@@ -12,8 +12,9 @@ import "ojs/ojbutton";
 import "ojs/ojlabel";
 import "ojs/ojmessages";
 import "ojs/ojdialog";
-import { getDefaultDateFilters } from "../../utils/dateUtils";
+import { getDefaultDateFilters, calculateDRPMinDate } from "../../utils/dateUtils";
 import LogService from "../../services/logService";
+import SettingsService from "../../services/settingsService";
 
 // Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
@@ -63,13 +64,31 @@ const LogFilter = ({
     toDate: initialFilters.toDate || (defaultDates?.toDate || null),
   });
   
-  const [errors, setErrors] = useState<{ fromDate?: string, toDate?: string }>({});
   const [exportFormat, setExportFormat] = useState<string>("csv");
   const [exporting, setExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<any[]>([]);
+
   const [localSearchTerm, setLocalSearchTerm] = useState<string>(searchTerm);
   const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [drpMinDate, setDrpMinDate] = useState<string | null>(null);
+
+  // Fetch DRP on component mount
+  useEffect(() => {
+    const fetchDRP = async () => {
+      try {
+        const drpDays = await SettingsService.fetchDRP();
+        setDrpMinDate(calculateDRPMinDate(drpDays));
+      } catch (error) {
+        console.error('Error fetching DRP:', error);
+        // If DRP fetch fails, set a default of 30 days
+        setDrpMinDate(calculateDRPMinDate(30));
+      }
+    };
+
+    fetchDRP();
+  }, []);
+
 
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
@@ -168,9 +187,6 @@ const LogFilter = ({
     }
     const newFilters = { ...filters, fromDate: isoFromDate };
     setFilters(newFilters);
-    if (errors.fromDate) {
-      setErrors(prev => ({ ...prev, fromDate: undefined }));
-    }
   };
 
   // Handle to date change
@@ -184,9 +200,6 @@ const LogFilter = ({
     }
     const newFilters = { ...filters, toDate: isoToDate };
     setFilters(newFilters);
-    if (errors.toDate) {
-      setErrors(prev => ({ ...prev, toDate: undefined }));
-    }
   };
 
   // Handle export format change in modal
@@ -196,9 +209,6 @@ const LogFilter = ({
 
   // Open export modal
   const openExportModal = () => {
-    if (!validateDates()) {
-      return;
-    }
     // Use Oracle JET dialog API to open
     const dialog = document.getElementById('export-dialog') as any;
     if (dialog) {
@@ -215,37 +225,7 @@ const LogFilter = ({
     }
   };
 
-  // Toggle all applications
-  const toggleAllApplications = () => {
-    const allSelected = applicationsValue.size === applications.length;
-    if (allSelected) {
-      const emptySet = new Set<string>();
-      setApplicationsValue(emptySet);
-      const newFilters = { ...filters, applications: [] };
-      setFilters(newFilters);
-    } else {
-      const allAppsSet = new Set(applications.map(app => app.value));
-      setApplicationsValue(allAppsSet);
-      const newFilters = { ...filters, applications: applications.map(app => app.value) };
-      setFilters(newFilters);
-    }
-  };
-
-  // Toggle all log levels
-  const toggleAllLogLevels = () => {
-    const allSelected = logLevelsValue.size === LOG_LEVELS.length;
-    if (allSelected) {
-      const emptySet = new Set<string>();
-      setLogLevelsValue(emptySet);
-      const newFilters = { ...filters, logLevels: [] };
-      setFilters(newFilters);
-    } else {
-      const allLevelsSet = new Set(LOG_LEVELS);
-      setLogLevelsValue(allLevelsSet);
-      const newFilters = { ...filters, logLevels: [...LOG_LEVELS] };
-      setFilters(newFilters);
-    }
-  };
+ 
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -271,9 +251,7 @@ const LogFilter = ({
   };
 
   const applyFilters = () => {
-    if (validateDates()) {
-      onFilterChange(filters);
-    }
+    onFilterChange(filters);
   };
 
   // Export logs functionality (called from modal)
@@ -323,38 +301,6 @@ const LogFilter = ({
     } finally {
       setExporting(false);
     }
-  };
-
-  // Validate date filters
-  const validateDates = (): boolean => {
-    const newErrors: { fromDate?: string; toDate?: string } = {};
-    const { fromDate, toDate } = filters;
-
-    if (fromDate && !toDate) {
-      newErrors.toDate = "Please select a 'to' date.";
-    } else if (!fromDate && toDate) {
-      newErrors.fromDate = "Please select a 'from' date.";
-    }
-
-    if (fromDate && toDate) {
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
-
-      if (from > to) {
-        newErrors.fromDate = "'From' date cannot be after 'to' date.";
-      }
-
-      const now = new Date();
-      if (from > now) {
-        newErrors.fromDate = "'From' date cannot be in the future.";
-      }
-      if (to > now) {
-        newErrors.toDate = "'To' date cannot be in the future.";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // Auto-hide messages after timeout
@@ -474,13 +420,7 @@ const LogFilter = ({
               item-text="label"
               style="flex: 1; margin-right: 8px;"
             />
-            <oj-button
-              class="oj-button-sm oj-button-outlined-chrome"
-              onojAction={toggleAllApplications}
-              title={applicationsValue.size === applications.length ? "Clear All Applications" : "Select All Applications"}
-            >
-              <span slot="startIcon" class={applicationsValue.size === applications.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-            </oj-button>
+
           </div>
         </div>
 
@@ -500,13 +440,7 @@ const LogFilter = ({
               item-text="label"
               style="flex: 1; margin-right: 8px;"
             />
-            <oj-button
-              class="oj-button-sm oj-button-outlined-chrome"
-              onojAction={toggleAllLogLevels}
-              title={logLevelsValue.size === LOG_LEVELS.length ? "Clear All Log Levels" : "Select All Log Levels"}
-            >
-              <span slot="startIcon" class={logLevelsValue.size === LOG_LEVELS.length ? "oj-ux-ico-close" : "oj-ux-ico-menu-select-many"}></span>
-            </oj-button>
+
           </div>
         </div>
 
@@ -521,13 +455,10 @@ const LogFilter = ({
             onvalueChanged={handleFromDateChange}
             converter={timeFullConverter}
             label-hint="Select from date and time"
-            class={errors.fromDate ? 'oj-invalid' : ''}
+            min={drpMinDate || undefined}
+            max={filters.toDate || new Date().toISOString()}
+            
           ></oj-input-date-time>
-          {errors.fromDate && (
-            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
-              {errors.fromDate}
-            </div>
-          )}
         </div>
 
         {/* To Date */}
@@ -541,13 +472,9 @@ const LogFilter = ({
             onvalueChanged={handleToDateChange}
             converter={timeFullConverter}
             label-hint="Select to date and time"
-            class={errors.toDate ? 'oj-invalid' : ''}
+            min={drpMinDate && filters.fromDate ? (new Date(filters.fromDate) > new Date(drpMinDate) ? filters.fromDate : drpMinDate) : (filters.fromDate || drpMinDate || undefined)}
+            max={new Date().toISOString()}
           ></oj-input-date-time>
-          {errors.toDate && (
-            <div class="oj-text-color-danger oj-typography-body-xs oj-sm-margin-1x-top">
-              {errors.toDate}
-            </div>
-          )}
         </div>
       </div>
 

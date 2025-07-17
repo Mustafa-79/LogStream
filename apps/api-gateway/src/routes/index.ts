@@ -7,6 +7,7 @@ import userGroupsRoute from './userGroups'
 import userRoute from './userRoutes'
 import analyticsRoute from './analyticsRoutes'
 import settingsRoute from './settingsRoutes' 
+import alertRoute from './alertRoutes'
 
 const router: Router = express.Router()
 
@@ -18,6 +19,7 @@ const defaultRoutes: { path: string; route: Router }[] = [
   { path: '/logs', route: logRoutes },
   { path: '/analytics', route: analyticsRoute },
   { path: '/settings', route: settingsRoute},
+  { path: '/alerts', route: alertRoute},
 ]
 
 defaultRoutes.forEach(({ path, route }) => {

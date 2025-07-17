@@ -397,7 +397,7 @@ export function Applications() {
   }
 
   return (
-    <div class="oj-web-applayout-page" style="padding: 40px; padding-top: 20px;">
+    <div class="oj-web-applayout-page" style="padding: 40px;">
       {/* Notifications */}
       <NotificationBanner
         message={successMessage}
@@ -417,12 +417,14 @@ export function Applications() {
           <h1 class="oj-typography-heading-lg" style="margin: 0;">
             Applications
           </h1>
+
           <div class="oj-flex oj-align-items-center" style="margin-top: 4px; gap: 8px;">
-            <span style="color: #6b7280; font-size: 0.975rem; font-family: 'Poppins', sans-serif;">
-              Manage and monitor all your connected applications. ({pagination.totalCount} total)
+            <p class="oj-typography-body-md" style="color: #6b7280; margin-top: 4px;">
+               Manage and monitor all your connected applications. ({pagination.totalCount} total)
               {dataLoading && " • Updating..."}
-            </span>
+            </p>
           </div>
+
         </div>
         <div style="flex-shrink: 0; margin-left: 16px;">
           {isAdmin && <oj-button
