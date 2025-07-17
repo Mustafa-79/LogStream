@@ -834,9 +834,3 @@ export function UserGroups() {
     </div>
   );
 }
-
-
-
-// TODOs:
-// TODO: [Alerts] [Backend] Add JOI validations and error handling middleware
-// TODO: [Refactor] Refactor entire code to be more modular and readable
