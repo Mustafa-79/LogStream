@@ -172,7 +172,7 @@ export function ApplicationFiltersComponent({
         <div style="color: #6b7280; font-size: 0.875rem;">
           <strong>Active Filters:</strong>
           {searchQuery && (
-            <span style="margin-left: 8px;">
+            <span style="margin-left: 8px; white-space: pre;">
               Search: "{searchQuery}" {isSearching && "(searching...)"}
             </span>
           )}

@@ -482,7 +482,7 @@ const LogFilter = ({
         <div class="oj-typography-body-sm" style="color: #6b7280;">
           <strong>Active Filters:</strong>
           {showSearch && localSearchTerm && (
-            <span style="margin-left: 8px;">
+            <span style="margin-left: 8px; white-space: pre;">
               Search: "{localSearchTerm}" {isSearching && "(searching...)"}
             </span>
           )}
