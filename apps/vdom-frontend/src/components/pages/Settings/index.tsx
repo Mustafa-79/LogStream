@@ -115,6 +115,13 @@ export function Settings() {
       }));
       setApplicationStatus(statusData);
       
+      // Check if all applications have notifications disabled
+      // If all are disabled (or no applications exist), set enableAlerts to false
+      const allNotificationsDisabled = sortedUserApps.length === 0 || 
+        sortedUserApps.every(app => !app.notificationsEnabled);
+      
+      setEnableAlerts(!allNotificationsDisabled);
+      
     } catch (err) {
       setError('Failed to load user applications');
       console.error('Error fetching user applications:', err);
@@ -221,6 +228,19 @@ export function Settings() {
     );
   };
 
+  const handleAlertsToggle = (enabled: boolean) => {
+    setEnableAlerts(enabled);
+    
+    if (!enabled) {
+      // If disabling alerts, disable all application notifications
+      setApplicationStatus(prev => 
+        prev.map(app => ({ ...app, notificationsEnabled: false }))
+      );
+    }
+    // When enabling alerts, don't automatically enable any applications
+    // Let the user manually choose which applications to enable
+  };
+
   const updateApplicationStatus = (threshold?: string, period?: string) => {
     if (!selectedApplication) return;
     
@@ -315,7 +335,7 @@ export function Settings() {
         timePeriod={timePeriod}
         applicationStatus={applicationStatus}
         validationErrors={validationErrors}
-        onAlertsToggle={setEnableAlerts}
+        onAlertsToggle={handleAlertsToggle}
         onApplicationChange={handleApplicationChange}
         onThresholdChange={handleThresholdChange}
         onTimePeriodChange={handleTimePeriodChange}
