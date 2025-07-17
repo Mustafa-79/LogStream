@@ -217,7 +217,7 @@ services:
     ports:
       - "${FLUENT_BIT_APP4_PORT}:2020"
 
-  # Fluent Bit for App 5 - Re-enabled: Now reads from log-fetcher output
+  # Fluent Bit for App 5
   fluent-bit-app5:
     build:
       context: ./fluent-bit
