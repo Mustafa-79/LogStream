@@ -270,12 +270,17 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div class="oj-web-applayout-page oj-sm-padding-8x">
-        <div class="oj-flex oj-sm-justify-content-center oj-sm-align-items-center" style="min-height: 200px;">
-          <oj-progress-circle size="sm"></oj-progress-circle>
-          <span class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-4x-start">
-            Loading applications...
-          </span>
+      <div class="oj-sm-12 oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-flex-items-center">
+          <div class="oj-typography-heading-md oj-sm-margin-2x-bottom">Loading applications...</div>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <oj-c-progress-circle
+              class="oj-sm-margin-4x-vertical oj-sm-padding-4x"
+              aria-labelledby="lgLabel indetLabel"
+              size="lg"
+              value={-1}
+            ></oj-c-progress-circle>
+          </div>
         </div>
       </div>
     );
