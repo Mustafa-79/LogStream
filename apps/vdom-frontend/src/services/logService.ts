@@ -61,8 +61,7 @@ class LogService {
         params.append('search', searchTerm.trim());
       }
 
-      // Only add sort parameters if not default
-      if (sortBy && sortOrder && sortOrder !== 'default') {
+      if (sortBy && sortOrder) {
         params.append('sortBy', sortBy);
         params.append('sortOrder', sortOrder);
       }
