@@ -12,8 +12,9 @@ import "ojs/ojbutton";
 import "ojs/ojlabel";
 import "ojs/ojmessages";
 import "ojs/ojdialog";
-import { getDefaultDateFilters } from "../../utils/dateUtils";
+import { getDefaultDateFilters, calculateDRPMinDate } from "../../utils/dateUtils";
 import LogService from "../../services/logService";
+import SettingsService from "../../services/settingsService";
 
 // Default log levels
 const LOG_LEVELS = ["DEBUG", "ERROR", "WARNING", "INFO"];
@@ -82,6 +83,23 @@ const LogFilter = ({
   const [exportFormat, setExportFormat] = useState<string>("csv");
   const [exporting, setExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<any[]>([]);
+  const [drpMinDate, setDrpMinDate] = useState<string | null>(null);
+
+  // Fetch DRP on component mount
+  useEffect(() => {
+    const fetchDRP = async () => {
+      try {
+        const drpDays = await SettingsService.fetchDRP();
+        setDrpMinDate(calculateDRPMinDate(drpDays));
+      } catch (error) {
+        console.error('Error fetching DRP:', error);
+        // If DRP fetch fails, set a default of 30 days
+        setDrpMinDate(calculateDRPMinDate(30));
+      }
+    };
+
+    fetchDRP();
+  }, []);
 
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
@@ -362,6 +380,7 @@ const LogFilter = ({
             onvalueChanged={handleFromDateChange}
             converter={timeFullConverter}
             label-hint="Select from date and time"
+            min={drpMinDate || undefined}
             max={filters.toDate || new Date().toISOString()}
             
           ></oj-input-date-time>
@@ -378,7 +397,7 @@ const LogFilter = ({
             onvalueChanged={handleToDateChange}
             converter={timeFullConverter}
             label-hint="Select to date and time"
-            min={filters.fromDate || undefined}
+            min={drpMinDate && filters.fromDate ? (new Date(filters.fromDate) > new Date(drpMinDate) ? filters.fromDate : drpMinDate) : (filters.fromDate || drpMinDate || undefined)}
             max={new Date().toISOString()}
           ></oj-input-date-time>
         </div>
