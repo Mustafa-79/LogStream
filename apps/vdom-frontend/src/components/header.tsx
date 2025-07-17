@@ -1,4 +1,10 @@
-
+/**
+ * @license
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Licensed under The Universal Permissive License (UPL), Version 1.0
+ * as shown at https://oss.oracle.com/licenses/upl/
+ * @ignore
+ */
 import { h } from "preact";
 import { useRef, useState, useEffect } from "preact/hooks";
 import * as ResponsiveUtils from "ojs/ojresponsiveutils";
@@ -52,6 +58,17 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer, isAuthen
     return user?.isAdmin ? 'Admin' : 'User';
   }
 
+  // Get user name for header display
+  function getUserName(): string {
+    const user = AuthManager.getCurrentUser();
+    // Extract name from email (part before @) or use email if no name available
+    if (user?.email) {
+      const name = user.name || user.email.split('@')[0];
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    return userLogin;
+  }
+
   return (
     <header role="banner" class="oj-web-applayout-header">
       <div class="oj-flex-bar oj-sm-align-items-center" style="width: 100%;">
@@ -67,15 +84,19 @@ export function Header({ appName, userLogin, onLogout,  onToggleDrawer, isAuthen
           <Notifications />
           <oj-toolbar>
             <oj-menu-button id="userMenu" display={getDisplayType()} chroming="borderless">
-              <span>{userLogin}</span>
+              <span>{getUserName()}</span>
               <span slot="endIcon" class={getEndIconClass()}></span>
               <oj-menu id="menu1" slot="menu" onojMenuAction={handleMenuAction}>
-                <oj-option id="role" value="role" disabled>
-                  <span style="color: #6b7280; font-size: 0.875rem; font-weight: 500;">
-                    Role: {getUserRole()}
-                  </span>
+                <oj-option id="userInfo" value="userInfo" disabled>
+                  <div style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <div style="color: #111827; font-weight: 500; font-size: 0.875rem; margin-bottom: 2px;">
+                      {userLogin}
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.75rem;">
+                      {getUserRole()}
+                    </div>
+                  </div>
                 </oj-option>
-                <oj-option id="divider" disabled style="border-bottom: 1px solid #e5e7eb; margin: 4px 0;"></oj-option>
                 <oj-option id="out" value="out">Sign Out</oj-option>
               </oj-menu>
             </oj-menu-button>
