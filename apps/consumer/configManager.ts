@@ -3,6 +3,7 @@ import Application from './models/Application';
 interface AppConfig {
   threshold: number;
   period: number;
+  notificationsEnabled: boolean;
 }
 
 class ConfigManager {
@@ -20,7 +21,8 @@ class ConfigManager {
       applications.forEach(app => {
         this.configs.set(String(app._id), {
           threshold: app.threshold,
-          period: app.timePeriod
+          period: app.timePeriod,
+          notificationsEnabled: app.notificationsEnabled
         });
       });
 

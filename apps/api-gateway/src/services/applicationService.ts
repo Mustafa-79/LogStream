@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import Application, { IApplication } from '../models/Application.model';
 import { Log } from '../models/Log.model';
 import Group from '../models/Group.model';
-import mongoose from 'mongoose';
 
 
 export const getAllApplications = async (
