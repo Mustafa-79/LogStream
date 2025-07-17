@@ -44,33 +44,17 @@ const timeFullConverter = new IntlDateTimeConverter({
   second: '2-digit' 
 });
 
-/**
- * LogFilter Component
- * 
- * @param onFilterChange - Callback function called when filters change
- * @param initialFilters - Initial filter values (optional)
- * @param className - Additional CSS classes (optional)
- * @param applications - List of available applications for filtering (optional)
- * @param applyingFilters - Whether filters are currently being applied (optional)
- * @param defaultDates - Default date range for from/to inputs (optional)
- * @param showExport - Whether to show export functionality (optional, defaults to false)
- * 
- * Usage examples:
- * 
- * // With export functionality (dashboard)
- * <LogFilter showExport={true} defaultDates={getDefaultDateFilters()} />
- * 
- * // Without export functionality (other pages)
- * <LogFilter />
- */
 const LogFilter = ({ 
   onFilterChange, 
+  onSearchChange,
   initialFilters = {}, 
+  searchTerm = "",
   className = "", 
   applications = [], 
   applyingFilters = false, 
   defaultDates, 
-  showExport = false 
+  showExport = false,
+  showSearch = false
 }: LogFilterProps) => {
   const [filters, setFilters] = useState<FilterState>({
     applications: initialFilters.applications || [],
@@ -83,6 +67,9 @@ const LogFilter = ({
   const [exportFormat, setExportFormat] = useState<string>("csv");
   const [exporting, setExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<any[]>([]);
+  const [localSearchTerm, setLocalSearchTerm] = useState<string>(searchTerm);
+  const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Create ArrayDataProviders dynamically based on props
   const applicationsDP = new ArrayDataProvider(applications, {
@@ -96,6 +83,48 @@ const LogFilter = ({
   // Convert arrays to Sets for oj-c-select-multiple (as per Oracle JET requirements)
   const [applicationsValue, setApplicationsValue] = useState<Set<string>>(new Set(initialFilters.applications || []));
   const [logLevelsValue, setLogLevelsValue] = useState<Set<string>>(new Set(initialFilters.logLevels || []));
+
+  const handleSearchChange = (event: any) => {
+    const value = event.detail.value || "";
+    setLocalSearchTerm(value);
+    
+    if (searchTimeout) {
+      window.clearTimeout(searchTimeout);
+    }
+    
+    setIsSearching(true);
+    
+    const timeout = window.setTimeout(() => {
+      if (onSearchChange) {
+        onSearchChange(value);
+      }
+      setIsSearching(false);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+  };
+
+  const clearSearch = () => {
+    if (searchTimeout) {
+      window.clearTimeout(searchTimeout);
+      setSearchTimeout(null);
+    }
+    
+    setLocalSearchTerm("");
+    setIsSearching(false);
+    
+    if (onSearchChange) {
+      onSearchChange("");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        window.clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
 
   // Handle application filter changes
   const handleApplicationChange = (event: any) => {
@@ -235,9 +264,12 @@ const LogFilter = ({
     setFilters(newFilters);
     onFilterChange(newFilters);
     setErrors({});
+
+    if (showSearch) {
+      clearSearch();
+    }
   };
 
-  // Apply filters
   const applyFilters = () => {
     if (validateDates()) {
       onFilterChange(filters);
@@ -259,8 +291,8 @@ const LogFilter = ({
         toDate: filters.toDate || undefined,
       };
 
-      // Call the LogService export method
-      const result = await LogService.exportLogs(exportFilters, exportFormat as 'csv' | 'json');
+      // Call the LogService export method with search term
+      const result = await LogService.exportLogs(exportFilters, exportFormat as 'csv' | 'json', localSearchTerm);
       
       setExportMessage([{
         severity: 'confirmation',
@@ -335,6 +367,11 @@ const LogFilter = ({
     }
   }, [exportMessage]);
 
+  // Update local search term when prop changes
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
+
   return (
     <div class={`oj-panel oj-panel-shadow-sm ${className}`} style="padding: 20px; margin-bottom: 20px; border-radius: 8px;">
       {/* Export Messages */}
@@ -384,6 +421,41 @@ const LogFilter = ({
           )}
         </div>
       </div>
+
+      {/* Search Bar - Only show if showSearch is true */}
+      {showSearch && (
+        <div style="margin-bottom: 20px;">
+          <oj-label for="search-logs-input">
+            Search Messages
+          </oj-label>
+          <div class="oj-flex oj-sm-align-items-center">
+            <oj-input-text
+              id="search-logs-input"
+              value={localSearchTerm}
+              onvalueChanged={handleSearchChange}
+              placeholder="Search in log messages..."
+              label-hint="Type to search log messages"
+              style="flex: 1; margin-right: 8px;"
+              disabled={isSearching}
+            />
+          </div>
+          {localSearchTerm && !isSearching && (
+            <div class="oj-typography-body-sm" style="color: #6b7280; margin-top: 4px;">
+              Searching for: "{localSearchTerm}"
+            </div>
+          )}
+          {isSearching && (
+            <div class="oj-typography-body-sm" style="color: #6b7280; margin-top: 4px;">
+              Searching...
+            </div>
+          )}
+          {showSearch && (
+            <div class="oj-typography-body-xs" style="color: #9ca3af; margin-top: 4px; font-style: italic;">
+              Search results appear automatically as you type
+            </div>
+          )}
+        </div>
+      )}
 
       <div class="oj-flex oj-flex-wrap oj-sm-align-items-stretch oj-sm-flex-direction-row">
         {/* Applications Filter */}
@@ -483,6 +555,11 @@ const LogFilter = ({
       <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
         <div class="oj-typography-body-sm" style="color: #6b7280;">
           <strong>Active Filters:</strong>
+          {showSearch && localSearchTerm && (
+            <span style="margin-left: 8px;">
+              Search: "{localSearchTerm}" {isSearching && "(searching...)"}
+            </span>
+          )}
           {filters.applications.length > 0 && (
             <span style="margin-left: 8px;">
               Apps: {filters.applications.length} selected
@@ -503,7 +580,8 @@ const LogFilter = ({
               To: {new Date(filters.toDate).toLocaleDateString()}
             </span>
           )}
-          {filters.applications.length === 0 &&
+          {(!showSearch || !localSearchTerm) &&
+            filters.applications.length === 0 &&
             filters.logLevels.length === 0 &&
             !filters.fromDate &&
             !filters.toDate && (
@@ -543,6 +621,9 @@ const LogFilter = ({
             <div style="margin-top: 20px; padding: 12px; background-color: #f3f4f6; border-radius: 6px;">
               <div class="oj-typography-body-sm" style="color: #6b7280;">
                 <strong>Export will include:</strong>
+                {localSearchTerm && (
+                  <div>• Search: "{localSearchTerm}"</div>
+                )}
                 {filters.applications.length > 0 && (
                   <div>• Applications: {filters.applications.length} selected</div>
                 )}
@@ -555,7 +636,8 @@ const LogFilter = ({
                 {filters.toDate && (
                   <div>• To: {new Date(filters.toDate).toLocaleString()}</div>
                 )}
-                {filters.applications.length === 0 &&
+                {!localSearchTerm &&
+                  filters.applications.length === 0 &&
                   filters.logLevels.length === 0 &&
                   !filters.fromDate &&
                   !filters.toDate && (

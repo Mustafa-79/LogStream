@@ -1,39 +1,6 @@
 import { AuthManager } from "../utils/auth";
-import { Log } from "../utils/applicationUtils";
 import ApiLinks from "../network/apiLinks";
-
-interface LogsResponse {
-  logs: Log[];
-  pagination: Pagination;
-}
-
-interface Pagination {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  limit: number;
-}
-
-interface ApiResponse<T> {
-  statusCode: number;
-  message: string;
-  data: T;
-}
-
-interface LogFilters {
-  applications?: string[];
-  logLevels?: string[];
-  fromDate?: string;
-  toDate?: string;
-}
-
-interface ExportResponse {
-  message: string;
-  exportId?: string;
-  status?: string;
-}
+import { LogsResponse, LogFilters, ApiResponse, ExportResponse } from "../components/pages/Dashboard/types";
 
 class LogService {
   private static readonly FETCH_INTERVAL = 5000;
@@ -55,7 +22,8 @@ class LogService {
     since?: string, 
     page: number = 1, 
     limit: number = 25,
-    filters?: LogFilters
+    filters?: LogFilters,
+    searchTerm?: string
   ): Promise<LogsResponse> {
     if (!AuthManager.isAuthenticated()) {
       throw new Error('User not authenticated');
@@ -85,6 +53,10 @@ class LogService {
 
       if (filters?.toDate) {
         params.append('toDate', filters.toDate);
+      }
+
+      if (searchTerm && searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
       }
 
       const url = `${ApiLinks.GET_LOGS}?${params.toString()}`;
@@ -154,7 +126,8 @@ class LogService {
 
   static async exportLogs(
     filters?: LogFilters,
-    format: 'csv' | 'json' = 'csv'
+    format: 'csv' | 'json' = 'csv',
+    searchTerm?: string
   ): Promise<ExportResponse> {
     if (!AuthManager.isAuthenticated()) {
       throw new Error('User not authenticated');
@@ -177,6 +150,10 @@ class LogService {
 
       if (filters?.toDate) {
         params.append('toDate', filters.toDate);
+      }
+
+      if (searchTerm && searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
       }
 
       params.append('format', format);

@@ -1,46 +1,23 @@
 import { useState, useEffect } from "preact/hooks";
 import ApplicationService from "../services/applicationService";
-import { Application } from "../utils/applicationUtils";
-
-interface CreateApplicationData {
-  name: string;
-  description: string;
-}
-
-interface UpdateApplicationData {
-  name?: string;
-  description?: string;
-  active?: boolean;
-}
-
-interface DropdownOption {
-  value: string;
-  label: string;
-}
-
-interface Pagination {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  limit: number;
-}
-
-interface UseApplicationsOptions {
-  pageSize?: number;
-}
-
-interface ApplicationFilters {
-  active?: boolean;
-}
+import { 
+  Application, 
+  CreateApplicationData, 
+  UpdateApplicationData, 
+  DropdownOption, 
+  Pagination, 
+  UseApplicationsOptions, 
+  ApplicationFilters 
+} from "../components/pages/Applications/types";
 
 export const useApplications = (options: UseApplicationsOptions = {}) => {
   const { pageSize = 5 } = options;
   const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true); // Initial page load
+  const [dataLoading, setDataLoading] = useState<boolean>(false); // Filter/search operations
   const [error, setError] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<ApplicationFilters>({});
+  const [currentSearchTerm, setCurrentSearchTerm] = useState<string>("");
   const [pagination, setPagination] = useState<Pagination>({
     currentPage: 1,
     totalPages: 1,
@@ -50,13 +27,20 @@ export const useApplications = (options: UseApplicationsOptions = {}) => {
     limit: pageSize
   });
 
-  const fetchApplications = async (page: number = 1, filters?: ApplicationFilters) => {
+  const fetchApplications = async (page: number = 1, filters?: ApplicationFilters, searchTerm?: string, isInitialLoad: boolean = false) => {
     try {
-      setLoading(true);
+      // Use different loading states based on whether this is initial load
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        setDataLoading(true);
+      }
       setError(null);
       
       const filtersToUse = filters !== undefined ? filters : currentFilters;
-      const data = await ApplicationService.fetchAllApplications(page, pageSize, filtersToUse);
+      const searchToUse = searchTerm !== undefined ? searchTerm : currentSearchTerm;
+      
+      const data = await ApplicationService.fetchAllApplications(page, pageSize, filtersToUse, searchToUse);
       
       setApplications(data.applications);
       setPagination(data.pagination);
@@ -64,66 +48,81 @@ export const useApplications = (options: UseApplicationsOptions = {}) => {
       if (filters !== undefined) {
         setCurrentFilters(filters);
       }
+      
+      if (searchTerm !== undefined) {
+        setCurrentSearchTerm(searchTerm);
+      }
     } catch (err) {
       console.error('Error fetching applications:', err);
       setError('Failed to fetch applications');
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      } else {
+        setDataLoading(false);
+      }
     }
   };
 
-  const fetchApplicationsWithFilters = async (filters: ApplicationFilters) => {
-    await fetchApplications(1, filters);
+  const fetchApplicationsWithFilters = async (filters: ApplicationFilters, searchTerm?: string) => {
+    await fetchApplications(1, filters, searchTerm, false);
+  };
+
+  const fetchApplicationsWithSearch = async (searchTerm: string) => {
+    await fetchApplications(1, currentFilters, searchTerm, false);
   };
 
   const goToPage = async (page: number) => {
     if (page >= 1 && page <= pagination.totalPages && page !== pagination.currentPage) {
-      await fetchApplications(page);
+      await fetchApplications(page, undefined, undefined, false);
     }
   };
 
   const goToNextPage = async () => {
     if (pagination.hasNextPage) {
-      await fetchApplications(pagination.currentPage + 1);
+      await fetchApplications(pagination.currentPage + 1, undefined, undefined, false);
     }
   };
 
   const goToPrevPage = async () => {
     if (pagination.hasPrevPage) {
-      await fetchApplications(pagination.currentPage - 1);
+      await fetchApplications(pagination.currentPage - 1, undefined, undefined, false);
     }
   };
 
   const goToFirstPage = async () => {
     if (pagination.currentPage !== 1) {
-      await fetchApplications(1);
+      await fetchApplications(1, undefined, undefined, false);
     }
   };
 
   const goToLastPage = async () => {
     if (pagination.currentPage !== pagination.totalPages) {
-      await fetchApplications(pagination.totalPages);
+      await fetchApplications(pagination.totalPages, undefined, undefined, false);
     }
   };
 
   const refreshCurrentPage = async () => {
-    await fetchApplications(pagination.currentPage);
+    await fetchApplications(pagination.currentPage, undefined, undefined, false);
   };
 
   useEffect(() => {
-    fetchApplications();
+    fetchApplications(1, undefined, undefined, true); // Initial load
   }, []);
 
   return {
     applications,
     setApplications,
     loading,
+    dataLoading, // New: separate loading state for data operations
     error,
     pagination,
     currentFilters,
+    currentSearchTerm,
     actions: {
-      fetchApplications: () => fetchApplications(1),
+      fetchApplications: () => fetchApplications(1, undefined, undefined, true),
       fetchApplicationsWithFilters,
+      fetchApplicationsWithSearch, // New: search function
       refetch: refreshCurrentPage,
       goToPage,
       goToNextPage,

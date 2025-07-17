@@ -7,7 +7,9 @@ export interface FilterState {
 
 export interface LogFilterProps {
   onFilterChange: (filters: FilterState) => void;
+  onSearchChange?: (searchTerm: string) => void;
   initialFilters?: Partial<FilterState>;
+  searchTerm?: string;
   className?: string;
   applications?: DropdownOption[];
   applyingFilters?: boolean;
@@ -16,6 +18,7 @@ export interface LogFilterProps {
     toDate: string;
   };
   showExport?: boolean;
+  showSearch?: boolean;
 }
 
 export interface DropdownOption {

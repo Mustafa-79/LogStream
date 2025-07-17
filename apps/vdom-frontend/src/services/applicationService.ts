@@ -1,48 +1,15 @@
 import ApiLinks from "../network/apiLinks";
 import { AuthManager } from "../utils/auth";
-
-interface CreateApplicationData {
-  name: string;
-  description: string;
-}
-
-interface UpdateApplicationData {
-  name?: string;
-  description?: string;
-  active?: boolean;
-}
-
-interface ApplicationsResponse {
-  applications: any[];
-  pagination: Pagination;
-}
-
-interface Pagination {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  limit: number;
-}
-
-interface ApplicationFilters {
-  active?: boolean; 
-}
-
-interface ApiResponse<T> {
-  statusCode: number;
-  message: string;
-  data: T;
-}
-
-interface DropdownOption {
-  value: string;
-  label: string;
-}
+import { 
+  CreateApplicationData, 
+  UpdateApplicationData, 
+  ApplicationsResponse, 
+  ApplicationFilters, 
+  ApiResponse, 
+  DropdownOption 
+} from "../components/pages/Applications/types";
 
 class ApplicationService {
-  // Helper function to get authenticated headers
   private static getAuthHeaders(): HeadersInit {
     const token = AuthManager.getToken();
     const headers: HeadersInit = {
@@ -59,7 +26,8 @@ class ApplicationService {
   static async fetchAllApplications(
     page: number = 1,
     limit: number = 5,
-    filters?: ApplicationFilters
+    filters?: ApplicationFilters,
+    searchTerm?: string // Add search parameter
   ): Promise<ApplicationsResponse> {
     const params = new URLSearchParams();
     params.append('page', page.toString());
@@ -67,6 +35,11 @@ class ApplicationService {
 
     if (filters?.active !== undefined) {
       params.append('active', filters.active.toString());
+    }
+
+    // Add search parameter to API call
+    if (searchTerm && searchTerm.trim()) {
+      params.append('search', searchTerm.trim());
     }
 
     const url = `${ApiLinks.GET_ALL_APPLICATIONS}?${params.toString()}`;
