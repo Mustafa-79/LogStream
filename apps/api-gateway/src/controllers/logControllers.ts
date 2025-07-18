@@ -4,6 +4,7 @@ import createResponse from '../utils/responseHelper';
 import { agenda } from '../config/agenda';
 import { JobStatusModel } from '../models/JobStatus.model';
 import logger from '../config/logger';
+import config from '../config/config';
 
 // Log controller debug logger
 const logControllerDebugger = logger.withTraceId('LOG_CTRL');
@@ -150,7 +151,9 @@ export const exportLogs = async (req: Request, res: Response, next: NextFunction
     
     const userId = req.user?.userId;
     const userEmail = req.user?.email;
-    logControllerDebugger.debug(`User ID: ${userId}, User Email: ${userEmail}, Format: ${format}`);
+    if (config.nodeEnv === 'development') {
+      logControllerDebugger.debug(`User ID: ${userId}, User Email: ${userEmail}, Format: ${format}`);
+    }
     
     if (!userId) {
       res.status(401).json({ error: 'User authentication required' });

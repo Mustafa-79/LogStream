@@ -2,6 +2,7 @@ import { Log } from '../models/Log.model';
 import Group from '../models/Group.model';
 import mongoose from 'mongoose';
 import logger from '../config/logger';
+import config from '../config/config';
 
 // Analytics debug logger
 const analyticsDebugger = logger.withTraceId('ANALYTICS');
@@ -87,7 +88,9 @@ export class AnalyticsService {
 
     const { logLevelDistribution, totalLogs } = logLevelResults;
 
-    analyticsDebugger.debug(`Total Logs: ${totalLogs}`);
+    if (config.nodeEnv === 'development') {
+      analyticsDebugger.debug(`Total Logs: ${totalLogs}`);
+    }
 
     return {
       logLevelDistribution,
