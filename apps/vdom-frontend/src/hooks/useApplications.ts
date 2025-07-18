@@ -174,7 +174,6 @@ export const useCreateApplication = () => {
       setIsCreating(true);
       setError(null);
       const newApp = await ApplicationService.createApplication(applicationData);
-      console.log('Application created:', newApp);
       return newApp;
     } catch (err) {
       console.error('Error creating application:', err);
@@ -201,7 +200,6 @@ export const useUpdateApplication = () => {
       setIsUpdating(true);
       setError(null);
       const updatedApp = await ApplicationService.updateApplication(id, updateData);
-      console.log('Application updated:', updatedApp);
       return updatedApp;
     } catch (err) {
       console.error('Error updating application:', err);
@@ -228,7 +226,6 @@ export const useDeleteApplication = () => {
       setIsDeleting(true);
       setError(null);
       await ApplicationService.deleteApplication(id);
-      console.log('Application deleted:', id);
       return true;
     } catch (err) {
       console.error('Error deleting application:', err);

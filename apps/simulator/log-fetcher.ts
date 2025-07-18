@@ -29,7 +29,6 @@ async function fetchLogs() {
       const content = logs.map(formatLog).join('');
       fs.appendFileSync(LOG_FILE, content);
       lastTimestamp = logs[logs.length - 1].createdAt;
-      console.log(`Wrote ${logs.length} logs to file`);
     }
   } catch (error) {
     console.error('Error fetching logs:', error);

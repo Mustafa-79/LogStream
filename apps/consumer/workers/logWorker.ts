@@ -25,9 +25,6 @@ export const worker = new Worker(
   async (job: Job) => {
     let parsed: any;
 
-    // print job data to console for debugging
-    console.log(`Received job ${job.id} with data:`, job.data);
-
     // If job.data is a string, try to parse as JSON, else parse as log line
     if (typeof job.data === "string") {
       try {
@@ -42,7 +39,6 @@ export const worker = new Worker(
 
     if (parsed) {
 
-      console.log(`Processing job ${job.id} with data:`, parsed);
       // Create log entry according to the schema
       const logEntry = {
         message: parsed.message || parsed.log_message || "",
@@ -53,7 +49,6 @@ export const worker = new Worker(
       };
 
       await Log.create(logEntry);
-      console.log(`Saved log to MongoDB:`, logEntry);
       
       // Check for alerts on ERROR logs
       await alertingService.checkAndAlert(logEntry.sourceApp, logEntry.logLevel);

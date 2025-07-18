@@ -18,8 +18,6 @@ type ChartProps = ComponentProps<"oj-chart"> & {
 
 const VolumeLineChart = ({ data }: { data: VolumeTrend[] }) => {
 
-  console.log("📊 Volume line chart rendered with:", data);
-
   // Helper function to determine granularity and format local time ID
   const formatLocalTimeId = (timestamp: string, originalId: string) => {
     const localDate = new Date(timestamp);

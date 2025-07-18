@@ -26,7 +26,6 @@ class ConfigManager {
         });
       });
 
-      console.log(`Loaded ${this.configs.size} app configs from MongoDB`);
     } catch (error) {
       console.error('Error loading configs:', error);
     }

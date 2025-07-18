@@ -96,7 +96,6 @@ class AnalyticsService {
 
       const data: AnalyticsResponse = await response.json();
 
-      console.log('📊 Analytics data:', data.data);
       return data;
     } catch (error) {
       console.error('Error fetching analytics:', error);
