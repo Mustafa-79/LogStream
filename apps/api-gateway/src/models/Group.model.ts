@@ -44,4 +44,8 @@ const GroupSchema = new Schema<IGroup>({
   timestamps: true,
 })
 
+// Add indexes for analytics queries optimization
+GroupSchema.index({ memberIDs: 1, active: 1, deleted: 1 }); // For getUserApps query
+GroupSchema.index({ active: 1, deleted: 1 }); // For general active group queries
+
 export default model<IGroup>('Group', GroupSchema)
