@@ -81,12 +81,6 @@ export const validateUsers = (
   mode: UserGroupFormMode,
   usersToRemove?: string[]
 ): string | undefined => {
-  console.log('Validating users:', {
-    selectedUsers: selectedUsers.length,
-    selectedGoogleUsers: selectedGoogleUsers.length,
-    usersToRemove: usersToRemove?.length || 0,
-    mode
-  });
 
   // Calculate effective user count (existing users + new Google users - users to remove)
   const effectiveUserCount = selectedUsers.length + selectedGoogleUsers.length - (usersToRemove ? usersToRemove.length : 0);

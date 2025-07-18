@@ -1,5 +1,9 @@
 import nodemailer from 'nodemailer';
 import config from '../config/config';
+import logger from '../config/logger';
+
+// Email service debug logger
+const emailDebugger = logger.withTraceId('EMAIL');
 
 interface EmailOptions {
   to: string;
@@ -35,9 +39,9 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
 
   try {
     const result = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', result.messageId);
+    emailDebugger.info(`Email sent successfully: ${result.messageId}`);
   } catch (error: any) {
-    console.error('Failed to send email:', error.message);
+    emailDebugger.error(`Failed to send email: ${error.message}`);
     throw new Error(`Email delivery failed: ${error.message}`);
   }
 };

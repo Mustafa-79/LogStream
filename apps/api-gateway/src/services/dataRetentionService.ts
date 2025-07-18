@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 import DRP from '../models/DRP.model';
+import logger from '../config/logger';
+
+// Data retention debug logger
+const retentionDebugger = logger.withTraceId('RETENTION');
 
 class LogRetentionService {
   private readonly COLLECTION_NAME = 'logs';
@@ -14,9 +18,9 @@ class LogRetentionService {
       const retentionDays = drp?.dataRetentionPeriod || 30;
       
       await this.setLogTTL(retentionDays);
-      console.log(`✅ Log retention initialized: ${retentionDays} days`);
+      retentionDebugger.info(`✅ Log retention initialized: ${retentionDays} days`);
     } catch (error) {
-      console.error('❌ Error initializing log retention:', error);
+      retentionDebugger.error('❌ Error initializing log retention:', error);
     }
   }
 
@@ -26,9 +30,9 @@ class LogRetentionService {
   async updateLogRetention(retentionDays: number): Promise<void> {
     try {
       await this.setLogTTL(retentionDays);
-      console.log(`✅ Log retention updated: ${retentionDays} days`);
+      retentionDebugger.info(`✅ Log retention updated: ${retentionDays} days`);
     } catch (error) {
-      console.error('❌ Error updating log retention:', error);
+      retentionDebugger.error('❌ Error updating log retention:', error);
       throw error;
     }
   }

@@ -3,6 +3,10 @@ import * as logService from '../services/logService';
 import createResponse from '../utils/responseHelper';
 import { agenda } from '../config/agenda';
 import { JobStatusModel } from '../models/JobStatus.model';
+import logger from '../config/logger';
+
+// Log controller debug logger
+const logControllerDebugger = logger.withTraceId('LOG_CTRL');
 
 interface LogFilters {
   applications?: string[];
@@ -146,7 +150,7 @@ export const exportLogs = async (req: Request, res: Response, next: NextFunction
     
     const userId = req.user?.userId;
     const userEmail = req.user?.email;
-    console.log(`User ID: ${userId}, User Email: ${userEmail}, Format: ${format}`);
+    logControllerDebugger.debug(`User ID: ${userId}, User Email: ${userEmail}, Format: ${format}`);
     
     if (!userId) {
       res.status(401).json({ error: 'User authentication required' });
@@ -186,7 +190,7 @@ export const exportLogs = async (req: Request, res: Response, next: NextFunction
       format
     });
 
-    console.log(`Log export job queued: ${jobId}`);
+    logControllerDebugger.info(`Log export job queued: ${jobId}`);
 
     res.status(202).json(
       createResponse(202, `Log export request accepted. You will receive an email when complete.`, {

@@ -2,6 +2,10 @@ import { Agenda } from 'agenda';
 import config from './config';
 import { processLogExport } from '../utils/agendaUtils';
 import { JobStatusModel } from '../models/JobStatus.model';
+import logger from './logger';
+
+// Agenda debug logger
+const agendaDebugger = logger.withTraceId('AGENDA');
 
 const agenda = new Agenda({
   db: {
@@ -17,15 +21,15 @@ agenda.define('export-logs', { concurrency: 3 }, async (job: any) => {
   const { jobId, userId, userEmail, since, filters, format } = job.attrs.data;
   
   try {
-    console.log(`Processing export job: ${jobId}`);
+    agendaDebugger.info(`Processing export job: ${jobId}`);
     await processLogExport(userId, userEmail, since, filters, format);
-    console.log(`Export job completed: ${jobId}`);
+    agendaDebugger.info(`Export job completed: ${jobId}`);
   } catch (error) {
-    console.error(`Export job failed: ${jobId}`, error);
+    agendaDebugger.error(`Export job failed: ${jobId}`, error);
     
     const jobStatus = await JobStatusModel.findOne({ jobId });
     if (jobStatus && jobStatus.retryCount < jobStatus.maxRetries) {
-      console.log(`Retrying job ${jobId} (attempt ${jobStatus.retryCount + 1})`);
+      agendaDebugger.info(`Retrying job ${jobId} (attempt ${jobStatus.retryCount + 1})`);
       
       await JobStatusModel.findOneAndUpdate(
         { jobId },
@@ -47,23 +51,23 @@ agenda.define('export-logs', { concurrency: 3 }, async (job: any) => {
 
 // Enhanced event handlers
 agenda.on('ready', () => {
-  console.log('Agenda.js is ready');
+  agendaDebugger.info('Agenda.js is ready');
 });
 
 agenda.on('error', (error) => {
-  console.error('Agenda.js error:', error);
+  agendaDebugger.error('Agenda.js error:', error);
 });
 
 agenda.on('start', (job) => {
-  console.log(`Job ${job.attrs.name} starting`);
+  agendaDebugger.info(`Job ${job.attrs.name} starting`);
 });
 
 agenda.on('complete', (job) => {
-  console.log(`Job ${job.attrs.name} completed`);
+  agendaDebugger.info(`Job ${job.attrs.name} completed`);
 });
 
 agenda.on('fail', async (err, job) => {
-  console.error(`Job ${job.attrs.name} failed:`, err);
+  agendaDebugger.error(`Job ${job.attrs.name} failed:`, err);
   
   // Update job status
   const { jobId } = job.attrs.data;
@@ -82,12 +86,12 @@ agenda.on('fail', async (err, job) => {
 
 export const startAgenda = async () => {
   await agenda.start();
-  console.log('Agenda.js started successfully');
+  agendaDebugger.info('Agenda.js started successfully');
 };
 
 export const stopAgenda = async () => {
   await agenda.stop();
-  console.log('Agenda.js stopped');
+  agendaDebugger.info('Agenda.js stopped');
 };
 
 export { agenda };

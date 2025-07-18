@@ -131,7 +131,6 @@ export function Settings() {
   const fetchDRP = async () => {
     try {
       const drp = await SettingsService.fetchDRP();
-      console.log('Fetched DRP:', drp);
       setFormData(prev => ({ ...prev, dataRetentionPeriod: drp }));
       return drp;
     } catch (err) {
@@ -195,8 +194,6 @@ export function Settings() {
         applications: applicationsData,
         dataRetentionPeriod: formData.dataRetentionPeriod
       };
-
-      console.log('Saving settings:', saveData);
       
       // Send data to backend
       await SettingsService.saveSettings(saveData);

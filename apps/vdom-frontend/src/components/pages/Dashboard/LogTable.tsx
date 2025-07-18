@@ -35,10 +35,8 @@ export function LogTable({ logs, pagination, loading = false, onSort }: LogTable
     setSortColumn(newColumn);
     setSortDirection(newDirection);
 
-    // ✅ Avoid forcing fallback to timestamp. Reset to undefined.
     if (onSort) {
       if (newDirection === 'default' || newColumn === null) {
-        console.log("Resetting sort to default");
         onSort(undefined, 'default'); 
       } else {
         onSort(newColumn, newDirection);
@@ -64,7 +62,6 @@ export function LogTable({ logs, pagination, loading = false, onSort }: LogTable
     }
   }, [logs]);
 
-  // Add click handlers to headers after table renders
   useEffect(() => {
     const timer = setTimeout(() => {
       const table = document.getElementById('logsTable');
@@ -80,7 +77,6 @@ export function LogTable({ logs, pagination, loading = false, onSort }: LogTable
             cell.parentNode?.replaceChild(newCell, cell);
             
             newCell.addEventListener('click', () => {
-              console.log('Header clicked:', column);
               handleSort(column);
             });
             
