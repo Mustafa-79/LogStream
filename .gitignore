@@ -7,3 +7,5 @@ build/
 
 apps/fluent-bit/storage/
 apps/api-gateway/service-account.json
+
+apps/vdom-frontend/src/config.ts
