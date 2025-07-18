@@ -17,6 +17,7 @@ interface EnvVars {
   SMTP_SECURE: boolean
   SMTP_USER: string
   SMTP_PASS: string
+  NODE_ENV: 'development' | 'production' | 'test'
 }
 
 // Define Joi schema for validation
@@ -33,7 +34,8 @@ const envVarsSchema = Joi.object<EnvVars>()
     SMTP_PORT: Joi.number().default(587).description('SMTP port for email service'),
     SMTP_SECURE: Joi.boolean().default(false).description('SMTP secure connection flag'),
     SMTP_USER: Joi.string().required().description('SMTP user for email service'),
-    SMTP_PASS: Joi.string().required().description('SMTP password for email service')
+    SMTP_PASS: Joi.string().required().description('SMTP password for email service'),
+    NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development').description('Node environment')
   })
   .unknown()
 
@@ -61,7 +63,8 @@ const config = {
     secure: envVars.SMTP_SECURE,
     user: envVars.SMTP_USER,
     pass: envVars.SMTP_PASS
-  }
+  },
+  nodeEnv: envVars.NODE_ENV
 }
 
 export default config

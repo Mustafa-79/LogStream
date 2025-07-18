@@ -2,6 +2,7 @@ import { google, admin_directory_v1 } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import 'dotenv/config'; // Load environment variables from .env file
 import logger from '../config/logger';
+import config from '../config/config';
 
 // Google Directory debug logger
 const googleDebugger = logger.withTraceId('GOOGLE_DIR');
@@ -69,8 +70,10 @@ class GoogleDirectoryService {
     }
 
     try {
-      googleDebugger.debug(`🔍 Searching Google Directory for: "${query}"`);
-      googleDebugger.debug(`📁 Domain: ${process.env.GOOGLE_WORKSPACE_DOMAIN}`);
+      if (config.nodeEnv === 'development') {
+        googleDebugger.debug(`🔍 Searching Google Directory for: "${query}"`);
+        googleDebugger.debug(`📁 Domain: ${process.env.GOOGLE_WORKSPACE_DOMAIN}`);
+      }
       
       // Try multiple search strategies to find users
       let users: admin_directory_v1.Schema$User[] = [];
@@ -85,9 +88,13 @@ class GoogleDirectoryService {
           orderBy: 'email'
         });
         users = emailResponse.data.users ?? [];
-        googleDebugger.debug(`✅ Found ${users.length} users by name search`);
+        if (config.nodeEnv === 'development') {
+          googleDebugger.debug(`✅ Found ${users.length} users by name search`);
+        }
       } catch {
-        googleDebugger.debug(`⚠️ Name search failed, trying email search...`);
+        if (config.nodeEnv === 'development') {
+          googleDebugger.debug(`⚠️ Name search failed, trying email search...`);
+        }
         
         // Strategy 2: Search by email (if name search fails)
         try {
@@ -99,10 +106,14 @@ class GoogleDirectoryService {
             orderBy: 'email'
           });
           users = nameResponse.data.users ?? [];
-          googleDebugger.debug(`✅ Found ${users.length} users by email search`);
+          if (config.nodeEnv === 'development') {
+            googleDebugger.debug(`✅ Found ${users.length} users by email search`);
+          }
         } catch {
-          googleDebugger.debug(`⚠️ Name search also failed, trying general search...`);
-          
+          if (config.nodeEnv === 'development') {
+            googleDebugger.debug(`⚠️ Name search also failed, trying general search...`);
+          }
+
           // Strategy 3: General search without specific field (fallback)
           const generalResponse = await this.admin.users.list({
             domain: process.env.GOOGLE_WORKSPACE_DOMAIN,
@@ -125,7 +136,9 @@ class GoogleDirectoryService {
                    givenName.includes(searchQuery) ||
                    familyName.includes(searchQuery);
           });
-          googleDebugger.debug(`✅ Found ${users.length} users by general search with client-side filtering`);
+          if (config.nodeEnv === 'development') {
+            googleDebugger.debug(`✅ Found ${users.length} users by general search with client-side filtering`);
+          }
         }
       }
       
@@ -191,7 +204,9 @@ class GoogleDirectoryService {
     }
 
     try {
-      googleDebugger.debug('🧪 Testing Google Directory API connection...');
+      if (config.nodeEnv === 'development') {
+        googleDebugger.debug('🧪 Testing Google Directory API connection...');
+      }
       
       // Try to list a single user to test the connection
       const response = await this.admin.users.list({
