@@ -27,8 +27,8 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
   }, [isOpen]);
 
   return (
-    <oj-c-drawer-layout ref={drawerRef} startOpened={isOpen}>
-      <div slot="start" className="demo-drawer-start" style="width: 280px; min-width: 280px;">
+    <oj-c-drawer-layout ref={drawerRef} startOpened={isOpen} style="height: 100%;">
+      <div slot="start" className="demo-drawer-start" style="width: 280px; min-width: 280px; height: 100%; overflow: hidden;">
         <oj-navigation-list selection={currentPath}>
           <ul>
             {routes.map((routeItem) => {
@@ -63,7 +63,7 @@ export function Sidebar({ children, isOpen, routes, currentPath, onNavigate }: S
       </div>
 
       {/* Main Content Area */}
-      <div className="oj-md-padding-2x">
+      <div className="oj-md-padding-2x" style="height: 100%; overflow-y: auto; box-sizing: border-box;">
         {children}
       </div>
     </oj-c-drawer-layout>
