@@ -74,14 +74,14 @@ export class AnalyticsService {
       query.logLevel = { $in: filters.logLevels };
     }
 
-    // Get all data in parallel
-    const [totalLogs, logLevelDistribution, applicationCounts, volumeTrend] = await Promise.all([
-      Log.countDocuments(query),
-      this.getLogLevels(query),
+    // Get all data in parallel - combine total count with log levels
+    const [logLevelResults, applicationCounts, volumeTrend] = await Promise.all([
+      this.getLogLevelsWithTotal(query),
       this.getAppCounts(query, appIds),
       this.getVolumeTrend(query, granularity, from, to)
     ]);
 
+    const { logLevelDistribution, totalLogs } = logLevelResults;
 
     console.log("Total Logs:", totalLogs);
 
@@ -104,8 +104,18 @@ export class AnalyticsService {
             deleted: false
           }
         },
+        { 
+          $project: { 
+            applicationIDs: 1 
+          } 
+        },
         { $unwind: "$applicationIDs" },
-        { $group: { _id: null, apps: { $addToSet: "$applicationIDs" } } }
+        { 
+          $group: { 
+            _id: null, 
+            apps: { $addToSet: "$applicationIDs" } 
+          } 
+        }
       ]);
 
       return result[0]?.apps?.map((id: mongoose.Types.ObjectId) => id.toString()) || [];
@@ -136,56 +146,89 @@ export class AnalyticsService {
     return 'day';
   }
 
-  private static async getLogLevels(query: MongoQuery): Promise<LogLevelDistribution[]> {
+  private static async getLogLevelsWithTotal(query: MongoQuery): Promise<{ logLevelDistribution: LogLevelDistribution[], totalLogs: number }> {
     const results = await Log.aggregate([
       { $match: query },
-      { $group: { _id: '$logLevel', count: { $sum: 1 } } },
+      { 
+        $group: { 
+          _id: '$logLevel', 
+          count: { $sum: 1 } 
+        } 
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$count' },
+          levels: { $push: { _id: '$_id', count: '$count' } }
+        }
+      },
+      { $unwind: '$levels' },
+      {
+        $project: {
+          _id: '$levels._id',
+          count: '$levels.count',
+          total: '$total',
+          percentage: {
+            $round: {
+              $multiply: [
+                { $divide: ['$levels.count', '$total'] },
+                100
+              ]
+            }
+          }
+        }
+      },
       { $sort: { _id: 1 } }
     ]);
 
-    const total = results.reduce((sum, item) => sum + item.count, 0);
+    const totalLogs = results.length > 0 ? results[0].total : 0;
+    const logLevelDistribution = results.map(({ _id, count, percentage }) => ({ _id, count, percentage }));
 
-    return results.map(item => ({
-      _id: item._id,
-      count: item.count,
-      percentage: total > 0 ? Math.round((item.count / total) * 100) : 0
-    }));
+    return { logLevelDistribution, totalLogs };
   }
 
   private static async getAppCounts(query: MongoQuery, userAppIds: string[]): Promise<ApplicationCount[]> {
     // Import Application model
     const Application = (await import('../models/Application.model')).default;
 
-    // Get all user applications
-    const userApps = await Application.find({
-      _id: { $in: userAppIds.map(id => new mongoose.Types.ObjectId(id)) },
-      active: true,
-      deleted: false
-    }).select('_id name').lean();
+    const userAppObjectIds = userAppIds.map(id => new mongoose.Types.ObjectId(id));
 
-    // Get log counts for apps that have logs
-    const logCounts = await Log.aggregate([
-      { $match: query },
+    // Single aggregation that joins applications with log counts
+    const results = await Application.aggregate([
       {
-        $group: {
-          _id: '$sourceApp',
-          count: { $sum: 1 }
+        $match: {
+          _id: { $in: userAppObjectIds },
+          active: true,
+          deleted: false
         }
-      }
+      },
+      {
+        $lookup: {
+          from: 'logs',
+          let: { appId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                ...query,
+                $expr: { $eq: ['$sourceApp', '$$appId'] }
+              }
+            },
+            { $count: 'count' }
+          ],
+          as: 'logData'
+        }
+      },
+      {
+        $project: {
+          _id: { $toString: '$_id' },
+          applicationName: '$name',
+          count: { $ifNull: [{ $arrayElemAt: ['$logData.count', 0] }, 0] }
+        }
+      },
+      { $sort: { applicationName: 1 } }
     ]);
 
-    // Create a map of app ID to count
-    const countMap = new Map<string, number>();
-    logCounts.forEach(item => {
-      countMap.set(item._id.toString(), item.count);
-    });
-
-    // Return all user apps with their counts (0 if no logs)
-    return userApps.map(app => ({
-      _id: app._id.toString(),
-      applicationName: app.name,
-      count: countMap.get(app._id.toString()) || 0
-    })).sort((a, b) => a.applicationName.localeCompare(b.applicationName));
+    return results;
   }
 
   private static async getVolumeTrend(

@@ -51,5 +51,9 @@ const applicationSchema: Schema<IApplication> = new Schema(
   }
 );
 
+// Add indexes for analytics queries optimization
+applicationSchema.index({ active: 1, deleted: 1 }); // For active application queries
+
+applicationSchema.index({ deleted: 1 }); // For filtering non-deleted applications 
 
 export default model<IApplication>('Application', applicationSchema);
