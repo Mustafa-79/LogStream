@@ -235,6 +235,17 @@ export const updateApplication = async (
   updates: { name?: string; description?: string, active?: boolean }
 ) => {
   try {
+    if (updates.name) {
+      const existingApp = await Application.findOne({ 
+        name: updates.name, 
+        deleted: false,
+        _id: { $ne: id }
+      });
+      if (existingApp) {
+        throw new Error(`Application with name "${updates.name}" already exists.`);
+      }
+    }
+
     const updatedApp = await Application.findByIdAndUpdate(
       id,
       { $set: updates },
@@ -252,7 +263,7 @@ export const updateApplication = async (
     }
 
     console.error('Error in updateApplication:', error);
-    throw new Error('Failed to update application.');
+    throw error;
   }
 };
 

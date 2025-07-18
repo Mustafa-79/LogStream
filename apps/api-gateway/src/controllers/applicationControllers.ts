@@ -92,7 +92,8 @@ export const updateApplication = async (req: Request, res: Response, next: NextF
     res.status(200).json(
       createResponse(200, 'Application updated successfully', updatedApp)
     );
-  } catch (error) {
+  } catch (error: any) {
+    // res.status(400).json(createResponse(400, error.message || 'Failed to update application', null));
     next(error);
   }
 };
