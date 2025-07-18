@@ -37,6 +37,16 @@ export interface IGroup {
   updatedAt?: string | Date;
 }
 
+// Pagination interface
+export interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalGroups: number;
+  groupsPerPage: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 // Form data interfaces
 export interface CreateUserGroupFormData {
   name: string;
@@ -46,6 +56,32 @@ export interface CreateUserGroupFormData {
   selectedUsers: string[];
   selectedUserObjects?: IUser[];
   selectedApplicationObjects?: IApplication[];
+}
+
+// API payload interfaces
+export interface CreateUserGroupPayload {
+  name: string;
+  description: string;
+  active: boolean;
+  memberIDs?: string[];
+  applicationIDs?: string[];
+}
+
+// Form validation
+export interface FormValidationErrors {
+  name?: string;
+  description?: string;
+  applications?: string;
+  users?: string;
+}
+
+// Track original form values for discard changes functionality
+export interface OriginalFormValues {
+  name: string;
+  description: string;
+  active: boolean;
+  selectedApplications: string[];
+  selectedUsers: string[];
 }
 
 // API payload interfaces

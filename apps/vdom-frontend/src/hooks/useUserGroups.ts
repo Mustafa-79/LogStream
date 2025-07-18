@@ -1,0 +1,601 @@
+import { useState, useEffect } from 'preact/hooks';
+import { UserGroupsAPI, GoogleDirectoryUser } from '../services/userGroupService';
+import { CreateUserGroupFormData, IGroup, CreateUserGroupPayload, IUser, IApplication, Pagination } from '../components/pages/UserGroups/types';
+import ArrayDataProvider = require("ojs/ojarraydataprovider");
+
+interface UseUserGroupsReturn {
+  // State
+  userGroups: IGroup[];
+  loading: boolean;
+  error: string | null;
+  deletedGroup: IGroup | null;
+  successMessage: string | null;
+  pagination: Pagination;
+  
+  // Search and filter state
+  searchTerm: string;
+  isSearching: boolean;
+  selectedStatuses: Set<string>;
+  selectedApplications: Set<string>;
+  statusDataProvider: any;
+  applicationDataProvider: any;
+  
+  // Modal state
+  isCreateModalOpen: boolean;
+  isEditModalOpen: boolean;
+  selectedGroupForEdit: IGroup | null;
+  createGroupLoading: boolean;
+  createGroupError: string | null;
+  
+  // Reference data
+  availableUsers: IUser[];
+  availableApplications: IApplication[];
+  
+  // Actions
+  fetchUserGroups: (page?: number, search?: string, status?: 'active' | 'inactive' | 'all', applicationIds?: string[]) => Promise<void>;
+  loadReferenceData: () => Promise<void>;
+  
+  // Search handlers
+  handleSearchChange: (event: any) => Promise<void>;
+  handleStatusFilterChange: (event: any) => void;
+  handleApplicationFilterChange: (event: any) => void;
+  getStatusFilterValue: () => 'active' | 'inactive' | 'all';
+  handleSearchSubmit: () => Promise<void>;
+  clearSearch: () => Promise<void>;
+  
+  // CRUD handlers
+  handleDeleteGroup: (groupId: string) => Promise<void>;
+  handleUndoDelete: () => Promise<void>;
+  handleDismissUndo: () => void;
+  handleCreateGroup: () => Promise<void>;
+  handleCloseCreateModal: () => void;
+  handleCreateGroupSubmit: (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[]) => Promise<void>;
+  handleEditGroup: (group: IGroup) => void;
+  handleCloseEditModal: () => void;
+  handleEditGroupSubmit: (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[], usersToRemove?: string[]) => Promise<void>;
+  
+  // Pagination handlers
+  handlePageChange: (page: number) => Promise<void>;
+  handleFirstPage: () => Promise<void>;
+  handlePrevPage: () => Promise<void>;
+  handleNextPage: () => Promise<void>;
+  handleLastPage: () => Promise<void>;
+  getVisiblePageNumbers: () => number[];
+  
+  // Notification handlers
+  setSuccessMessage: (message: string | null) => void;
+}
+
+export function useUserGroups(): UseUserGroupsReturn {
+  const [userGroups, setUserGroups] = useState<IGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deletedGroup, setDeletedGroup] = useState<IGroup | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedGroupForEdit, setSelectedGroupForEdit] = useState<IGroup | null>(null);
+  const [createGroupLoading, setCreateGroupLoading] = useState(false);
+  const [createGroupError, setCreateGroupError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Pagination state
+  const [pagination, setPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalGroups: 0,
+    groupsPerPage: 4,
+    hasNext: false,
+    hasPrev: false
+  });
+
+  // Store users and applications for reference when creating groups
+  const [availableUsers, setAvailableUsers] = useState<IUser[]>([]);
+  const [availableApplications, setAvailableApplications] = useState<IApplication[]>([]);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+
+  // Status filter state - default to both selected (equivalent to 'all')
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set(['active', 'inactive']));
+
+  // Application filter state - default to none selected (show all)
+  const [selectedApplications, setSelectedApplications] = useState<Set<string>>(new Set());
+
+  // Data provider for status dropdown
+  const [statusDataProvider] = useState(
+    new ArrayDataProvider([
+      { value: 'active', label: 'Active' },
+      { value: 'inactive', label: 'Inactive' }
+    ], { keyAttributes: 'value' })
+  );
+
+  // Data provider for application dropdown
+  const [applicationDataProvider, setApplicationDataProvider] = useState(
+    new ArrayDataProvider([], { keyAttributes: 'value' })
+  );
+
+  const fetchUserGroups = async (page: number = 1, search?: string, status?: 'active' | 'inactive' | 'all', applicationIds?: string[]) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const backendResponse = await UserGroupsAPI.getUserGroups(page, search, status, applicationIds);
+      console.log('Fetched user groups from API:', backendResponse);
+      console.log('Response groups count:', backendResponse.groups?.length || 0);
+
+      // Update userGroups with the groups array from the response
+      setUserGroups(backendResponse.groups || []);
+
+      // Update pagination state
+      setPagination(backendResponse.pagination);
+
+    } catch (err) {
+      console.error('Error fetching user groups from API:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch user groups');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load reference data (users and applications) for form usage
+  const loadReferenceData = async () => {
+    try {
+      const [usersData, applicationsData] = await Promise.all([
+        UserGroupsAPI.getUsers(),
+        UserGroupsAPI.getApplications()
+      ]);
+
+      setAvailableUsers(usersData || []);
+      setAvailableApplications(applicationsData || []);
+
+      // Update application data provider for the dropdown
+      const applicationOptions = (applicationsData || []).map(app => ({
+        value: app._id,
+        label: app.name
+      }));
+      setApplicationDataProvider(new ArrayDataProvider(applicationOptions, { keyAttributes: 'value' }));
+
+      console.log('Loaded reference data:', { users: usersData || 0, applications: applicationsData || 0 });
+    } catch (error) {
+      console.error('Error loading reference data:', error);
+    }
+  };
+
+  // Search handlers
+  const handleSearchChange = async (event: any) => {
+    const newSearchTerm = event.detail.value.trim();
+    setSearchTerm(newSearchTerm);
+
+    // Trigger search immediately
+    setIsSearching(true);
+    const statusValue = getStatusFilterValue();
+    const applicationIds = Array.from(selectedApplications);
+    console.log('Auto-search parameters:', { searchTerm: newSearchTerm, statusValue, applicationIds });
+    await fetchUserGroups(1, newSearchTerm, statusValue, applicationIds.length > 0 ? applicationIds : undefined);
+    setIsSearching(false);
+  };
+
+  const handleStatusFilterChange = (event: any) => {
+    const selectedKeys = event.detail.value;
+    if (selectedKeys instanceof Set) {
+      setSelectedStatuses(selectedKeys);
+    } else {
+      // Handle array case
+      const values = selectedKeys || [];
+      const newSelectedStatuses = new Set(values as string[]);
+      setSelectedStatuses(newSelectedStatuses);
+    }
+  };
+
+  const handleApplicationFilterChange = (event: any) => {
+    const selectedKeys = event.detail.value;
+    if (selectedKeys instanceof Set) {
+      setSelectedApplications(selectedKeys);
+    } else {
+      // Handle array case
+      const values = selectedKeys || [];
+      const newSelectedApplications = new Set(values as string[]);
+      setSelectedApplications(newSelectedApplications);
+    }
+  };
+
+  const getStatusFilterValue = (): 'active' | 'inactive' | 'all' => {
+    if (selectedStatuses.size === 0) {
+      return 'all'; // No selection means show all
+    } else if (selectedStatuses.size === 2) {
+      return 'all'; // Both selected means show all
+    } else if (selectedStatuses.has('active')) {
+      return 'active';
+    } else if (selectedStatuses.has('inactive')) {
+      return 'inactive';
+    } else {
+      return 'all';
+    }
+  };
+
+  const handleSearchSubmit = async () => {
+    setIsSearching(true);
+    const statusValue = getStatusFilterValue();
+    const applicationIds = Array.from(selectedApplications);
+    console.log('Search parameters:', { searchTerm, statusValue, applicationIds });
+    await fetchUserGroups(1, searchTerm, statusValue, applicationIds.length > 0 ? applicationIds : undefined); // Reset to first page when searching
+    setIsSearching(false);
+  };
+
+  const clearSearch = async () => {
+    setSearchTerm('');
+    setSelectedStatuses(new Set(['active', 'inactive'])); // Reset to default (both selected)
+    setSelectedApplications(new Set()); // Reset to default (none selected)
+    await fetchUserGroups(1);
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      // Find the group to be deleted
+      const groupToDelete = userGroups.find(group => group._id === groupId);
+      if (!groupToDelete) {
+        throw new Error('Group not found');
+      }
+
+      // Call the API for soft delete FIRST (don't remove from UI until success)
+      await UserGroupsAPI.deleteUserGroup(groupId);
+      console.log(`User group ${groupId} deleted successfully`);
+
+      // Store the deleted group for undo functionality
+      setDeletedGroup(groupToDelete);
+
+      // Refresh to first page to get updated data from backend with current search
+      await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+
+    } catch (error) {
+      console.error('Error deleting user group:', error);
+
+      // Create a user-friendly error message
+      let errorMessage = 'Failed to delete user group';
+
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+          errorMessage = 'Unable to connect to server. Please check your connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'The request timed out. Please check your connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      // Re-throw with user-friendly message to let the card component handle the error display
+      throw new Error(errorMessage);
+    }
+  };
+
+  const handleUndoDelete = async () => {
+    if (deletedGroup) {
+      try {
+        // Call the API to restore the group
+        await UserGroupsAPI.restoreUserGroup(deletedGroup._id);
+        console.log(`User group "${deletedGroup.name}" restored from API`);
+
+        // Clear the deleted group
+        setDeletedGroup(null);
+
+        // Refresh to first page to get updated data from backend with current search
+        await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+
+        console.log(`User group "${deletedGroup.name}" restored`);
+      } catch (error) {
+        console.error('Error restoring user group:', error);
+      }
+    }
+  };
+
+  const handleDismissUndo = () => {
+    setDeletedGroup(null);
+    console.log('Undo delete dismissed');
+  };
+
+  // Handle opening create modal
+  const handleCreateGroup = async () => {
+    // Load reference data before opening modal
+    await loadReferenceData();
+    setCreateGroupError(null); // Clear any previous errors
+    setIsCreateModalOpen(true);
+  };
+
+  // Handle closing create modal
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setCreateGroupError(null);
+  };
+
+  // Handle create group form submission
+  const handleCreateGroupSubmit = async (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[]) => {
+    try {
+      setCreateGroupLoading(true);
+      setCreateGroupError(null);
+
+      // Prepare the payload for the backend API
+      const payload: CreateUserGroupPayload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        active: formData.active,
+        memberIDs: formData.selectedUsers.length > 0 ? formData.selectedUsers : undefined,
+        applicationIDs: formData.selectedApplications.length > 0 ? formData.selectedApplications : undefined,
+      };
+
+      console.log('Creating user group with payload:', payload);
+
+      // Call the API to create the user group
+      const createdGroup = await UserGroupsAPI.createUserGroup(payload);
+      console.log('User group created successfully:', createdGroup);
+
+      // Process Google Directory users if any were selected
+      if (googleUsers && googleUsers.length > 0) {
+        console.log('Processing Google Directory users:', googleUsers);
+        try {
+          await UserGroupsAPI.processGoogleDirectoryUsers(googleUsers, createdGroup._id);
+          console.log('Google Directory users processed successfully');
+        } catch (error) {
+          console.error('Error processing Google Directory users:', error);
+        }
+      }
+
+      // Close the modal
+      setIsCreateModalOpen(false);
+      setCreateGroupError(null);
+
+      // Show success message
+      setSuccessMessage(`User group "${createdGroup.name}" was created successfully`);
+      setTimeout(() => setSuccessMessage(null), 5000); // Clear after 5 seconds
+
+      // Refresh to first page to get updated data from backend with current search
+      await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+
+      // Refresh available users to include any newly created ones
+      await loadReferenceData();
+
+      console.log(`User group "${createdGroup.name}" created and added to list`);
+
+    } catch (error) {
+      console.error('Error creating user group:', error);
+      let errorMessage = 'Failed to create user group';
+
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+          errorMessage = 'Unable to connect to server. Please check your connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'The request timed out. Please check your connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      setCreateGroupError(errorMessage);
+
+      // Re-throw the error so the modal stays open
+      throw new Error(errorMessage);
+    } finally {
+      setCreateGroupLoading(false);
+    }
+  };
+
+  // Handle opening edit modal
+  const handleEditGroup = (group: IGroup) => {
+    setSelectedGroupForEdit(group);
+    setCreateGroupError(null); // Clear any previous errors
+    setIsEditModalOpen(true);
+  };
+
+  // Handle closing edit modal
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedGroupForEdit(null);
+    setCreateGroupError(null); // Clear any errors when closing
+  };
+
+  // Handle edit group form submission
+  const handleEditGroupSubmit = async (formData: CreateUserGroupFormData, googleUsers?: GoogleDirectoryUser[], usersToRemove?: string[]) => {
+    if (!selectedGroupForEdit) return;
+
+    try {
+      setCreateGroupLoading(true);
+      setCreateGroupError(null);
+
+      // Create payload for API
+      const payload: CreateUserGroupPayload = {
+        name: formData.name,
+        description: formData.description,
+        active: formData.active,
+        memberIDs: formData.selectedUsers,
+        applicationIDs: formData.selectedApplications
+      };
+
+      console.log('Updating user group with payload:', payload);
+
+      // Call the API to update the user group
+      const updatedGroup = await UserGroupsAPI.updateUserGroup(selectedGroupForEdit._id, payload);
+      console.log('User group updated successfully:', updatedGroup);
+
+      // Process Google Directory users if any were selected
+      if (googleUsers && googleUsers.length > 0) {
+        console.log('Processing Google Directory users:', googleUsers);
+        try {
+          await UserGroupsAPI.processGoogleDirectoryUsers(googleUsers, updatedGroup._id);
+          console.log('Google Directory users processed successfully');
+        } catch (error) {
+          console.error('Error processing Google Directory users:', error);
+        }
+      }
+
+      // Remove users from group if any were marked for removal
+      if (usersToRemove && usersToRemove.length > 0) {
+        console.log('Removing users from group:', usersToRemove);
+        for (const userId of usersToRemove) {
+          try {
+            await UserGroupsAPI.removeUserFromGroup(updatedGroup._id, userId);
+            console.log(`User ${userId} removed from group successfully`);
+          } catch (error) {
+            console.error(`Error removing user ${userId} from group:`, error);
+          }
+        }
+      }
+
+      // Close the modal
+      setIsEditModalOpen(false);
+      setSelectedGroupForEdit(null);
+
+      // Show success message
+      setSuccessMessage(`User group "${updatedGroup.name}" was updated successfully`);
+      setTimeout(() => setSuccessMessage(null), 5000); // Clear after 5 seconds
+
+      // Refresh current page to get updated data from backend with current search
+      await fetchUserGroups(pagination.currentPage, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+
+      // Also refresh available users to include any newly created ones
+      await loadReferenceData();
+
+      console.log(`User group "${updatedGroup.name}" updated successfully`);
+
+    } catch (error) {
+      console.error('Error updating user group:', error);
+      let errorMessage = 'Failed to update user group';
+
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+          errorMessage = 'Unable to connect to server. Please check your connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'The request timed out. Please check your connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      setCreateGroupError(errorMessage);
+
+      // Re-throw the error so the modal stays open
+      throw new Error(errorMessage);
+    } finally {
+      setCreateGroupLoading(false);
+    }
+  };
+
+  // Pagination handlers
+  const handlePageChange = async (page: number) => {
+    await fetchUserGroups(page, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+  };
+
+  const handleFirstPage = async () => {
+    await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+  };
+
+  const handlePrevPage = async () => {
+    if (pagination.hasPrev) {
+      await fetchUserGroups(pagination.currentPage - 1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+    }
+  };
+
+  const handleNextPage = async () => {
+    if (pagination.hasNext) {
+      await fetchUserGroups(pagination.currentPage + 1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+    }
+  };
+
+  const handleLastPage = async () => {
+    await fetchUserGroups(pagination.totalPages, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
+  };
+
+  // Generate page numbers for pagination
+  const getVisiblePageNumbers = () => {
+    const { currentPage, totalPages } = pagination;
+    const visiblePages: number[] = [];
+    const maxVisiblePages = 7;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      const halfVisible = Math.floor(maxVisiblePages / 2);
+      let startPage = Math.max(1, currentPage - halfVisible);
+      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        visiblePages.push(i);
+      }
+    }
+
+    return visiblePages;
+  };
+
+  useEffect(() => {
+    fetchUserGroups();
+    loadReferenceData(); // Load reference data when component mounts
+  }, []);
+
+  return {
+    // State
+    userGroups,
+    loading,
+    error,
+    deletedGroup,
+    successMessage,
+    pagination,
+    
+    // Search and filter state
+    searchTerm,
+    isSearching,
+    selectedStatuses,
+    selectedApplications,
+    statusDataProvider,
+    applicationDataProvider,
+    
+    // Modal state
+    isCreateModalOpen,
+    isEditModalOpen,
+    selectedGroupForEdit,
+    createGroupLoading,
+    createGroupError,
+    
+    // Reference data
+    availableUsers,
+    availableApplications,
+    
+    // Actions
+    fetchUserGroups,
+    loadReferenceData,
+    
+    // Search handlers
+    handleSearchChange,
+    handleStatusFilterChange,
+    handleApplicationFilterChange,
+    getStatusFilterValue,
+    handleSearchSubmit,
+    clearSearch,
+    
+    // CRUD handlers
+    handleDeleteGroup,
+    handleUndoDelete,
+    handleDismissUndo,
+    handleCreateGroup,
+    handleCloseCreateModal,
+    handleCreateGroupSubmit,
+    handleEditGroup,
+    handleCloseEditModal,
+    handleEditGroupSubmit,
+    
+    // Pagination handlers
+    handlePageChange,
+    handleFirstPage,
+    handlePrevPage,
+    handleNextPage,
+    handleLastPage,
+    getVisiblePageNumbers,
+    
+    // Notification handlers
+    setSuccessMessage
+  };
+}
