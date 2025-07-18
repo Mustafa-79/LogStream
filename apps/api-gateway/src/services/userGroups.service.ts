@@ -201,6 +201,18 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
   }
 
+  // Check if another group with the same name exists (not deleted), case-insensitive
+  if (data.name) {
+    const existingGroup = await Group.findOne({
+      name: { $regex: `^${data.name}$`, $options: 'i' },
+      _id: { $ne: id }, // Exclude current group
+      deleted: false
+    })
+    if (existingGroup) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
+    }
+  }
+
   // Validate provided members exist
   if (members && Array.isArray(members) && members.length > 0) {
     const foundUsers = await User.find({ _id: { $in: members } })
