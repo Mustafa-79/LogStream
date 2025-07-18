@@ -29,7 +29,7 @@ export const authRoute = async (req: Request, res: Response): Promise<void> => {
       isAdmin: isAdminFlag,
       userId: userId
     };
-    const jwtToken = jwt.sign(jwtPayload, config.jwtSecret, { expiresIn: '1h' });
+    const jwtToken = jwt.sign(jwtPayload, config.jwtSecret, { expiresIn: '3h' });
 
     res.json({ jwt: jwtToken });
   } catch {

@@ -5,8 +5,9 @@ import "ojs/ojbutton";
 import "ojs/ojlabel";
 import "ojs/ojformlayout";
 import Color = require("ojs/ojcolor");
+import { AUTH_CONFIG } from "../../../config";
 
-const GOOGLE_CLIENT_ID = "68897052946-qov2lsf2ga6sb9fuqpk0ruk8nkgsuj6n.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = AUTH_CONFIG.VITE_GOOGLE_CLIENT_ID;
 
 type Props = Readonly<{
   loginSuccess?: () => void;
@@ -27,11 +28,11 @@ export const Login = registerCustomElement(
         // In production, you would integrate with actual Google OAuth
         
         // Create Google OAuth URL
-        const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+        const googleAuthUrl = AUTH_CONFIG.VITE_GOOGLE_AUTH_URL + '?' +
           `client_id=${GOOGLE_CLIENT_ID}&` +
           'response_type=token&' +
           'scope=openid email profile&' +
-          'redirect_uri=' + encodeURIComponent('http://localhost:8000/oauth-callback.html');
+          'redirect_uri=' + encodeURIComponent(AUTH_CONFIG.VITE_REDIRECT_URI);
 
         // Open popup for OAuth
         const popup = window.open(
