@@ -88,5 +88,5 @@ export interface LogTableProps {
   logs: Log[];
   pagination: Pagination;
   loading?: boolean;
-  onSort?: (sortBy?: string, sortOrder?: 'asc' | 'desc') => void;
+  onSort?: (sortBy?: string, sortOrder?: 'asc' | 'desc' | 'default') => void;
 }

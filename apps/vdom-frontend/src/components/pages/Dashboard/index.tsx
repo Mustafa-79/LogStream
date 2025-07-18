@@ -76,7 +76,7 @@ export const Dashboard = () => {
     }
   };
 
-  const handleSort = async (sortBy?: string, sortOrder?: 'asc' | 'desc') => {
+  const handleSort = async (sortBy?: string, sortOrder?: 'asc' | 'desc' | 'default') => {
     try {
       await actions.fetchLogsWithSort(sortBy, sortOrder);
     } catch (error) {
