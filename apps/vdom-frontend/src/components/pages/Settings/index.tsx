@@ -1,6 +1,7 @@
 import { useState, useEffect } from "preact/hooks";
 import "oj-c/progress-circle";
 import "oj-c/button";
+import "ojs/ojbutton";
 import { AuthManager } from "../../../utils/auth";
 import SettingsService from "../../../services/settingsService";
 import { NotificationsSection } from "./NotificationsSection";
@@ -32,7 +33,8 @@ export function Settings() {
   const [uiState, setUIState] = useState({
     loading: true,
     error: null as string | null,
-    validationErrors: {} as Record<string, string>
+    validationErrors: {} as Record<string, string>,
+    successMessage: null as string | null
   });
   
   // Store initial state for reset functionality
@@ -62,6 +64,12 @@ export function Settings() {
   // Simplified validation function
   const validateAlertThreshold = (value: string): string | null => {
     if (!value?.trim()) return "Alert threshold is required";
+    
+    // Check if the value is purely numeric (no letters or special characters except decimal point)
+    const numericRegex = /^[0-9]+(\.[0-9]+)?$/;
+    if (!numericRegex.test(value.trim())) {
+      return "Alert threshold must be a valid number";
+    }
     
     const numValue = parseFloat(value.trim());
     if (isNaN(numValue) || numValue <= 0) return "Alert threshold must be a positive number";
@@ -123,7 +131,6 @@ export function Settings() {
   const fetchDRP = async () => {
     try {
       const drp = await SettingsService.fetchDRP();
-      console.log('Fetched DRP:', drp);
       setFormData(prev => ({ ...prev, dataRetentionPeriod: drp }));
       return drp;
     } catch (err) {
@@ -187,11 +194,17 @@ export function Settings() {
         applications: applicationsData,
         dataRetentionPeriod: formData.dataRetentionPeriod
       };
-
-      console.log('Saving settings:', saveData);
       
       // Send data to backend
       await SettingsService.saveSettings(saveData);
+      
+      // Show success message
+      setUIState(prev => ({ ...prev, successMessage: 'Settings saved successfully!' }));
+      
+      // Auto-dismiss success message after 5 seconds
+      setTimeout(() => {
+        setUIState(prev => ({ ...prev, successMessage: null }));
+      }, 5000);
       
       // Refetch data after successful save to reflect DB changes
       await loadAllData();
@@ -348,6 +361,34 @@ export function Settings() {
 
   return (
     <div class="oj-web-applayout-page" style="padding: 40px;">
+      {/* Success Notification Banner */}
+      {uiState.successMessage && (
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-margin-1x-vertical" style="margin-bottom: 24px;">
+          <div class="oj-flex oj-sm-flex-items-center oj-sm-justify-content-space-between oj-sm-padding-4x" style={{
+            backgroundColor: '#d4edda',
+            border: '1px solid #c3e6cb',
+            borderRadius: '8px',
+            color: '#155724',
+            minWidth: '400px',
+            maxWidth: '600px',
+            width: '100%'
+          }}>
+            <div class="oj-flex oj-sm-flex-items-center" style={{ alignItems: 'center' }}>
+              <span class="oj-ux-ico-checkmark-s oj-sm-margin-2x-end" style={{ fontSize: '18px', color: '#28a745' }}></span>
+              <span class="oj-typography-body-md">{uiState.successMessage}</span>
+            </div>
+            <oj-button
+              display="icons"
+              chroming="borderless"
+              onojAction={() => setUIState(prev => ({ ...prev, successMessage: null }))}
+              style={{ color: '#155724' }}
+            >
+              <span slot='startIcon' class='oj-ux-ico-close'></span>
+            </oj-button>
+          </div>
+        </div>
+      )}
+
       {/* Inline Settings Header */}
       <div class="oj-flex oj-justify-content-space-between oj-align-items-start" style="margin-bottom: 24px;">
         <div style="flex: 1;">

@@ -18,7 +18,6 @@ export function ProtectedRoute({
   
   useEffect(() => {
     if (requireAuth && !AuthManager.isAuthenticated()) {
-      console.log('User not authenticated, redirecting to login');
       onRedirect('/login');
       return;
     }
@@ -26,7 +25,6 @@ export function ProtectedRoute({
     if (requireAdmin) {
       const user = AuthManager.getCurrentUser();
       if (!user || !user.isAdmin) {
-        console.log('User not admin, redirecting to dashboard');
         onRedirect('/');
         return;
       }

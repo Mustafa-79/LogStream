@@ -24,11 +24,9 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
   const [searchResults, setSearchResults] = useState<GoogleDirectoryUser[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string>('');
-  const [showDropdown, setShowDropdown] = useState(false);
   const [selectedGoogleUsers, setSelectedGoogleUsers] = useState<GoogleDirectoryUser[]>([]);
   const [usersToRemove, setUsersToRemove] = useState<string[]>([]); // Track users marked for removal
   const searchTimeoutRef = useRef<number>();
-  const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Filter out inactive users
   const activeUsers = users.filter(user => user.active);
@@ -44,11 +42,21 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
     return emailSet;
   }, [activeUsers, selectedUsers, usersToRemove]);
 
+  // Create a separate set for all members (including those marked for removal) to show "Already in group" status
+  const allMemberEmails = useMemo(() => {
+    const emailSet = new Set<string>();
+    activeUsers.forEach(user => {
+      if (selectedUsers.includes(user._id)) {
+        emailSet.add(user.email);
+      }
+    });
+    return emailSet;
+  }, [activeUsers, selectedUsers]);
+
   // Debounced search function
   const performSearch = async (query: string) => {
     if (!query.trim() || query.trim().length < 2) {
       setSearchResults([]);
-      setShowDropdown(false);
       return;
     }
 
@@ -58,12 +66,10 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
     try {
       const results = await UserGroupsAPI.searchGoogleDirectory(query.trim());
       setSearchResults(results);
-      setShowDropdown(true);
     } catch (error) {
       console.error('Error searching Google Directory:', error);
       setSearchError('Failed to search directory. Please try again.');
       setSearchResults([]);
-      setShowDropdown(false);
     } finally {
       setSearchLoading(false);
     }
@@ -81,7 +87,6 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
       }, 1000); // 1 second delay
     } else {
       setSearchResults([]);
-      setShowDropdown(false);
     }
 
     return () => {
@@ -90,20 +95,6 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
       }
     };
   }, [searchText]);
-
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   // Notify parent when selected Google users change
   useEffect(() => {
@@ -131,18 +122,19 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
       return; // Don't add if already selected
     }
 
-    // Check if user is already a member of the group (by email) and not marked for removal
-    const isAlreadyMember = existingMemberEmails.has(user.primaryEmail);
+    // Check if user is already a member of the group (including those marked for removal)
+    const isAnyTimeMember = allMemberEmails.has(user.primaryEmail);
 
-    if (isAlreadyMember) {
-      return; // Don't add if already a member and not being removed
+    if (isAnyTimeMember) {
+      return; // Don't add if they are/were ever a member
     }
 
     // Add user to selected Google users
     setSelectedGoogleUsers([...selectedGoogleUsers, user]);
     
-    setShowDropdown(false);
+    // Clear search and hide results
     setSearchText('');
+    setSearchResults([]);
   };
 
   const removeGoogleUser = (userId: string) => {
@@ -304,7 +296,7 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
       )}
       
       {activeTab === 'adduser' && (
-        <div style={{ position: 'relative' }} ref={dropdownRef}>
+        <div>
           <oj-input-search
             value={searchText}
             placeholder="Search users by username or email..."
@@ -327,21 +319,16 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
             </div>
           )}
           
-          {showDropdown && searchResults.length > 0 && (
-            <div class="search-dropdown" style={{
-              position: 'absolute',
-              top: '100%',
-              left: '0',
-              right: '0',
+          {/* Search Results - directly below search input, not as dropdown */}
+          {(searchResults.length > 0 && searchText.trim().length >= 2) && (
+            <div class="search-results" style={{
               backgroundColor: 'white',
               border: '1px solid #e0e0e0',
               borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-              zIndex: 1000,
+              marginBottom: '16px',
               maxHeight: '200px',
               overflowY: 'auto'
             }}>
-              {/* Separate available users from already selected/member users */}
               {(() => {
                 const availableUsers: GoogleDirectoryUser[] = [];
                 const unavailableUsers: GoogleDirectoryUser[] = [];
@@ -349,7 +336,8 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
                 searchResults.forEach((user) => {
                   const isSelectedInSession = selectedGoogleUsers.some(selectedUser => selectedUser.id === user.id);
                   const isAlreadyMember = existingMemberEmails.has(user.primaryEmail);
-                  const isDisabled = isSelectedInSession || isAlreadyMember;
+                  const isAnyTimeMember = allMemberEmails.has(user.primaryEmail); // Check if they were ever a member
+                  const isDisabled = isSelectedInSession || isAnyTimeMember; // Disable if selected or any time member
                   
                   if (isDisabled) {
                     unavailableUsers.push(user);
@@ -358,16 +346,16 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
                   }
                 });
 
-                // Render available users first, then unavailable ones
                 return [...availableUsers, ...unavailableUsers].map((user) => {
                   const isSelectedInSession = selectedGoogleUsers.some(selectedUser => selectedUser.id === user.id);
                   const isAlreadyMember = existingMemberEmails.has(user.primaryEmail);
-                  const isDisabled = isSelectedInSession || isAlreadyMember;
+                  const isAnyTimeMember = allMemberEmails.has(user.primaryEmail); // Check if they were ever a member
+                  const isDisabled = isSelectedInSession || isAnyTimeMember; // Disable if selected or any time member
                   
                   let statusText = '';
                   if (isSelectedInSession) {
                     statusText = '✓ Selected';
-                  } else if (isAlreadyMember) {
+                  } else if (isAnyTimeMember) {
                     statusText = '✓ Already in group';
                   }
                   
@@ -439,19 +427,14 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
             </div>
           )}
           
-          {showDropdown && searchResults.length === 0 && searchText.trim().length >= 2 && !searchLoading && (
-            <div class="search-dropdown" style={{
-              position: 'absolute',
-              top: '100%',
-              left: '0',
-              right: '0',
+          {(searchResults.length === 0 && searchText.trim().length >= 2 && !searchLoading) && (
+            <div class="search-no-results" style={{
               backgroundColor: 'white',
               border: '1px solid #e0e0e0',
               borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-              zIndex: 1000,
               padding: '16px',
-              textAlign: 'center'
+              textAlign: 'center',
+              marginBottom: '16px'
             }}>
               <span class="oj-typography-body-sm" style={{ color: '#666' }}>
                 No users found matching "{searchText}"
@@ -459,7 +442,7 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
             </div>
           )}
           
-          {/* Selected Google Users List */}
+          {/* Selected Google Users List - moved to bottom */}
           {selectedGoogleUsers.length > 0 && (
             <div style={{ marginTop: '16px' }}>
               <div class="oj-typography-body-md" style={{ fontWeight: '500', marginBottom: '8px' }}>
