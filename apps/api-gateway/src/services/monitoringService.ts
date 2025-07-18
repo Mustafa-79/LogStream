@@ -1,5 +1,9 @@
 import { JobStatusModel } from "../models/JobStatus.model";
 import { sendExportErrorEmail } from "../utils/exportUtils";
+import logger from '../config/logger';
+
+// Monitoring debug logger
+const monitoringDebugger = logger.withTraceId('MONITORING');
 
 class MonitoringService {
   private interval: NodeJS.Timeout | null = null;
@@ -14,7 +18,7 @@ class MonitoringService {
         });
         
         for (const job of stuckJobs) {
-          console.warn(`Found stuck job: ${job.jobId}`);
+          monitoringDebugger.warn(`Found stuck job: ${job.jobId}`);
           
           await JobStatusModel.findOneAndUpdate(
             { jobId: job.jobId },
@@ -44,7 +48,7 @@ class MonitoringService {
   
   async notifyStuckJob(job: any) {
     try {
-      console.log(`Sending stuck job notification to ${job.userEmail} for job ${job.jobId}`);
+      monitoringDebugger.info(`Sending stuck job notification to ${job.userEmail} for job ${job.jobId}`);
       
       const errorMessage = `Your log export job (ID: ${job.jobId}) appears to be stuck and has been automatically cancelled. 
       
@@ -63,7 +67,7 @@ class MonitoringService {
       
       await sendExportErrorEmail(job.userEmail, errorMessage);
       
-      console.log(`Stuck job notification sent successfully to ${job.userEmail}`);
+      monitoringDebugger.info(`Stuck job notification sent successfully to ${job.userEmail}`);
       
       await this.logError('stuck_job_notification_sent', {
         jobId: job.jobId,

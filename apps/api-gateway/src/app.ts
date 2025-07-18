@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import httpStatus from 'http-status'
 import mongoSanitize from 'express-mongo-sanitize'
-import { successHandler, errorHandler } from './config/morgan'
+import { successHandler } from './config/morgan'
 import ApiError from './utils/ApiError'
 import { errorConverter, errorHandler as errorMiddleware } from './middlewares/error'
 import routes from './routes'
@@ -10,7 +10,6 @@ import routes from './routes'
 const app = express()
 
 app.use(successHandler)
-app.use(errorHandler)
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))

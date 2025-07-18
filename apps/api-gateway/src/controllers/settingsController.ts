@@ -6,6 +6,10 @@ import Application from '../models/Application.model';
 import DRP from '../models/DRP.model';
 import { ObjectId } from 'mongoose';
 import { logRetentionService } from '../services/dataRetentionService';
+import logger from '../config/logger';
+
+// Settings controller debug logger
+const settingsDebugger = logger.withTraceId('SETTINGS_CTRL');
 
 export const getUserApplications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -66,7 +70,7 @@ export const getUserApplications = async (req: Request, res: Response, next: Nex
         );
 
     } catch (error) {
-        console.error('Error getting user applications:', error);
+        settingsDebugger.error('Error getting user applications:', error);
         next(error);
     }
 }
@@ -100,7 +104,7 @@ export const getDRP = async (req: Request, res: Response, next: NextFunction): P
         );
 
     } catch (error) {
-        console.error('Error getting data retention period:', error);
+        settingsDebugger.error('Error getting data retention period:', error);
         next(error);
     }
 }
@@ -136,7 +140,7 @@ export const updateDRP = async (req: Request, res: Response, next: NextFunction)
         );
 
     } catch (error) {
-        console.error('Error updating data retention period:', error);
+        settingsDebugger.error('Error updating data retention period:', error);
         next(error);
     }
 }
@@ -184,7 +188,7 @@ export const saveSettings = async (req: Request, res: Response, next: NextFuncti
         );
 
     } catch (error) {
-        console.error('Error saving settings:', error);
+        settingsDebugger.error('Error saving settings:', error);
         next(error);
     }
 };
@@ -226,7 +230,7 @@ const disableNotificationsForApplications = async (applications: Record<string, 
             { $set: { notificationsEnabled: false } }
         );
 
-        console.log(`Disabled notifications for ${updateResult.modifiedCount} applications`);
+        settingsDebugger.info(`Disabled notifications for ${updateResult.modifiedCount} applications`);
 
         return {
             message: 'Notifications disabled for all applications',
@@ -235,7 +239,7 @@ const disableNotificationsForApplications = async (applications: Record<string, 
             applicationIds
         };
     } catch (error) {
-        console.error('Error disabling notifications:', error);
+        settingsDebugger.error('Error disabling notifications:', error);
         throw error;
     }
 };
@@ -283,7 +287,7 @@ const updateApplicationSettings = async (applications: Record<string, { id: stri
         // Bulk update applications
         const updateResult = await Application.bulkWrite(applicationUpdates);
 
-        console.log(`Updated settings for ${updateResult.modifiedCount} applications`);
+        settingsDebugger.info(`Updated settings for ${updateResult.modifiedCount} applications`);
 
         return {
             message: 'Application settings updated successfully',
@@ -292,7 +296,7 @@ const updateApplicationSettings = async (applications: Record<string, { id: stri
             applicationIds
         };
     } catch (error) {
-        console.error('Error updating application settings:', error);
+        settingsDebugger.error('Error updating application settings:', error);
         throw error;
     }
 };
@@ -334,7 +338,7 @@ const updateDataRetentionPeriodIfChanged = async (newDataRetentionPeriod: number
             dataRetentionPeriod: currentDRP.dataRetentionPeriod
         };
     } catch (error) {
-        console.error('Error updating data retention period:', error);
+        settingsDebugger.error('Error updating data retention period:', error);
         throw error;
     }
 };

@@ -391,7 +391,7 @@ const LogFilter = ({
               value={localSearchTerm}
               onvalueChanged={handleSearchChange}
               placeholder="Search in log messages..."
-              label-hint="Type to search log messages"
+              // label-hint="Type to search log messages"
               style="flex: 1; margin-right: 8px;"
               disabled={isSearching}
             />

@@ -77,7 +77,7 @@ export const createApplication = async (req: Request, res: Response, next: NextF
       createResponse(201, 'Application created successfully', application)
     );
   } catch (error: any) {
-    res.status(400).json(createResponse(400, error.message || 'Failed to create application', null));
+    // res.status(400).json(createResponse(400, error.message || 'Failed to create application', null));
     next(error);
   }
 };
