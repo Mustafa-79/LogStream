@@ -135,6 +135,16 @@ export const createUserGroup = async (data: IGroup): Promise<IGroup> => {
   const members = data.memberIDs || []
   const applications = data.applicationIDs || []
 
+  // Validate provided member ObjectIds
+  if (members.length > 0 && !validateObjectIds(members.map(id => id.toString()))) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more member IDs have invalid format.');
+  }
+
+  // Validate provided application ObjectIds
+  if (applications.length > 0 && !validateObjectIds(applications.map(id => id.toString()))) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more application IDs have invalid format.');
+  }
+
   // Check if a group with the same name already exists (not deleted), case-insensitive
   const existingGroup = await Group.findOne({ 
     name: { $regex: `^${data.name}$`, $options: 'i' }, 
@@ -144,19 +154,19 @@ export const createUserGroup = async (data: IGroup): Promise<IGroup> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
   }
 
-  // Validate provided members exist
+  // Validate provided members exist and are active
   if (members && Array.isArray(members) && members.length > 0) {
-    const foundUsers = await User.find({ _id: { $in: members } })
+    const foundUsers = await User.find({ _id: { $in: members }, active: true })
     if (foundUsers.length !== members.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist.')
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist or are inactive.')
     }
   }
 
-  // Validate provided applications exist
+  // Validate provided applications exist and are not deleted
   if (applications && Array.isArray(applications) && applications.length > 0) {
-    const foundApps = await Application.find({ _id: { $in: applications } })
+    const foundApps = await Application.find({ _id: { $in: applications }, deleted: false })
     if (foundApps.length !== applications.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist.')
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist or are deleted.')
     }
   }
 
@@ -191,6 +201,10 @@ export const createUserGroup = async (data: IGroup): Promise<IGroup> => {
 // Only updates fields that are provided in the data object
 // Also handles updating members and applications arrays
 export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promise<IGroup | null> => {
+  // Validate ObjectId
+  if (!isValidObjectId(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
+  }
 
   const members = data.memberIDs || undefined
   const applications = data.applicationIDs || undefined
@@ -198,7 +212,7 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
   // Check if group exists
   const group = await Group.findOne({ _id: id, deleted: false })
   if (!group) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found or has been deleted.')
   }
 
   // Check if another group with the same name exists (not deleted), case-insensitive
@@ -213,19 +227,29 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
     }
   }
 
-  // Validate provided members exist
+  // Validate provided members exist and are active
   if (members && Array.isArray(members) && members.length > 0) {
-    const foundUsers = await User.find({ _id: { $in: members } })
+    // Validate ObjectId format
+    if (!validateObjectIds(members.map(id => id.toString()))) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more member IDs have invalid format.');
+    }
+    
+    const foundUsers = await User.find({ _id: { $in: members }, active: true })
     if (foundUsers.length !== members.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist.')
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist or are inactive.')
     }
   }
 
-  // Validate provided applications exist
+  // Validate provided applications exist and are not deleted
   if (applications && Array.isArray(applications) && applications.length > 0) {
-    const foundApps = await Application.find({ _id: { $in: applications } })
+    // Validate ObjectId format
+    if (!validateObjectIds(applications.map(id => id.toString()))) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more application IDs have invalid format.');
+    }
+    
+    const foundApps = await Application.find({ _id: { $in: applications }, deleted: false })
     if (foundApps.length !== applications.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist.')
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist or are deleted.')
     }
   }
 
@@ -243,6 +267,11 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
 // Marks the group as deleted and inactive, but does not remove it from the database
 // Returns the deleted group object
 export const deleteUserGroup = async (id: string): Promise<IGroup | null> => {
+  // Validate ObjectId
+  if (!isValidObjectId(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
+  }
+
   const group = await Group.findById(id)
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
@@ -260,6 +289,11 @@ export const deleteUserGroup = async (id: string): Promise<IGroup | null> => {
 
 
 export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
+  // Validate ObjectId
+  if (!isValidObjectId(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
+  }
+
   const group = await Group.findById(id)
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
@@ -267,6 +301,17 @@ export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
   if (!group.deleted) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Group is not deleted.')
   }
+  
+  // Check for name conflicts before restoring
+  const existingGroup = await Group.findOne({ 
+    name: { $regex: `^${group.name}$`, $options: 'i' }, 
+    _id: { $ne: id },
+    deleted: false 
+  })
+  if (existingGroup) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot restore: A group with this name already exists.')
+  }
+
   const restored = await Group.findOneAndUpdate(
     { _id: id },
     { deleted: false, active: true },
@@ -276,10 +321,19 @@ export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
 }
 
 export const addUserToGroup = async (groupId: string, userId: string): Promise<IGroup | null> => {
-  // First check if the group exists
-  const group = await Group.findById(groupId);
+  // Validate ObjectIds
+  if (!isValidObjectId(groupId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
+  }
+  
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID format.');
+  }
+
+  // First check if the group exists and is not deleted
+  const group = await Group.findOne({ _id: groupId, deleted: false });
   if (!group) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.');
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found or has been deleted.');
   }
 
   // Check if user exists
@@ -305,10 +359,19 @@ export const addUserToGroup = async (groupId: string, userId: string): Promise<I
 };
 
 export const removeUserFromGroup = async (groupId: string, userId: string): Promise<IGroup | null> => {
-  // First check if the group exists
-  const group = await Group.findById(groupId);
+  // Validate ObjectIds
+  if (!isValidObjectId(groupId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
+  }
+  
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID format.');
+  }
+
+  // First check if the group exists and is not deleted
+  const group = await Group.findOne({ _id: groupId, deleted: false });
   if (!group) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.');
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found or has been deleted.');
   }
 
   // Check if user exists
