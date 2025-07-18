@@ -12,19 +12,21 @@ router.use(authenticateJWT);
 router
   .route('/')
   .get(
+    validate(applicationValidation.getAllApplications),
     applicationController.getAllApplications
   );
 
 router
   .route('/names')
   .get(
+    validate(applicationValidation.getApplicationNames),
     applicationController.getApplicationNames
   );
 
 router
   .route('/all')
   .get(
-    requireAdmin, 
+    validate(applicationValidation.getApplications),
     applicationController.getApplications
   );
 

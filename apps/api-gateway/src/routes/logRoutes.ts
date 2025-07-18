@@ -1,16 +1,29 @@
 import express from 'express';
+import validate from '../middlewares/validate';
 import { authenticateJWT } from '../middlewares/auth';
 import * as logController from '../controllers/logControllers';
+import { logValidation } from '../validations/logs.validations';
 
 const router = express.Router();
 
-// Apply authentication to all log routes
 router.use(authenticateJWT);
 
-router.get('/', logController.getLogs);
+router.get(
+  '/',
+  validate(logValidation.getLogs),
+  logController.getLogs
+);
 
-router.get('/export', logController.exportLogs);
+router.get(
+  '/export',
+  validate(logValidation.exportLogs),
+  logController.exportLogs
+);
 
-router.get('/stats', logController.getLogStats);
+router.get(
+  '/stats',
+  validate(logValidation.getLogStats),
+  logController.getLogStats
+);
 
 export default router;
