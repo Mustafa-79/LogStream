@@ -42,6 +42,17 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
     return emailSet;
   }, [activeUsers, selectedUsers, usersToRemove]);
 
+  // Create a separate set for all members (including those marked for removal) to show "Already in group" status
+  const allMemberEmails = useMemo(() => {
+    const emailSet = new Set<string>();
+    activeUsers.forEach(user => {
+      if (selectedUsers.includes(user._id)) {
+        emailSet.add(user.email);
+      }
+    });
+    return emailSet;
+  }, [activeUsers, selectedUsers]);
+
   // Debounced search function
   const performSearch = async (query: string) => {
     if (!query.trim() || query.trim().length < 2) {
@@ -111,11 +122,11 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
       return; // Don't add if already selected
     }
 
-    // Check if user is already a member of the group (by email) and not marked for removal
-    const isAlreadyMember = existingMemberEmails.has(user.primaryEmail);
+    // Check if user is already a member of the group (including those marked for removal)
+    const isAnyTimeMember = allMemberEmails.has(user.primaryEmail);
 
-    if (isAlreadyMember) {
-      return; // Don't add if already a member and not being removed
+    if (isAnyTimeMember) {
+      return; // Don't add if they are/were ever a member
     }
 
     // Add user to selected Google users
@@ -325,7 +336,8 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
                 searchResults.forEach((user) => {
                   const isSelectedInSession = selectedGoogleUsers.some(selectedUser => selectedUser.id === user.id);
                   const isAlreadyMember = existingMemberEmails.has(user.primaryEmail);
-                  const isDisabled = isSelectedInSession || isAlreadyMember;
+                  const isAnyTimeMember = allMemberEmails.has(user.primaryEmail); // Check if they were ever a member
+                  const isDisabled = isSelectedInSession || isAnyTimeMember; // Disable if selected or any time member
                   
                   if (isDisabled) {
                     unavailableUsers.push(user);
@@ -337,12 +349,13 @@ export function UserSelector({ users, selectedUsers, onSelectionChange, error, m
                 return [...availableUsers, ...unavailableUsers].map((user) => {
                   const isSelectedInSession = selectedGoogleUsers.some(selectedUser => selectedUser.id === user.id);
                   const isAlreadyMember = existingMemberEmails.has(user.primaryEmail);
-                  const isDisabled = isSelectedInSession || isAlreadyMember;
+                  const isAnyTimeMember = allMemberEmails.has(user.primaryEmail); // Check if they were ever a member
+                  const isDisabled = isSelectedInSession || isAnyTimeMember; // Disable if selected or any time member
                   
                   let statusText = '';
                   if (isSelectedInSession) {
                     statusText = '✓ Selected';
-                  } else if (isAlreadyMember) {
+                  } else if (isAnyTimeMember) {
                     statusText = '✓ Already in group';
                   }
                   
