@@ -1,6 +1,10 @@
 import { google, admin_directory_v1 } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import 'dotenv/config'; // Load environment variables from .env file
+import logger from '../config/logger';
+
+// Google Directory debug logger
+const googleDebugger = logger.withTraceId('GOOGLE_DIR');
 
 interface GoogleDirectoryUser {
   id: string;
@@ -25,7 +29,7 @@ class GoogleDirectoryService {
   private initializeAuth() {
     try {
       // Check if we have Google service account configuration
-      console.log('Initializing Google Directory API...');
+      googleDebugger.info('Initializing Google Directory API...');
       const adminEmail = process.env.GOOGLE_ADMIN_IMPERSONATION_EMAIL;
       const workspaceDomain = process.env.GOOGLE_WORKSPACE_DOMAIN;
       const clientEmail = process.env.CLIENT_EMAIL;
@@ -33,11 +37,11 @@ class GoogleDirectoryService {
       const adminScopes = process.env.GOOGLE_ADMIN_SCOPES;
 
       if(!adminEmail) {
-        console.warn('GOOGLE_ADMIN_IMPERSONATION_EMAIL environment variable is not set.');
+        googleDebugger.warn('GOOGLE_ADMIN_IMPERSONATION_EMAIL environment variable is not set.');
         return;
       }
       if(!workspaceDomain) {
-        console.warn('GOOGLE_WORKSPACE_DOMAIN environment variable is not set.');
+        googleDebugger.warn('GOOGLE_WORKSPACE_DOMAIN environment variable is not set.');
         return;
       }
       
@@ -50,11 +54,11 @@ class GoogleDirectoryService {
       });
 
       // Initialize Admin SDK
-      this.admin = google.admin({ version: 'directory_v1', auth: this.auth });
-      
-      console.log('✅ Google Directory API initialized successfully');
+      this.admin = google.admin({ version: 'directory_v1', auth: this.auth      });
+
+      googleDebugger.info('✅ Google Directory API initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Google Directory API:', error);
+      googleDebugger.error('❌ Failed to initialize Google Directory API:', error);
       this.admin = null;
     }
   }
@@ -65,8 +69,8 @@ class GoogleDirectoryService {
     }
 
     try {
-      console.log(`🔍 Searching Google Directory for: "${query}"`);
-      console.log(`📁 Domain: ${process.env.GOOGLE_WORKSPACE_DOMAIN}`);
+      googleDebugger.debug(`🔍 Searching Google Directory for: "${query}"`);
+      googleDebugger.debug(`📁 Domain: ${process.env.GOOGLE_WORKSPACE_DOMAIN}`);
       
       // Try multiple search strategies to find users
       let users: admin_directory_v1.Schema$User[] = [];
@@ -81,9 +85,9 @@ class GoogleDirectoryService {
           orderBy: 'email'
         });
         users = emailResponse.data.users ?? [];
-        console.log(`✅ Found ${users.length} users by name search`);
+        googleDebugger.debug(`✅ Found ${users.length} users by name search`);
       } catch {
-        console.log(`⚠️ Name search failed, trying email search...`);
+        googleDebugger.debug(`⚠️ Name search failed, trying email search...`);
         
         // Strategy 2: Search by email (if name search fails)
         try {
@@ -95,9 +99,9 @@ class GoogleDirectoryService {
             orderBy: 'email'
           });
           users = nameResponse.data.users ?? [];
-          console.log(`✅ Found ${users.length} users by email search`);
+          googleDebugger.debug(`✅ Found ${users.length} users by email search`);
         } catch {
-          console.log(`⚠️ Name search also failed, trying general search...`);
+          googleDebugger.debug(`⚠️ Name search also failed, trying general search...`);
           
           // Strategy 3: General search without specific field (fallback)
           const generalResponse = await this.admin.users.list({
@@ -121,7 +125,7 @@ class GoogleDirectoryService {
                    givenName.includes(searchQuery) ||
                    familyName.includes(searchQuery);
           });
-          console.log(`✅ Found ${users.length} users by general search with client-side filtering`);
+          googleDebugger.debug(`✅ Found ${users.length} users by general search with client-side filtering`);
         }
       }
       
@@ -148,7 +152,7 @@ class GoogleDirectoryService {
         errors?: unknown[];
       };
       
-      console.error('❌ Google Directory API Error Details:', {
+      googleDebugger.error('❌ Google Directory API Error Details:', {
         message: apiError.message,
         code: apiError.code,
         status: apiError.status,
@@ -187,7 +191,7 @@ class GoogleDirectoryService {
     }
 
     try {
-      console.log('🧪 Testing Google Directory API connection...');
+      googleDebugger.debug('🧪 Testing Google Directory API connection...');
       
       // Try to list a single user to test the connection
       const response = await this.admin.users.list({
@@ -213,7 +217,7 @@ class GoogleDirectoryService {
         status?: number;
       };
       
-      console.error('❌ Google Directory API connection test failed:', apiError);
+      googleDebugger.error('❌ Google Directory API connection test failed:', apiError);
       
       return {
         success: false,

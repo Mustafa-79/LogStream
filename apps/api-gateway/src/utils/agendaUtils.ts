@@ -1,6 +1,10 @@
 import { convertLogsToCSV, convertLogsToJSON, createFilterSummary, sendExportErrorEmail, sendLogExportEmail } from '../utils/exportUtils';
 import { JobStatusModel } from '../models/JobStatus.model';
 import * as logService from '../services/logService';
+import logger from '../config/logger';
+
+// Agenda utils debug logger
+const agendaUtilsDebugger = logger.withTraceId('AGENDA_UTILS');
 
 interface LogFilters {
   applications?: string[];
@@ -40,7 +44,7 @@ export const processLogExport = async (
   const jobId = `export-${userId}-${Date.now()}`;
 
   try {
-    console.log(`Starting log export for user ${userId} in ${format.toUpperCase()} format`);
+    agendaUtilsDebugger.info(`Starting log export for user ${userId} in ${format.toUpperCase()} format`);
     
     // Initialize job status
     await JobStatusModel.create({
@@ -61,7 +65,7 @@ export const processLogExport = async (
       jobId
     );
     
-    console.log(`[${jobId}] Fetched ${logs.length} logs`);
+    agendaUtilsDebugger.debug(`[${jobId}] Fetched ${logs.length} logs`);
     
     // Step 2: Convert data
     await updateJobProgress(jobId, 50, 'converting_data', { recordCount: logs.length });
@@ -87,9 +91,9 @@ export const processLogExport = async (
       }
     );
     
-    console.log(`[${jobId}] Log export completed successfully`);    
+    agendaUtilsDebugger.info(`[${jobId}] Log export completed successfully`);    
   } catch (error: any) {
-    console.error(`Error processing log export for user ${userId}:`, error);
+    agendaUtilsDebugger.error(`Error processing log export for user ${userId}:`, error);
     
     await sendExportErrorEmail(userEmail, error.message);
   }
@@ -118,7 +122,7 @@ async function withRetry<T>(
       }
       
       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
-      console.log(`[${jobId}] Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error.message);
+      agendaUtilsDebugger.warn(`[${jobId}] Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${error.message}`);
       
       await new Promise(resolve => setTimeout(resolve, delay));
     }

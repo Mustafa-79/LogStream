@@ -6,6 +6,12 @@ import { googleDirectoryService } from './services/googleDirectoryService'
 import { startAgenda } from './config/agenda';
 import { monitoringService } from './services/monitoringService'
 import { logRetentionService } from './services/dataRetentionService'
+import logger from './config/logger'
+
+// Debug loggers for different components
+const startupDebugger = logger.withTraceId('STARTUP')
+const dbDebugger = logger.withTraceId('DATABASE')
+const serviceDebugger = logger.withTraceId('SERVICE')
 
 const server = http.createServer(app)
 
@@ -14,32 +20,32 @@ const PORT = config.port
 mongoose
   .connect(config.mongoose)
   .then(async () => {
-    console.log('Connected to Database')
+    dbDebugger.info('Connected to Database')
 
     await logRetentionService.initializeLogRetention();
     await startAgenda();
 
     monitoringService.start();
-    console.log('✅ Monitoring service started');
+    serviceDebugger.info('✅ Monitoring service started');
 
-    console.log('Initializing Google Directory service...')
+    startupDebugger.info('Initializing Google Directory service...')
     googleDirectoryService
       .testConnection()
       .then((result) => {
         if (result.success) {
-          console.log('✅ Google Directory service initialized successfully')
+          serviceDebugger.info('✅ Google Directory service initialized successfully')
         } else {
-          console.warn('⚠️ Google Directory service initialization failed:', result.message)
+          serviceDebugger.warn(`⚠️ Google Directory service initialization failed: ${result.message}`)
         }
       })
       .catch((error) => {
-        console.error('❌ Google Directory service test failed:', error)
+        serviceDebugger.error('❌ Google Directory service test failed:', error)
       })
 
     server.listen(PORT, () => {
-      console.log(`Server is listening on port ${PORT}`)
+      startupDebugger.info(`Server is listening on port ${PORT}`)
     })
   })
   .catch((error) => {
-    console.error('Database connection failed:', error)
+    dbDebugger.error('Database connection failed:', error)
   })

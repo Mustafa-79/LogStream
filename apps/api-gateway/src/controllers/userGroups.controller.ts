@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from 'express'
 import { userGroupService } from '../services'
 import createResponse from '../utils/responseHelper'
+import logger from '../config/logger'
+
+// User groups controller debug logger
+const userGroupsDebugger = logger.withTraceId('USER_GROUPS_CTRL');
 
 export const getUserGroups = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -94,7 +98,7 @@ export const addUserToGroup = async (req: Request, res: Response, next: NextFunc
             createResponse(200, 'User added to group successfully', group)
         );
     } catch (error) {
-        console.error('Error adding user to group:', error);
+        userGroupsDebugger.error('Error adding user to group:', error);
         next(error);
     }
 }
@@ -116,7 +120,7 @@ export const removeUserFromGroup = async (req: Request, res: Response, next: Nex
             createResponse(200, 'User removed from group successfully', group)
         );
     } catch (error) {
-        console.error('Error removing user from group:', error);
+        userGroupsDebugger.error('Error removing user from group:', error);
         next(error);
     }
 };

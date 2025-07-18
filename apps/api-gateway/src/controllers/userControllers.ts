@@ -2,6 +2,10 @@ import { NextFunction, Request, Response } from 'express';
 import createResponse from "../utils/responseHelper";
 import { userService } from '../services';
 import { googleDirectoryService } from '../services/googleDirectoryService';
+import logger from '../config/logger';
+
+// User controller debug logger
+const userControllerDebugger = logger.withTraceId('USER_CTRL');
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -46,7 +50,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       createResponse(201, 'User created successfully', newUser)
     );
   } catch (error) {
-    console.error('Error creating user:', error);
+    userControllerDebugger.error('Error creating user:', error);
     next(error);
   }
 };
@@ -75,7 +79,7 @@ export const searchGoogleDirectory = async (req: Request, res: Response, next: N
       createResponse(200, 'Google Directory users fetched successfully', users)
     );
   } catch (error) {
-    console.error('Error searching Google Directory:', error);
+    userControllerDebugger.error('Error searching Google Directory:', error);
     next(error);
   }
 };

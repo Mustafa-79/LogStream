@@ -1,5 +1,9 @@
 import { ILog } from "../models/Log.model";
 import { sendEmail } from "../services/emailService";
+import logger from '../config/logger';
+
+// Export utils debug logger
+const exportDebugger = logger.withTraceId('EXPORT');
 
 interface LogFilters {
   applications?: string[];
@@ -144,7 +148,7 @@ export const sendLogExportEmail = async (
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Attempting to send email to ${userEmail} (attempt ${attempt}/${maxRetries})`);
+      exportDebugger.debug(`Attempting to send email to ${userEmail} (attempt ${attempt}/${maxRetries})`);
       
       await sendEmail({
         to: userEmail,
@@ -153,16 +157,16 @@ export const sendLogExportEmail = async (
         attachments
       });
       
-      console.log(`Email sent successfully to ${userEmail}`);
+      exportDebugger.info(`Email sent successfully to ${userEmail}`);
       return;
       
     } catch (error: any) {
       lastError = error;
-      console.error(`Email attempt ${attempt} failed:`, error.message);
+      exportDebugger.error(`Email attempt ${attempt} failed: ${error.message}`);
       
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000; 
-        console.log(`Retrying in ${delay}ms...`);
+        exportDebugger.debug(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

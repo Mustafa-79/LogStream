@@ -1,6 +1,10 @@
 import { Log } from '../models/Log.model';
 import Group from '../models/Group.model';
 import mongoose from 'mongoose';
+import logger from '../config/logger';
+
+// Analytics debug logger
+const analyticsDebugger = logger.withTraceId('ANALYTICS');
 
 export interface LogLevelDistribution {
   _id: string;
@@ -83,7 +87,7 @@ export class AnalyticsService {
     ]);
 
 
-    console.log("Total Logs:", totalLogs);
+    analyticsDebugger.debug(`Total Logs: ${totalLogs}`);
 
     return {
       logLevelDistribution,
