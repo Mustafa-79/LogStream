@@ -11,7 +11,7 @@ import {
 } from "../components/pages/Applications/types";
 
 export const useApplications = (options: UseApplicationsOptions = {}) => {
-  const { pageSize = 5 } = options;
+  const { pageSize = 6 } = options;
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState<boolean>(true); // Initial page load
   const [dataLoading, setDataLoading] = useState<boolean>(false); // Filter/search operations

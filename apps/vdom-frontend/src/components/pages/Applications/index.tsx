@@ -18,7 +18,7 @@ import "oj-c/button";
 import "oj-c/progress-circle";
 
 export function Applications() {
-  const { applications, loading, dataLoading, pagination, currentFilters, currentSearchTerm, actions } = useApplications({ pageSize: 5 });
+  const { applications, loading, dataLoading, pagination, currentFilters, currentSearchTerm, actions } = useApplications({ pageSize: 6 });
   const { createApplication, isCreating } = useCreateApplication();
   const { updateApplication, isUpdating } = useUpdateApplication();
   const { deleteApplication, isDeleting } = useDeleteApplication();

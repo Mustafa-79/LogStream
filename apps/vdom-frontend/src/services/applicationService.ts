@@ -25,7 +25,7 @@ class ApplicationService {
 
   static async fetchAllApplications(
     page: number = 1,
-    limit: number = 5,
+    limit: number = 6,
     filters?: ApplicationFilters,
     searchTerm?: string // Add search parameter
   ): Promise<ApplicationsResponse> {
