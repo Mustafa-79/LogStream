@@ -48,4 +48,8 @@ const GroupSchema = new Schema<IGroup>({
 GroupSchema.index({ memberIDs: 1, active: 1, deleted: 1 }); // For getUserApps query
 GroupSchema.index({ active: 1, deleted: 1 }); // For general active group queries
 
+// Critical indexes for userGroups.service.ts
+GroupSchema.index({ deleted: 1, active: 1, name: 1 }); // Primary compound index for getAllUserGroups filtering and sorting
+GroupSchema.index({ name: 'text' }); // Text index for case-insensitive name searches
+
 export default model<IGroup>('Group', GroupSchema)

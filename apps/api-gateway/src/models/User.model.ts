@@ -26,5 +26,6 @@ const UserSchema = new Schema<IUser>({
   timestamps: true,
 })
 
+UserSchema.index({ active: 1 }); // For filtering active users
 
 export default model<IUser>('User', UserSchema)

@@ -53,7 +53,30 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
   // Build aggregation pipeline
   const pipeline: PipelineStage[] = []
 
-  // First lookup members and applications
+  // Build match conditions first to filter early
+  const matchConditions: Record<string, unknown> = { deleted: false }
+
+  // Add status filter
+  if (status === 'active') {
+    matchConditions.active = true
+  } else if (status === 'inactive') {
+    matchConditions.active = false
+  }
+
+  // Add search filter (only for group name)
+  if (search && search.trim() !== '') {
+    matchConditions.name = { $regex: search.trim(), $options: 'i' }
+  }
+
+  // Add application filter - match groups that have ALL specified applications
+  if (applicationIds.length > 0) {
+    matchConditions.applicationIDs = { $all: applicationIds.map(id => new Types.ObjectId(id)) }
+  }
+
+  // Match early to reduce documents in pipeline
+  pipeline.push({ $match: matchConditions })
+
+  // Then lookup members and applications
   pipeline.push(
     {
       $lookup: {
@@ -78,45 +101,24 @@ export const getAllUserGroups = async (options: GetUserGroupsOptions = {}): Prom
     }
   )
 
-  // Build match conditions
-  const matchConditions: Record<string, unknown> = { deleted: false }
-
-  // Add status filter
-  if (status === 'active') {
-    matchConditions.active = true
-  } else if (status === 'inactive') {
-    matchConditions.active = false
-  }
-
-  // Add search filter (only for group name)
-  if (search && search.trim() !== '') {
-    matchConditions.name = { $regex: search.trim(), $options: 'i' }
-  }
-
-  // Add application filter - match groups that have ALL specified applications
-  if (applicationIds.length > 0) {
-    matchConditions.applicationIDs = { $all: applicationIds.map(id => new Types.ObjectId(id)) }
-  }
-
-  pipeline.push({ $match: matchConditions })
-
   // Always sort by name alphabetically
   pipeline.push({ $sort: { name: 1 } })
 
-  // Get total count
-  const countPipeline = [...pipeline, { $count: 'total' }]
-  const countResult = await Group.aggregate(countPipeline)
-  const totalGroups = countResult[0]?.total || 0
+  // Use facet to get count and data in single query
+  const skip = (page - 1) * limit
+  pipeline.push({
+    $facet: {
+      data: [{ $skip: skip }, { $limit: limit }],
+      count: [{ $count: 'total' }]
+    }
+  })
+
+  const [result] = await Group.aggregate(pipeline)
+  const totalGroups = result.count[0]?.total || 0
   const totalPages = Math.ceil(totalGroups / limit)
 
-  // Add pagination
-  const skip = (page - 1) * limit
-  pipeline.push({ $skip: skip }, { $limit: limit })
-
-  const result = await Group.aggregate(pipeline)
-
   return {
-    groups: result,
+    groups: result.data,
     pagination: {
       currentPage: page,
       totalPages,
@@ -149,26 +151,37 @@ export const createUserGroup = async (data: IGroup): Promise<IGroup> => {
   const existingGroup = await Group.findOne({ 
     name: { $regex: `^${data.name}$`, $options: 'i' }, 
     deleted: false 
-  })
+  }).lean()
   if (existingGroup) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
   }
 
-  // Validate provided members exist and are active
+  // Validate members and applications in parallel
+  const validationPromises = []
+  
   if (members && Array.isArray(members) && members.length > 0) {
-    const foundUsers = await User.find({ _id: { $in: members }, active: true })
-    if (foundUsers.length !== members.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist or are inactive.')
-    }
+    validationPromises.push(
+      User.find({ _id: { $in: members }, active: true }).lean()
+        .then(foundUsers => {
+          if (foundUsers.length !== members.length) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist or are inactive.')
+          }
+        })
+    )
   }
 
-  // Validate provided applications exist and are not deleted
   if (applications && Array.isArray(applications) && applications.length > 0) {
-    const foundApps = await Application.find({ _id: { $in: applications }, deleted: false })
-    if (foundApps.length !== applications.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist or are deleted.')
-    }
+    validationPromises.push(
+      Application.find({ _id: { $in: applications }, deleted: false }).lean()
+        .then(foundApps => {
+          if (foundApps.length !== applications.length) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist or are deleted.')
+          }
+        })
+    )
   }
+
+  await Promise.all(validationPromises)
 
   // Create the group with provided data
   const groupData: Partial<IGroup> = {
@@ -210,21 +223,27 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
   const applications = data.applicationIDs || undefined
 
   // Check if group exists
-  const group = await Group.findOne({ _id: id, deleted: false })
+  const group = await Group.findOne({ _id: id, deleted: false }).lean()
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found or has been deleted.')
   }
 
+  // Check name uniqueness and validate members/applications in parallel
+  const validationPromises = []
+
   // Check if another group with the same name exists (not deleted), case-insensitive
   if (data.name) {
-    const existingGroup = await Group.findOne({
-      name: { $regex: `^${data.name}$`, $options: 'i' },
-      _id: { $ne: id }, // Exclude current group
-      deleted: false
-    })
-    if (existingGroup) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
-    }
+    validationPromises.push(
+      Group.findOne({
+        name: { $regex: `^${data.name}$`, $options: 'i' },
+        _id: { $ne: id },
+        deleted: false
+      }).lean().then(existingGroup => {
+        if (existingGroup) {
+          throw new ApiError(StatusCodes.BAD_REQUEST, 'A group with this name already exists.')
+        }
+      })
+    )
   }
 
   // Validate provided members exist and are active
@@ -234,10 +253,14 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
       throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more member IDs have invalid format.');
     }
     
-    const foundUsers = await User.find({ _id: { $in: members }, active: true })
-    if (foundUsers.length !== members.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist or are inactive.')
-    }
+    validationPromises.push(
+      User.find({ _id: { $in: members }, active: true }).lean()
+        .then(foundUsers => {
+          if (foundUsers.length !== members.length) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided member IDs do not exist or are inactive.')
+          }
+        })
+    )
   }
 
   // Validate provided applications exist and are not deleted
@@ -247,11 +270,17 @@ export const updateUserGroup = async (id: string, data: Partial<IGroup>): Promis
       throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more application IDs have invalid format.');
     }
     
-    const foundApps = await Application.find({ _id: { $in: applications }, deleted: false })
-    if (foundApps.length !== applications.length) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist or are deleted.')
-    }
+    validationPromises.push(
+      Application.find({ _id: { $in: applications }, deleted: false }).lean()
+        .then(foundApps => {
+          if (foundApps.length !== applications.length) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more provided application IDs do not exist or are deleted.')
+          }
+        })
+    )
   }
+
+  await Promise.all(validationPromises)
 
   // Update group with new data
   const updated = await Group.findOneAndUpdate(
@@ -272,18 +301,22 @@ export const deleteUserGroup = async (id: string): Promise<IGroup | null> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
   }
 
-  const group = await Group.findById(id)
-  if (!group) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
-  }
-  if (group.deleted) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Group is already deleted.')
-  }
+  // Find and update in single query with validation
   const deleted = await Group.findOneAndUpdate(
-    { _id: id },
+    { _id: id, deleted: false },
     { deleted: true, active: false },
     { new: true }
   )
+  
+  if (!deleted) {
+    // Check if group exists but is already deleted
+    const group = await Group.findById(id).lean()
+    if (!group) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
+    }
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Group is already deleted.')
+  }
+  
   return deleted
 }
 
@@ -294,7 +327,7 @@ export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid group ID format.');
   }
 
-  const group = await Group.findById(id)
+  const group = await Group.findById(id).lean()
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found.')
   }
@@ -307,7 +340,7 @@ export const restoreUserGroup = async (id: string): Promise<IGroup | null> => {
     name: { $regex: `^${group.name}$`, $options: 'i' }, 
     _id: { $ne: id },
     deleted: false 
-  })
+  }).lean()
   if (existingGroup) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot restore: A group with this name already exists.')
   }
@@ -330,14 +363,16 @@ export const addUserToGroup = async (groupId: string, userId: string): Promise<I
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID format.');
   }
 
-  // First check if the group exists and is not deleted
-  const group = await Group.findOne({ _id: groupId, deleted: false });
+  // Check group and user existence in parallel
+  const [group, user] = await Promise.all([
+    Group.findOne({ _id: groupId, deleted: false }).lean(),
+    User.findById(userId).lean()
+  ])
+
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found or has been deleted.');
   }
 
-  // Check if user exists
-  const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.');
   }
@@ -368,14 +403,16 @@ export const removeUserFromGroup = async (groupId: string, userId: string): Prom
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID format.');
   }
 
-  // First check if the group exists and is not deleted
-  const group = await Group.findOne({ _id: groupId, deleted: false });
+  // Check group and user existence in parallel
+  const [group, user] = await Promise.all([
+    Group.findOne({ _id: groupId, deleted: false }).lean(),
+    User.findById(userId).lean()
+  ])
+
   if (!group) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Group not found or has been deleted.');
   }
 
-  // Check if user exists
-  const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.');
   }
