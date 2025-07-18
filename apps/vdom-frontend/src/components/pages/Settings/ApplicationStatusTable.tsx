@@ -13,16 +13,16 @@ export function ApplicationStatusTable({
   getTimePeriodDisplay
 }: ApplicationStatusTableProps) {
   return (
-    <div class="oj-flex oj-sm-flex-direction-column oj-flex-item settings-status-section" style="min-width: 400px;">
+    <div class="oj-flex oj-sm-flex-direction-column oj-flex-item settings-status-section" style="width: 100%;">
       <h4 class="oj-typography-body-lg oj-text-color-primary oj-sm-margin-4x-bottom">
         Application Status
       </h4>
       
       <div class="oj-panel oj-panel-shadow-sm settings-status-table" 
-           style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; max-height: 400px;">
-        {/* Scrollable container for horizontal scroll */}
-        <div style="overflow-x: auto; overflow-y: auto; max-height: 400px;">
-          <div style="min-width: 520px; width: max-content; display: table;"> {/* Table layout for consistent spacing */}
+           style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; max-height: 400px; width: 100%;">
+        {/* Scrollable container for horizontal scroll on mobile */}
+        <div style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%;">
+          <div style="min-width: 520px; width: 100%; display: table;"> {/* Table layout for consistent spacing */}
             {/* Table Header */}
             <div style="display: table-row; background: #f9fafb; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10;">
               <div class="oj-typography-body-xs oj-text-color-secondary" 

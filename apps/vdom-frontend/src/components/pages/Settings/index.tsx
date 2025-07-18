@@ -66,7 +66,7 @@ export function Settings() {
     if (!value?.trim()) return "Alert threshold is required";
     
     // Check if the value is purely numeric (no letters or special characters except decimal point)
-    const numericRegex = /^[0-9]+(\.[0-9]+)?$/;
+    const numericRegex = /^\d+(\.\d+)?$/;
     if (!numericRegex.test(value.trim())) {
       return "Alert threshold must be a valid number";
     }
@@ -443,13 +443,18 @@ export function Settings() {
         .settings-status-section {
           flex: 1;
           max-width: 100%;
+          width: 100%;
         }
         
         @media (max-width: 768px) {
           .settings-config-section,
           .settings-status-section {
             min-width: unset !important;
-            width: 100%;
+            width: 100% !important;
+          }
+          
+          .settings-main-layout {
+            flex-direction: column !important;
           }
         }
       `}</style>
