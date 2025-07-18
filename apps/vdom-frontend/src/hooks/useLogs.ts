@@ -60,6 +60,10 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       if (sortBy !== undefined) {
         sortByToUse = sortBy;
         setCurrentSortBy(sortBy);
+        sortByToUse = sortBy;
+      } else if (currentSortBy === 'default' || currentSortBy === undefined) {
+        sortByToUse = 'default';
+        setCurrentSortBy('default');
       } else {
         sortByToUse = currentSortBy;
       }
@@ -67,6 +71,10 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       if (sortOrder !== undefined) {
         sortOrderToUse = sortOrder;
         setCurrentSortOrder(sortOrder);
+        sortOrderToUse = sortOrder;
+      } else if (currentSortOrder === 'default' || currentSortOrder === undefined) {
+        sortOrderToUse = 'default';
+        setCurrentSortOrder('default');
       } else {
         sortOrderToUse = currentSortOrder;
       }
@@ -130,7 +138,6 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     sortBy?: string,
     sortOrder?: 'asc' | 'desc' | 'default'
   ) => {
-    console.log("Fetching logs with sort:", sortBy, sortOrder);
     await fetchLogs(1, undefined, currentFilters, currentSearchTerm, false, sortBy, sortOrder);
   };
 

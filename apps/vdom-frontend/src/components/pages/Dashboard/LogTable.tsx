@@ -12,38 +12,39 @@ export function LogTable({ logs, pagination, loading = false, onSort }: LogTable
   const [dataProvider, setDataProvider] = useState<any>(null);
 
   const handleSort = (column: SortableColumn) => {
-  let newDirection: 'asc' | 'desc' | 'default' | null;
-  let newColumn: SortableColumn | null;
+    let newDirection: 'asc' | 'desc' | 'default' | null;
+    let newColumn: SortableColumn | null;
 
-  if (sortColumn === column) {
-    if (sortDirection === 'default' || sortDirection === null) {
+    if (sortColumn === column) {
+      if (sortDirection === 'default' || sortDirection === null) {
+        newDirection = 'asc';
+        newColumn = column;
+      } else if (sortDirection === 'asc') {
+        newDirection = 'desc';
+        newColumn = column;
+      } else {
+        // Going back to default
+        newDirection = 'default';
+        newColumn = null;
+      }
+    } else {
       newDirection = 'asc';
       newColumn = column;
-    } else if (sortDirection === 'asc') {
-      newDirection = 'desc';
-      newColumn = column;
-    } else {
-      // Going back to default
-      newDirection = 'default';
-      newColumn = null;
     }
-  } else {
-    newDirection = 'asc';
-    newColumn = column;
-  }
 
-  setSortColumn(newColumn);
-  setSortDirection(newDirection);
+    setSortColumn(newColumn);
+    setSortDirection(newDirection);
 
-  // ✅ Avoid forcing fallback to timestamp. Reset to undefined.
-  if (onSort) {
-    if (newDirection === 'default' || newColumn === null) {
-      onSort(undefined, undefined); 
-    } else {
-      onSort(newColumn, newDirection);
+    // ✅ Avoid forcing fallback to timestamp. Reset to undefined.
+    if (onSort) {
+      if (newDirection === 'default' || newColumn === null) {
+        console.log("Resetting sort to default");
+        onSort(undefined, 'default'); 
+      } else {
+        onSort(newColumn, newDirection);
+      }
     }
-  }
-};
+  };
 
 
   useEffect(() => {
