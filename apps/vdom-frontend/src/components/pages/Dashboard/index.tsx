@@ -56,7 +56,6 @@ export const Dashboard = () => {
     try {
       const apiFilters = convertFiltersToApiFormat(newFilters);
       await actions.fetchLogsWithFilters(apiFilters, currentSearchTerm);
-      console.log('Filters applied successfully:', newFilters);
     } catch (error) {
       console.error('Error applying filters:', error);
     } finally {
@@ -112,7 +111,6 @@ export const Dashboard = () => {
       const apiFilters = convertFiltersToApiFormat(newFilters);
       // Make a single API call with both cleared filters and cleared search
       await actions.fetchLogsWithFilters(apiFilters, searchTerm);
-      console.log('All filters and search cleared successfully:', newFilters);
     } catch (error) {
       console.error('Error clearing filters:', error);
     } finally {

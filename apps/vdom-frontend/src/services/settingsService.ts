@@ -70,7 +70,6 @@ class SettingsService {
       }
 
       const data = await response.json();
-      console.log('DRP API Response:', data);
 
       // Extract the dataRetentionPeriod from the response
       if (data.data && typeof data.data.dataRetentionPeriod === 'number') {
@@ -97,7 +96,6 @@ class SettingsService {
       }
 
       const data = await response.json();
-      console.log('Settings saved successfully:', data);
     } catch (error) {
       console.error('Error saving settings:', error);
       throw error;

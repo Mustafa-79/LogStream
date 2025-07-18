@@ -121,8 +121,6 @@ export function useUserGroups(): UseUserGroupsReturn {
       setError(null);
 
       const backendResponse = await UserGroupsAPI.getUserGroups(page, search, status, applicationIds);
-      console.log('Fetched user groups from API:', backendResponse);
-      console.log('Response groups count:', backendResponse.groups?.length || 0);
 
       // Update userGroups with the groups array from the response
       setUserGroups(backendResponse.groups || []);
@@ -155,8 +153,6 @@ export function useUserGroups(): UseUserGroupsReturn {
         label: app.name
       }));
       setApplicationDataProvider(new ArrayDataProvider(applicationOptions, { keyAttributes: 'value' }));
-
-      console.log('Loaded reference data:', { users: usersData || 0, applications: applicationsData || 0 });
     } catch (error) {
       console.error('Error loading reference data:', error);
     }
@@ -171,7 +167,6 @@ export function useUserGroups(): UseUserGroupsReturn {
     setIsSearching(true);
     const statusValue = getStatusFilterValue();
     const applicationIds = Array.from(selectedApplications);
-    console.log('Auto-search parameters:', { searchTerm: newSearchTerm, statusValue, applicationIds });
     await fetchUserGroups(1, newSearchTerm, statusValue, applicationIds.length > 0 ? applicationIds : undefined);
     setIsSearching(false);
   };
@@ -218,7 +213,6 @@ export function useUserGroups(): UseUserGroupsReturn {
     setIsSearching(true);
     const statusValue = getStatusFilterValue();
     const applicationIds = Array.from(selectedApplications);
-    console.log('Search parameters:', { searchTerm, statusValue, applicationIds });
     await fetchUserGroups(1, searchTerm, statusValue, applicationIds.length > 0 ? applicationIds : undefined); // Reset to first page when searching
     setIsSearching(false);
   };
@@ -240,7 +234,6 @@ export function useUserGroups(): UseUserGroupsReturn {
 
       // Call the API for soft delete FIRST (don't remove from UI until success)
       await UserGroupsAPI.deleteUserGroup(groupId);
-      console.log(`User group ${groupId} deleted successfully`);
 
       // Store the deleted group for undo functionality
       setDeletedGroup(groupToDelete);
@@ -274,7 +267,6 @@ export function useUserGroups(): UseUserGroupsReturn {
       try {
         // Call the API to restore the group
         await UserGroupsAPI.restoreUserGroup(deletedGroup._id);
-        console.log(`User group "${deletedGroup.name}" restored from API`);
 
         // Clear the deleted group
         setDeletedGroup(null);
@@ -282,7 +274,6 @@ export function useUserGroups(): UseUserGroupsReturn {
         // Refresh to first page to get updated data from backend with current search
         await fetchUserGroups(1, searchTerm, getStatusFilterValue(), Array.from(selectedApplications).length > 0 ? Array.from(selectedApplications) : undefined);
 
-        console.log(`User group "${deletedGroup.name}" restored`);
       } catch (error) {
         console.error('Error restoring user group:', error);
       }
@@ -291,7 +282,6 @@ export function useUserGroups(): UseUserGroupsReturn {
 
   const handleDismissUndo = () => {
     setDeletedGroup(null);
-    console.log('Undo delete dismissed');
   };
 
   // Handle opening create modal
@@ -323,18 +313,13 @@ export function useUserGroups(): UseUserGroupsReturn {
         applicationIDs: formData.selectedApplications.length > 0 ? formData.selectedApplications : undefined,
       };
 
-      console.log('Creating user group with payload:', payload);
-
       // Call the API to create the user group
       const createdGroup = await UserGroupsAPI.createUserGroup(payload);
-      console.log('User group created successfully:', createdGroup);
 
       // Process Google Directory users if any were selected
       if (googleUsers && googleUsers.length > 0) {
-        console.log('Processing Google Directory users:', googleUsers);
         try {
           await UserGroupsAPI.processGoogleDirectoryUsers(googleUsers, createdGroup._id);
-          console.log('Google Directory users processed successfully');
         } catch (error) {
           console.error('Error processing Google Directory users:', error);
         }
@@ -353,8 +338,6 @@ export function useUserGroups(): UseUserGroupsReturn {
 
       // Refresh available users to include any newly created ones
       await loadReferenceData();
-
-      console.log(`User group "${createdGroup.name}" created and added to list`);
 
     } catch (error) {
       console.error('Error creating user group:', error);
@@ -410,18 +393,13 @@ export function useUserGroups(): UseUserGroupsReturn {
         applicationIDs: formData.selectedApplications
       };
 
-      console.log('Updating user group with payload:', payload);
-
       // Call the API to update the user group
       const updatedGroup = await UserGroupsAPI.updateUserGroup(selectedGroupForEdit._id, payload);
-      console.log('User group updated successfully:', updatedGroup);
 
       // Process Google Directory users if any were selected
       if (googleUsers && googleUsers.length > 0) {
-        console.log('Processing Google Directory users:', googleUsers);
         try {
           await UserGroupsAPI.processGoogleDirectoryUsers(googleUsers, updatedGroup._id);
-          console.log('Google Directory users processed successfully');
         } catch (error) {
           console.error('Error processing Google Directory users:', error);
         }
@@ -429,11 +407,9 @@ export function useUserGroups(): UseUserGroupsReturn {
 
       // Remove users from group if any were marked for removal
       if (usersToRemove && usersToRemove.length > 0) {
-        console.log('Removing users from group:', usersToRemove);
         for (const userId of usersToRemove) {
           try {
             await UserGroupsAPI.removeUserFromGroup(updatedGroup._id, userId);
-            console.log(`User ${userId} removed from group successfully`);
           } catch (error) {
             console.error(`Error removing user ${userId} from group:`, error);
           }
@@ -453,8 +429,6 @@ export function useUserGroups(): UseUserGroupsReturn {
 
       // Also refresh available users to include any newly created ones
       await loadReferenceData();
-
-      console.log(`User group "${updatedGroup.name}" updated successfully`);
 
     } catch (error) {
       console.error('Error updating user group:', error);

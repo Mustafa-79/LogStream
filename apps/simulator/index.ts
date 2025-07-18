@@ -61,7 +61,6 @@ function writeLog() {
     writeToMongoDB(logEntry);
   } else {
     fs.appendFileSync(logPath, logEntry);
-    console.log(`Log written:`, logEntry.trim());
   }
 }
 
@@ -82,7 +81,6 @@ async function writeToMongoDB(logEntry: string) {
     };
     
     await logsCollection.insertOne(logData);
-    console.log(`Log written to MongoDB:`, logEntry.trim());
   } catch (error) {
     console.error(`Failed to write to MongoDB:`, error);
   }

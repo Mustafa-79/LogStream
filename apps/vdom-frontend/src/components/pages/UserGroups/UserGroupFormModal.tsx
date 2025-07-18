@@ -164,12 +164,6 @@ export function UserGroupFormModal({
     setIsSubmitting(true);
 
     try {
-      console.log(`${mode} form submitted with data:`, {
-        ...(mode === 'edit' && { groupId: userGroup?._id }),
-        ...formData,
-        googleUsers: selectedGoogleUsers,
-        usersToRemove: usersToRemove
-      });
 
       if (onSubmit) {
         await onSubmit(formData, selectedGoogleUsers, usersToRemove);

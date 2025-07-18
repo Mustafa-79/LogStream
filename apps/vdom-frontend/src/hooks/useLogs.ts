@@ -123,7 +123,6 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
   const fetchLogsWithFilters = async (filters: LogFilters, searchTerm?: string) => {
     if (isFetching) {
-      console.log('Already fetching, skipping duplicate call');
       return;
     }
     const searchToUse = searchTerm !== undefined ? searchTerm : currentSearchTerm;
