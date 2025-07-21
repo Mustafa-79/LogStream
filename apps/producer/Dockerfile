@@ -2,10 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
-RUN npm install
+COPY ./producer/package*.json ./    
+RUN npm install --include=dev
 
-COPY . .
+COPY ./producer .
 
 EXPOSE 3001
 
