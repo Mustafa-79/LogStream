@@ -12,6 +12,39 @@ import logger from './config/logger'
 const startupDebugger = logger.withTraceId('STARTUP')
 const dbDebugger = logger.withTraceId('DATABASE')
 const serviceDebugger = logger.withTraceId('SERVICE')
+const errorDebugger = logger.withTraceId('GLOBAL_ERROR')
+
+// Global error handlers for truly critical issues
+process.on('uncaughtException', (error: Error) => {
+  errorDebugger.error('💥 CRITICAL: Uncaught Exception - Application will exit', {
+    error: error.message,
+    stack: error.stack,
+    pid: process.pid,
+    timestamp: new Date().toISOString()
+  })
+  
+  // Give the logger time to write the log before exiting
+  setTimeout(() => {
+    process.exit(1)
+  }, 1000)
+})
+
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  errorDebugger.error('CRITICAL: Unhandled Promise Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : 'No stack available',
+    promise: promise.toString(),
+    pid: process.pid,
+    timestamp: new Date().toISOString()
+  })
+  
+  errorDebugger.warn('Application continuing after unhandled rejection - monitor for stability issues')
+})
+
+process.on('warning', (warning: Error) => {
+  const warningDetails = `Node.js Warning: ${warning.name} - ${warning.message} | Stack: ${warning.stack || 'No stack'} | PID: ${process.pid}`
+  errorDebugger.warn(warningDetails)
+})
 
 const server = http.createServer(app)
 

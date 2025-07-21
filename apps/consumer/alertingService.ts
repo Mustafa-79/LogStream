@@ -99,7 +99,7 @@ class AlertingService {
           console.log(`⏳ Alert for ${appId} is in cooldown period`);
         }
       } else {
-        console.log(`Threshold not reached for ${appId} (${errorCount}/${config.threshold})`);
+        console.log(`Threshold not reached for ${appId} (${errorCount}/${config.threshold}) | Period: ${config.period} minutes`);
       }
     } catch (error) {
       console.error(`Error in checkAndAlert for ${appId}:`, error);

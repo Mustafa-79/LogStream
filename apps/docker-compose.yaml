@@ -33,6 +33,7 @@ services:
     networks:
       - logstream
     restart: unless-stopped
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -47,8 +48,8 @@ services:
 
   producer:
     build: 
-      context: ./producer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./producer/Dockerfile
     container_name: logstream-producer
     ports:
       - "${PRODUCER_EXTERNAL_PORT}:3001"
@@ -75,8 +76,8 @@ services:
 
   consumer:
     build:
-      context: ./consumer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./consumer/Dockerfile
     container_name: logstream-consumer
     ports:
       - "${CONSUMER_EXTERNAL_PORT}:3002"
@@ -99,8 +100,8 @@ services:
 
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     container_name: logstream-api-gateway
     ports:
       - "${API_GATEWAY_EXTERNAL_PORT}:3000"
@@ -247,8 +248,8 @@ services:
   # Simulator for App 1
   simulator-app1:
     build:
-      context: ./simulator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./simulator/Dockerfile
     container_name: logstream-simulator-app1
     environment:
       - APP_NAME=app1
@@ -266,8 +267,8 @@ services:
   # Simulator for App 2  
   simulator-app2:
     build:
-      context: ./simulator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./simulator/Dockerfile
     container_name: logstream-simulator-app2
     environment:
       - APP_NAME=app2
@@ -285,8 +286,8 @@ services:
   # Simulator for App 3
   simulator-app3:
     build:
-      context: ./simulator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./simulator/Dockerfile
     container_name: logstream-simulator-app3
     environment:
       - APP_NAME=app3
@@ -304,8 +305,8 @@ services:
   # Simulator for App 4 (writes to stdout)
   simulator-app4:
     build:
-      context: ./simulator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./simulator/Dockerfile
     container_name: logstream-simulator-app4
     environment:
       - APP_NAME=app4
@@ -322,8 +323,8 @@ services:
   # Simulator for App 5 - Original simulator that writes to MongoDB
   simulator-app5:
     build:
-      context: ./simulator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./simulator/Dockerfile
     container_name: logstream-simulator-app5
     environment:
       - APP_NAME=app5

@@ -1,70 +1,115 @@
 import dotenv from 'dotenv'
 import path from 'path'
 import Joi from 'joi'
+import config from 'config'
 
+// Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') })
 
-interface EnvVars {
-  PORT: number
-  MONGODB_URL: string
-  JWT_SECRET: string
-  GOOGLE_CLIENT_ID: string
-  GOOGLE_CLIENT_SECRET: string
-  BACKEND_URL: string
-  FRONTEND_URL: string
-  SMTP_HOST: string
-  SMTP_PORT: number
-  SMTP_SECURE: boolean
-  SMTP_USER: string
-  SMTP_PASS: string
-  NODE_ENV: 'development' | 'production' | 'test'
+interface ConfigInterface {
+  port: number
+  mongoose: string
+  jwtSecret: string
+  google: {
+    clientId: string
+    clientSecret: string
+    adminImpersonationEmail: string
+    workspaceDomain: string
+    adminScopes: string
+    clientEmail: string
+    privateKey: string
+  }
+  backendUrl: string
+  frontendUrl: string
+  smtp: {
+    host: string
+    port: number
+    secure: boolean
+    user: string
+    pass: string
+  }
+  nodeEnv: string
+}
+
+// Helper function to get environment variable value
+const getEnvValue = (configPath: string): string => {
+  const value = config.get(configPath)
+  if (typeof value === 'string' && process.env[value]) {
+    return process.env[value] as string
+  }
+  return value as string
+}
+
+// Helper function to parse boolean values
+const parseBool = (value: string): boolean => {
+  if (typeof value === 'boolean') return value
+  return value === 'true'
+}
+
+// Helper function to parse number values
+const parseNumber = (value: string): number => {
+  if (typeof value === 'number') return value
+  return parseInt(value, 10)
 }
 
 // Define Joi schema for validation
-const envVarsSchema = Joi.object<EnvVars>()
-  .keys({
-    PORT: Joi.number().default(3000),
-    MONGODB_URL: Joi.string().required().description('Mongo DB URL'),
-    JWT_SECRET: Joi.string().required().description('JWT Secret for token signing'),
-    GOOGLE_CLIENT_ID: Joi.string().required().description('Google OAuth Client ID'),
-    GOOGLE_CLIENT_SECRET: Joi.string().required().description('Google OAuth Client Secret'),
-    BACKEND_URL: Joi.string().required().description('Backend URL'),
-    FRONTEND_URL: Joi.string().required().description('Frontend URL'),
-    SMTP_HOST: Joi.string().default('smtp.gmail.com').description('SMTP host for email service'),
-    SMTP_PORT: Joi.number().default(587).description('SMTP port for email service'),
-    SMTP_SECURE: Joi.boolean().default(false).description('SMTP secure connection flag'),
-    SMTP_USER: Joi.string().required().description('SMTP user for email service'),
-    SMTP_PASS: Joi.string().required().description('SMTP password for email service'),
-    NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development').description('Node environment')
-  })
-  .unknown()
+const configSchema = Joi.object({
+  port: Joi.number().default(3000),
+  mongoose: Joi.string().required().description('MongoDB URL'),
+  jwtSecret: Joi.string().required().description('JWT Secret for token signing'),
+  google: Joi.object({
+    clientId: Joi.string().required().description('Google OAuth Client ID'),
+    clientSecret: Joi.string().required().description('Google OAuth Client Secret'),
+    adminImpersonationEmail: Joi.string().required().description('Google Admin Impersonation Email'),
+    workspaceDomain: Joi.string().required().description('Google Workspace Domain'),
+    adminScopes: Joi.string().required().description('Google Admin Scopes'),
+    clientEmail: Joi.string().required().description('Google Service Account Client Email'),
+    privateKey: Joi.string().required().description('Google Service Account Private Key')
+  }).required(),
+  backendUrl: Joi.string().required().description('Backend URL'),
+  frontendUrl: Joi.string().required().description('Frontend URL'),
+  smtp: Joi.object({
+    host: Joi.string().default('smtp.gmail.com').description('SMTP host for email service'),
+    port: Joi.number().default(587).description('SMTP port for email service'),
+    secure: Joi.boolean().default(false).description('SMTP secure connection flag'),
+    user: Joi.string().required().description('SMTP user for email service'),
+    pass: Joi.string().required().description('SMTP password for email service')
+  }).required()
+}).unknown()
 
-// Validate process.env
-const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env)
+// Create configuration object from config library
+const appConfig: ConfigInterface = {
+  port: parseNumber(getEnvValue('server.port')),
+  mongoose: getEnvValue('database.mongodb.url'),
+  jwtSecret: getEnvValue('auth.jwt.secret'),
+  google: {
+    clientId: getEnvValue('auth.google.clientId'),
+    clientSecret: getEnvValue('auth.google.clientSecret'),
+    adminImpersonationEmail: getEnvValue('auth.google.adminImpersonationEmail'),
+    workspaceDomain: getEnvValue('auth.google.workspaceDomain'),
+    adminScopes: getEnvValue('auth.google.adminScopes'),
+    clientEmail: getEnvValue('auth.google.clientEmail'),
+    privateKey: getEnvValue('auth.google.privateKey')
+  },
+  backendUrl: getEnvValue('urls.backend'),
+  frontendUrl: getEnvValue('urls.frontend'),
+  smtp: {
+    host: getEnvValue('smtp.host'),
+    port: parseNumber(getEnvValue('smtp.port')),
+    secure: parseBool(getEnvValue('smtp.secure')),
+    user: getEnvValue('smtp.user'),
+    pass: getEnvValue('smtp.pass')
+  },
+  nodeEnv: process.env.NODE_ENV || 'production' // Read directly from environment variable
+}
+
+// Validate configuration
+const { error } = configSchema.validate(appConfig)
+
+console.log('Environment set to:', appConfig.nodeEnv)
 
 if (error) {
   throw new Error(`Config validation error: ${error.message}`)
 }
 
-// Export strongly typed config
-const config = {
-  port: envVars.PORT,
-  mongoose: envVars.MONGODB_URL,
-  jwtSecret: envVars.JWT_SECRET,
-  google: {
-    clientId: envVars.GOOGLE_CLIENT_ID,
-    clientSecret: envVars.GOOGLE_CLIENT_SECRET
-  },
-  backendUrl: envVars.BACKEND_URL,
-  frontendUrl: envVars.FRONTEND_URL,
-  smtp: {
-    host: envVars.SMTP_HOST,
-    port: envVars.SMTP_PORT,
-    secure: envVars.SMTP_SECURE,
-    user: envVars.SMTP_USER,
-    pass: envVars.SMTP_PASS
-  },
-  nodeEnv: envVars.NODE_ENV
-}
-
-export default config
+export default appConfig

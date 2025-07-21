@@ -1,0 +1,35 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "database": {
+    "mongodb": {
+      "url": ""
+    }
+  },
+  "auth": {
+    "jwt": {
+      "secret": ""
+    },
+    "google": {
+      "clientId": "",
+      "clientSecret": "",
+      "adminImpersonationEmail": "",
+      "workspaceDomain": "",
+      "adminScopes": "",
+      "clientEmail": "",
+      "privateKey": ""
+    }
+  },
+  "urls": {
+    "backend": "",
+    "frontend": ""
+  },
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false,
+    "user": "",
+    "pass": ""
+  }
+}

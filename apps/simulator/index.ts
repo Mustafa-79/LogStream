@@ -87,10 +87,10 @@ async function writeToMongoDB(logEntry: string) {
 }
 
 const intervals: { [key: string]: number } = {
-  app1: 11000,
-  app2: 7000,
+  app1: 61000,
+  app2: 20000,
   app3: 15000,
-  app4: 9000,
+  app4: 55000,
   app5: 8000,
   "default-app": 5000
 };
