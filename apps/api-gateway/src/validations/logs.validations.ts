@@ -39,7 +39,7 @@ export const logValidation = {
                 .optional()
                 .label('Search Term'),
             sortBy: Joi.string()
-                .valid('timestamp', 'level', 'application', 'message', 'createdAt', 'default')
+                .valid('timestamp', 'logLevel', 'sourceApp', 'message', 'createdAt', 'default', 'traceId')
                 .optional()
                 .default('timestamp')
                 .label('Sort By Field'),
