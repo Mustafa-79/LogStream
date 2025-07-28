@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "my-mcp-server-246d92d3": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mongodb-mcp-server",
+        "--connectionString",
+        "mongodb+srv://logstream:2c099KMtqWYA2AEcluster0.hrotyq.mongodb.net/temp"
+      ]
+    }
+  }
+}

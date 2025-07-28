@@ -27,7 +27,8 @@ interface ConfigInterface {
     secure: boolean
     user: string
     pass: string
-  }
+  },
+  anthropicApiKey?: string 
   nodeEnv: string
 }
 
@@ -74,7 +75,8 @@ const configSchema = Joi.object({
     secure: Joi.boolean().default(false).description('SMTP secure connection flag'),
     user: Joi.string().required().description('SMTP user for email service'),
     pass: Joi.string().required().description('SMTP password for email service')
-  }).required()
+  }).required(),
+  anthropicApiKey: Joi.string().optional().description('Anthropic API Key for MCP service'),
 }).unknown()
 
 // Create configuration object from config library
@@ -100,7 +102,8 @@ const appConfig: ConfigInterface = {
     user: getEnvValue('smtp.user'),
     pass: getEnvValue('smtp.pass')
   },
-  nodeEnv: process.env.NODE_ENV || 'production' // Read directly from environment variable
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+  nodeEnv: process.env.NODE_ENV || 'production'
 }
 
 // Validate configuration

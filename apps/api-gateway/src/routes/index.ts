@@ -8,6 +8,7 @@ import userRoute from './userRoutes'
 import analyticsRoute from './analyticsRoutes'
 import settingsRoute from './settingsRoutes' 
 import alertRoute from './alertRoutes'
+import mcpRoute from './mcpRoutes'
 
 const router: Router = express.Router()
 
@@ -20,6 +21,7 @@ const defaultRoutes: { path: string; route: Router }[] = [
   { path: '/analytics', route: analyticsRoute },
   { path: '/settings', route: settingsRoute},
   { path: '/alerts', route: alertRoute},
+  { path: '/mcp', route: mcpRoute } 
 ]
 
 defaultRoutes.forEach(({ path, route }) => {

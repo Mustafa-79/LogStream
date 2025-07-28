@@ -31,5 +31,6 @@
     "secure": false,
     "user": "",
     "pass": ""
-  }
+  },
+  "anthropicApiKey": ""
 }

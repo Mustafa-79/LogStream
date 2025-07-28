@@ -14,6 +14,8 @@
     "seed": "NODE_ENV=development ts-node seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.57.0",
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "agenda": "^5.0.0",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
@@ -29,6 +31,7 @@
     "joi": "^17.13.3",
     "joi-password-complexity": "^5.2.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb-mcp-server": "^0.2.0",
     "mongoose": "^8.7.3",
     "morgan": "^1.10.0",
     "node-cron": "^4.2.0",
