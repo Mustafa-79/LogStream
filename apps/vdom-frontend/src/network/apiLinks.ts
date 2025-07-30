@@ -25,6 +25,9 @@ class ApiLinks {
   // Alert APIs
   static readonly GET_ALERTS: string = `${ApiLinks.API_BASE_URL}/alerts`;
   static readonly RESOLVE_ALERT = (id: string): string => `${ApiLinks.API_BASE_URL}/alerts/${id}/resolve`;
+
+  // Chat APIs
+  static readonly SEND_CHAT_QUERY: string = `${ApiLinks.API_BASE_URL}/mcp`;
 }
 
 export default ApiLinks;

@@ -15,6 +15,10 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { useAppState } from "../hooks/useAppState";
 import { RouteConfig } from "./router";
 import "oj-c/button";
+import { Chat } from "./ChatSidebar/index";
+import { ChatFab } from "./ChatSidebar/ChatFab";
+import { useChat } from "../hooks/useChat";
+import { AuthManager } from "../utils/auth";
 
 type Props = Readonly<{
   appName?: string;
@@ -115,6 +119,16 @@ export const App = registerCustomElement(
       appName
     });
 
+    const getUserRole = () => {
+      const user = AuthManager.getCurrentUser();
+      if (!user || !user.isAdmin) {
+        return 'user'
+      }
+      return 'admin';
+    };
+
+    const chat = useChat(getUserRole());
+
     useEffect(() => {
       Context.getPageContext().getBusyContext().applicationBootstrapComplete();
     }, []);
@@ -171,7 +185,30 @@ export const App = registerCustomElement(
           </Sidebar>
         </div>
 
-              {/* TODO: Implement Footer */}
+        {/* Copilot Components - Only show when authenticated */}
+        {appState.isAuthenticated && (
+          <>
+            <ChatFab 
+              OnClick={chat.actions.toggleCopilot}
+              isOpen={chat.state.isOpen}
+            />
+            
+            <Chat
+              isOpen={chat.state.isOpen}
+              OnClose={chat.actions.closeCopilot}
+              chatState={{
+                messages: chat.state.messages,
+                isLoading: chat.state.isLoading,
+                error: chat.state.error,
+              }}
+              chatActions={{
+                sendMessage: chat.actions.sendMessage,
+                clearMessages: chat.actions.clearMessages,
+              }}
+            />
+          </>
+        )}
+
         {/* <Footer /> */}
       </div>
     );

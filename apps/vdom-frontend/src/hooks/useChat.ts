@@ -1,0 +1,164 @@
+import { useState, useCallback } from "preact/hooks";
+import ChatService, { Message, ChatQueryRequest } from "../services/chatService";
+
+interface CopilotState {
+  isOpen: boolean;
+  isMinimized: boolean;
+  messages: Message[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+interface CopilotActions {
+  // UI State actions
+  openCopilot: () => void;
+  closeCopilot: () => void;
+  toggleCopilot: () => void;
+  minimizeCopilot: () => void;
+  restoreCopilot: () => void;
+  
+  // Message actions
+  sendMessage: (userInput: string) => Promise<void>;
+  clearMessages: () => void;
+}
+
+interface UseChatReturn {
+  state: CopilotState;
+  actions: CopilotActions;
+}
+
+export const useChat = (userRole: string = 'user'): UseChatReturn => {
+  const [state, setState] = useState<CopilotState>({
+    isOpen: false,
+    isMinimized: false,
+    messages: [
+      {
+        id: '1',
+        type: 'assistant',
+        content: `Hi! I'm your MongoDB query assistant. I can help you analyze logs, applications, and system data using natural language. Try asking me things like:
+
+• "How many logs were created today?"
+• "Show me error logs from the past hour"
+• "What applications have the most logs?"
+• "Find logs containing 'database connection' in the message"
+
+${userRole === 'admin' ? 'As an admin, you have full access to all data and operations.' : 'You have read-only access to logs and applications data.'}
+
+What would you like to know?`,
+        timestamp: new Date(),
+      }
+    ],
+    isLoading: false,
+    error: null,
+  });
+
+  const actions: CopilotActions = {
+    // UI State actions
+    openCopilot: useCallback(() => {
+      setState(prev => ({ ...prev, isOpen: true }));
+    }, []),
+
+    closeCopilot: useCallback(() => {
+      setState(prev => ({ ...prev, isOpen: false, isMinimized: false }));
+    }, []),
+
+    toggleCopilot: useCallback(() => {
+      setState(prev => ({ 
+        ...prev, 
+        isOpen: !prev.isOpen,
+        isMinimized: false 
+      }));
+    }, []),
+
+    minimizeCopilot: useCallback(() => {
+      setState(prev => ({ ...prev, isMinimized: true }));
+    }, []),
+
+    restoreCopilot: useCallback(() => {
+      setState(prev => ({ ...prev, isMinimized: false }));
+    }, []),
+
+    // Message actions
+    sendMessage: useCallback(async (userInput: string) => {
+      if (!userInput.trim() || state.isLoading) return;
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: userInput.trim(),
+        timestamp: new Date(),
+      };
+
+      const loadingMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: 'Analyzing your query...',
+        timestamp: new Date(),
+        loading: true,
+      };
+
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, userMessage, loadingMessage],
+        isLoading: true,
+        error: null,
+      }));
+
+      try {
+        const queryRequest: ChatQueryRequest = {
+          query: userMessage.content,
+        };
+
+        const response = await ChatService.sendQuery(queryRequest);
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          type: 'assistant',
+          content: response.data.interpretation || 'Query completed successfully.',
+          timestamp: new Date(),
+          queryResults: response.data.query_results,
+          success: response.data.success,
+        };
+
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.slice(0, -1).concat(assistantMessage),
+          isLoading: false,
+        }));
+      } catch (err) {
+        const errorMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          type: 'assistant',
+          content: `Sorry, I encountered an error: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again or rephrase your question.`,
+          timestamp: new Date(),
+          success: false,
+        };
+
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.slice(0, -1).concat(errorMessage),
+          isLoading: false,
+          error: err instanceof Error ? err.message : 'Failed to send message',
+        }));
+        throw err; // Re-throw so the component can handle the error
+      }
+    }, [state.isLoading]),
+
+    clearMessages: useCallback(() => {
+      setState(prev => ({
+        ...prev,
+        messages: [
+          {
+            id: '1',
+            type: 'assistant',
+            content: `Chat cleared! I'm ready to help you with your MongoDB queries. What would you like to know?`,
+            timestamp: new Date(),
+          }
+        ],
+        error: null,
+      }));
+    }, []),
+  };
+
+  return { state, actions };
+};

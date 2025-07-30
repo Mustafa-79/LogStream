@@ -125,27 +125,22 @@ class MongoMCPClient {
         }
 
         try {
-            // Get available tools from MCP server
             const toolsResponse = await this.client.listTools();
             const availableTools = toolsResponse.tools || [];
 
-            // Prepare tools for Anthropic API with proper type conversion
             const anthropicTools: AnthropicTool[] = availableTools.map(tool => ({
                 name: tool.name,
                 description: tool.description || `Tool: ${tool.name}`,
                 input_schema: {
                     ...tool.inputSchema,
                     type: "object" as const,
-                    // Ensure the schema has required properties for Anthropic API
                     properties: tool.inputSchema?.properties || {},
                     required: tool.inputSchema?.required || []
                 }
             }));
 
-            // Create system prompt with context about the logging dashboard
             const systemPrompt = this.buildSystemPrompt(userContext);
 
-            // Initialize conversation messages
             const messages: any[] = [
                 {
                     role: "user",
@@ -155,13 +150,12 @@ class MongoMCPClient {
 
             const allResults: QueryResult[] = [];
             let iterationCount = 0;
-            const maxIterations = 5; // Prevent infinite loops
+            const maxIterations = 10;
 
             while (iterationCount < maxIterations) {
                 iterationCount++;
                 enhancedLogger.info(`MCP Query iteration ${iterationCount}`);
 
-                // Call Anthropic API with current conversation state
                 const response = await this.anthropic.messages.create({
                     model: "claude-3-5-sonnet-20241022",
                     max_tokens: 4000,
@@ -171,9 +165,6 @@ class MongoMCPClient {
                     tool_choice: { type: "auto" }
                 });
 
-                console.log(`Anthropic Response (Iteration ${iterationCount}):`, JSON.stringify(response, null, 2));
-
-                // Add assistant's response to conversation
                 const assistantContent = response.content.map(block => {
                     if (block.type === 'text' && block.text) {
                         return {
@@ -198,7 +189,7 @@ class MongoMCPClient {
 
                 // Check if there are tool calls to execute
                 const toolCalls = response.content.filter(content => content.type === 'tool_use');
-                
+
                 if (toolCalls.length === 0) {
                     // No more tool calls needed, break the loop
                     const finalText = response.content
@@ -242,17 +233,47 @@ class MongoMCPClient {
                                 continue;
                             }
 
-                            // Execute the tool call via MCP
+                            // For non-admin users, modify query based on user group access
+                            let finalToolInput = toolCall.input;
+                            if (userContext.role !== 'admin') {
+                                const groupAccessCheck = await this.checkToolAccessWithUserGroups(
+                                    toolCall.name,
+                                    toolCall.input,
+                                    userContext
+                                );
+
+                                if (!groupAccessCheck.allowed) {
+                                    const result: QueryResult = {
+                                        tool: toolCall.name,
+                                        input: toolCall.input,
+                                        error: groupAccessCheck.reason,
+                                        success: false
+                                    };
+
+                                    iterationResults.push(result);
+                                    allResults.push(result);
+
+                                    toolResults.push({
+                                        type: "tool_result" as const,
+                                        tool_use_id: (toolCall as any).id || `tool_${Date.now()}`,
+                                        content: `Access Denied: ${groupAccessCheck.reason}`
+                                    });
+                                    continue;
+                                }
+
+                                finalToolInput = groupAccessCheck.modifiedInput || toolCall.input;
+                            }
+
                             const toolResult = await this.client!.callTool({
                                 name: toolCall.name,
-                                arguments: (toolCall.input || {}) as Record<string, unknown>
+                                arguments: (finalToolInput || {}) as Record<string, unknown>
                             });
 
-                            console.log(`Tool ${toolCall.name} executed successfully with input:`, toolCall.input);
+                            console.log(`Tool ${toolCall.name} executed successfully with input:`, finalToolInput);
 
                             const result: QueryResult = {
                                 tool: toolCall.name,
-                                input: toolCall.input,
+                                input: finalToolInput,
                                 output: toolResult.content,
                                 success: true
                             };
@@ -260,7 +281,6 @@ class MongoMCPClient {
                             iterationResults.push(result);
                             allResults.push(result);
 
-                            // Add tool result to conversation
                             toolResults.push({
                                 type: "tool_result" as const,
                                 tool_use_id: (toolCall as any).id || `tool_${Date.now()}`,
@@ -270,7 +290,7 @@ class MongoMCPClient {
                         } catch (error: any) {
                             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                             enhancedLogger.error(`Tool execution failed for ${toolCall.name}:`, error);
-                            
+
                             const result: QueryResult = {
                                 tool: toolCall.name,
                                 input: toolCall.input,
@@ -281,7 +301,6 @@ class MongoMCPClient {
                             iterationResults.push(result);
                             allResults.push(result);
 
-                            // Add error result to conversation
                             toolResults.push({
                                 type: "tool_result" as const,
                                 tool_use_id: (toolCall as any).id || `tool_${Date.now()}`,
@@ -378,11 +397,26 @@ Current user context:
 
 ROLE-BASED ACCESS CONTROL:
 - Admin users: Full access to all collections and operations
+
 - Non-admin users:
   * CANNOT access 'users' or 'groups' collections at all
   * Can only READ from 'applications' collection (find, count, aggregate) - NO create/update/delete
   * Can only READ from 'logs' and 'alerts' collections (find, count, aggregate) - NO create/update/delete
   * Read-only access to other collections
+
+USER GROUP-BASED DATA FILTERING:
+- Non-admin users can only see data for applications they have access to through their user groups
+- User groups contain 'applicationIDs' field that defines which applications a user can access
+- When querying applications: Results are automatically filtered to only show applications the user has access to
+- When querying logs: Results are automatically filtered to only show logs from applications the user has access to
+- When querying alerts: Results are automatically filtered to only show alerts from applications the user has access to
+- If a user has no group memberships or group access, they will see no data
+
+IMPORTANT SECURITY NOTE:
+- All queries for applications, logs, and alerts are automatically filtered based on user's group membership
+- Users will only see data for applications they are authorized to access
+- This filtering happens automatically - you don't need to manually add filters for user access
+- The system ensures data isolation between different user groups
 
 When the user asks questions in natural language about logs, users, applications, groups, or analytics:
 1. Analyze their request and determine the appropriate MongoDB operations
@@ -392,23 +426,25 @@ When the user asks questions in natural language about logs, users, applications
 5. For complex queries, break them down into multiple steps and execute tools sequentially
 6. Return results in a user-friendly format
 7. Always respect user permissions and data access controls - if access is denied, explain why
-8. For aggregation queries, prefer using MongoDB aggregation pipelines
-9. Handle errors gracefully and provide helpful feedback
-10. If you need more information after executing a tool, ask follow-up questions or make additional tool calls
+8. **Remember**: Non-admin users will automatically only see data for applications they have access to through their user groups
+9. For aggregation queries, prefer using MongoDB aggregation pipelines
+10. Handle errors gracefully and provide helpful feedback
+11. If you need more information after executing a tool, ask follow-up questions or make additional tool calls
 
 Example workflow for "how many logs for App 1":
-1. Query applications collection: {"name": "App 1"} to get the ObjectId
-2. Query logs collection: {"sourceApp": ObjectId("found_id")} to count logs
+1. Query applications collection: {"name": "App 1"} to get the ObjectId (automatically filtered to user's accessible apps)
+2. Query logs collection: {"sourceApp": ObjectId("found_id")} to count logs (automatically filtered to user's accessible apps)
 
 Example access control scenarios:
 - Non-admin asks "show me all users" → DENY: "Access denied: Only administrators can access user management."
 - Non-admin asks "create new application" → DENY: "Access denied: Only administrators can create applications."
-- Non-admin asks "show me applications" → ALLOW: Read access to applications
-- Non-admin asks "how many logs for App 1" → ALLOW: Read access to logs
+- Non-admin asks "show me applications" → ALLOW: Shows only applications the user has access to through their groups
+- Non-admin asks "how many logs for App 1" → ALLOW: Shows logs only if App 1 is in user's accessible applications
 - Non-admin asks "delete old logs" → DENY: "Access denied: Only administrators can delete logs."
-- Non-admin asks "create new alert" → DENY: "Access denied: Only administrators can create alerts."
+- Non-admin user in "Developers" group with access to App 6, 7 asks "show all applications" → Returns only App 6 and 7
+- Non-admin user in "QA" group with access to App 1, 2, 3 asks "show logs" → Returns only logs from App 1, 2, and 3
 
-Remember: Only execute queries that the user has permission to run based on their role and user group. For complex queries requiring multiple steps, execute them in logical sequence. If access is denied, clearly explain the reason and suggest alternative queries the user can perform.`;
+Remember: Only execute queries that the user has permission to run based on their role and user group. For complex queries requiring multiple steps, execute them in logical sequence. If access is denied, clearly explain the reason and suggest alternative queries the user can perform. The system automatically ensures users only see data for applications they have access to.`;
     }
 
     async getAvailableTools(): Promise<MCPTool[]> {
@@ -452,70 +488,33 @@ Remember: Only execute queries that the user has permission to run based on thei
     private checkToolAccess(toolName: string, toolInput: any, userContext: UserContext): { allowed: boolean; reason?: string } {
         const isAdmin = userContext.role === 'admin';
         const collection = toolInput?.collection || '';
-        
-        // Allow all access for admin users
+
         if (isAdmin) {
             return { allowed: true };
         }
 
-        // Check for user groups access (admin only)
         if (collection === 'groups' || collection === 'users') {
-            return { 
-                allowed: false, 
-                reason: 'Access denied: Only administrators can access user groups and user management.' 
+            return {
+                allowed: false,
+                reason: 'Access denied: Only administrators can access user groups and user management.'
             };
         }
 
-        // Check for applications collection access
-        if (collection === 'applications') {
-            // Allow read operations for non-admin users
-            const readOnlyTools = ['find', 'findOne', 'count', 'aggregate', 'distinct'];
+        if (['applications', 'logs', 'alerts'].includes(collection)) {
+            // Check if it's a write operation (still blocked for non-admin users)
             const writeTools = ['insert', 'insertOne', 'insertMany', 'update', 'updateOne', 'updateMany', 'delete', 'deleteOne', 'deleteMany', 'replaceOne'];
-            
-            if (writeTools.includes(toolName)) {
-                return { 
-                    allowed: false, 
-                    reason: 'Access denied: Only administrators can create, update, or delete applications.' 
-                };
-            }
-            
-            // Allow read operations
-            if (readOnlyTools.includes(toolName)) {
-                return { allowed: true };
-            }
-        }
 
-        // Check for logs collection access (read-only for non-admin users)
-        if (collection === 'logs') {
-            const readOnlyTools = ['find', 'findOne', 'count', 'aggregate', 'distinct'];
-            const writeTools = ['insert', 'insertOne', 'insertMany', 'update', 'updateOne', 'updateMany', 'delete', 'deleteOne', 'deleteMany', 'replaceOne'];
-            
             if (writeTools.includes(toolName)) {
-                return { 
-                    allowed: false, 
-                    reason: 'Access denied: Only administrators can create, update, or delete logs.' 
+                const collectionName = collection === 'applications' ? 'applications' :
+                    collection === 'logs' ? 'logs' : 'alerts';
+                return {
+                    allowed: false,
+                    reason: `Access denied: Only administrators can create, update, or delete ${collectionName}.`
                 };
             }
-            
-            // Allow read operations
-            if (readOnlyTools.includes(toolName)) {
-                return { allowed: true };
-            }
-        }
 
-        // Check for alerts collection access (read-only for non-admin users)
-        if (collection === 'alerts') {
+            // Allow read operations (but they will be filtered by user's application access)
             const readOnlyTools = ['find', 'findOne', 'count', 'aggregate', 'distinct'];
-            const writeTools = ['insert', 'insertOne', 'insertMany', 'update', 'updateOne', 'updateMany', 'delete', 'deleteOne', 'deleteMany', 'replaceOne'];
-            
-            if (writeTools.includes(toolName)) {
-                return { 
-                    allowed: false, 
-                    reason: 'Access denied: Only administrators can create, update, or delete alerts.' 
-                };
-            }
-            
-            // Allow read operations
             if (readOnlyTools.includes(toolName)) {
                 return { allowed: true };
             }
@@ -527,11 +526,226 @@ Remember: Only execute queries that the user has permission to run based on thei
             return { allowed: true };
         }
 
-        // Default: deny write operations for non-admin users
-        return { 
-            allowed: false, 
-            reason: 'Access denied: Insufficient permissions for this operation.' 
+        return {
+            allowed: false,
+            reason: 'Access denied: Insufficient permissions for this operation.'
         };
+    }
+
+    private async checkToolAccessWithUserGroups(
+        toolName: string,
+        toolInput: any,
+        userContext: UserContext
+    ): Promise<{ allowed: boolean; reason?: string; modifiedInput?: any }> {
+        const isAdmin = userContext.role === 'admin';
+        const collection = toolInput?.collection || '';
+
+        if (isAdmin) {
+            return { allowed: true, modifiedInput: toolInput };
+        }
+
+        if (collection === 'groups' || collection === 'users') {
+            return {
+                allowed: false,
+                reason: 'Access denied: Only administrators can access user groups and user management.'
+            };
+        }
+
+        if (['applications', 'logs', 'alerts'].includes(collection)) {
+            // Check if it's a write operation (still blocked for non-admin)
+            const writeTools = ['insert', 'insertOne', 'insertMany', 'update', 'updateOne', 'updateMany', 'delete', 'deleteOne', 'deleteMany', 'replaceOne'];
+
+            if (writeTools.includes(toolName)) {
+                const collectionName = collection === 'applications' ? 'applications' :
+                    collection === 'logs' ? 'logs' : 'alerts';
+                return {
+                    allowed: false,
+                    reason: `Access denied: Only administrators can create, update, or delete ${collectionName}.`
+                };
+            }
+
+            // For read operations, modify the query to filter by user's application access
+            const modifiedInput = await this.modifyQueryForUserAccess(toolName, toolInput, userContext);
+            return { allowed: true, modifiedInput };
+        }
+
+        const readOnlyTools = ['find', 'findOne', 'count', 'aggregate', 'distinct'];
+        if (readOnlyTools.includes(toolName)) {
+            return { allowed: true, modifiedInput: toolInput };
+        }
+
+        // Default: deny write operations for non-admin users
+        return {
+            allowed: false,
+            reason: 'Access denied: Insufficient permissions for this operation.'
+        };
+    }
+
+    private async modifyQueryForUserAccess(
+        toolName: string,
+        toolInput: any,
+        userContext: UserContext
+    ): Promise<any> {
+        try {
+            const accessibleAppIds = await this.getUserAccessibleApplications(userContext);
+
+            if (!accessibleAppIds || accessibleAppIds.length === 0) {
+                // If user has no application access, return a query that will return no results
+                return {
+                    ...toolInput,
+                    filter: { _id: { $in: [] } },
+                    query: { _id: { $in: [] } }
+                };
+            }
+
+            const collection = toolInput?.collection || '';
+            let modifiedInput = { ...toolInput };
+
+            if (collection === 'applications') {
+                // Convert string IDs to ObjectId format for applications collection
+                const objectIdAppIds = accessibleAppIds.map(id => ({ $oid: id }));
+                const applicationFilter = { _id: { $in: objectIdAppIds } };
+
+                // Merge with existing filter if present
+                if (toolInput.filter) {
+                    modifiedInput.filter = { $and: [toolInput.filter, applicationFilter] };
+                } else if (toolInput.query) {
+                    modifiedInput.query = { $and: [toolInput.query, applicationFilter] };
+                } else {
+                    modifiedInput.filter = applicationFilter;
+                    modifiedInput.query = applicationFilter;
+                }
+            }
+            else if (collection === 'logs') {
+                // Convert string IDs to ObjectId format for logs collection
+                const objectIdAppIds = accessibleAppIds.map(id => ({ $oid: id }));
+                const logsFilter = { sourceApp: { $in: objectIdAppIds } };
+
+                // Merge with existing filter if present
+                if (toolInput.filter) {
+                    modifiedInput.filter = { $and: [toolInput.filter, logsFilter] };
+                } else if (toolInput.query) {
+                    modifiedInput.query = { $and: [toolInput.query, logsFilter] };
+                } else {
+                    modifiedInput.filter = logsFilter;
+                    modifiedInput.query = logsFilter;
+                }
+            }
+            else if (collection === 'alerts') {
+                // Convert string IDs to ObjectId format for alerts collection
+                const objectIdAppIds = accessibleAppIds.map(id => ({ $oid: id }));
+                const alertsFilter = {
+                    $or: [
+                        { sourceApp: { $in: objectIdAppIds } },
+                        { applicationId: { $in: objectIdAppIds } }
+                    ]
+                };
+
+                // Merge with existing filter if present
+                if (toolInput.filter) {
+                    modifiedInput.filter = { $and: [toolInput.filter, alertsFilter] };
+                } else if (toolInput.query) {
+                    modifiedInput.query = { $and: [toolInput.query, alertsFilter] };
+                } else {
+                    modifiedInput.filter = alertsFilter;
+                    modifiedInput.query = alertsFilter;
+                }
+            }
+
+            enhancedLogger.info(`Modified query for user ${userContext.userId} on collection ${collection}:`, JSON.stringify(modifiedInput));
+            return modifiedInput;
+        } catch (error: any) {
+            enhancedLogger.error('Error modifying query for user access:', error);
+            return {
+                ...toolInput,
+                filter: { _id: { $in: [] } },
+                query: { _id: { $in: [] } }
+            };
+        }
+    }
+
+    private async getUserAccessibleApplications(userContext: UserContext): Promise<string[] | null> {
+        if (!this.client || !this.isConnected) {
+            enhancedLogger.error('MCP client not connected when getting user applications');
+            return null;
+        }
+
+        try {
+            const userId = userContext.userId;
+            if (!userId) {
+                enhancedLogger.warn('No userId provided in user context');
+                return [];
+            }
+
+            const aggregationResult = await this.client.callTool({
+                name: 'aggregate',
+                arguments: {
+                    database: 'temp',
+                    collection: 'groups',
+                    pipeline: [
+                        // Stage 1: Match groups where user is a member and group is active
+                        {
+                            $match: {
+                                memberIDs: { $oid: userId },
+                                active: true,
+                                deleted: false
+                            }
+                        },
+                        { $unwind: "$applicationIDs" },
+                        // Stage 3: Group and collect all unique application IDs
+                        {
+                            $group: {
+                                _id: null,
+                                applicationIds: { $addToSet: "$applicationIDs" }
+                            }
+                        },
+                        // Stage 4: Project just the applicationIds array
+                        {
+                            $project: {
+                                _id: 0,
+                                applicationIds: 1
+                            }
+                        }
+                    ]
+                }
+            });
+
+            const accessibleAppIds: string[] = [];
+
+            if (aggregationResult.content && Array.isArray(aggregationResult.content)) {
+                for (const item of aggregationResult.content) {
+                    if (item.type === 'text' && item.text) {
+                        try {
+                            const lines = item.text.split('\n');
+                            for (const line of lines) {
+                                if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
+                                    const resultData = JSON.parse(line.trim());
+                                    if (resultData.applicationIds && Array.isArray(resultData.applicationIds)) {
+                                        for (const appId of resultData.applicationIds) {
+                                            if (typeof appId === 'string') {
+                                                accessibleAppIds.push(appId);
+                                            } else if (appId && typeof appId === 'object' && appId.$oid) {
+                                                accessibleAppIds.push(appId.$oid);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (parseError) {
+                            console.log('Failed to parse aggregation result:', String(parseError));
+                        }
+                    }
+                }
+            }
+
+            const uniqueAppIds = [...new Set(accessibleAppIds)];
+            enhancedLogger.info(`User ${userId} has access to applications: ${uniqueAppIds.join(', ')}`);
+
+            return uniqueAppIds;
+        } catch (error: any) {
+            enhancedLogger.error('Error getting user accessible applications:', error);
+            return null;
+        }
     }
 }
 
