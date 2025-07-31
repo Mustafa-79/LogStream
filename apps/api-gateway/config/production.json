@@ -32,5 +32,6 @@
     "user": "SMTP_USER",
     "pass": "SMTP_PASS"
   },
-  "anthropicApiKey": "ANTHROPIC_API_KEY"
+  "anthropicApiKey": "ANTHROPIC_API_KEY",
+  "geminiApiKey": "GEMINI_API_KEY"
 }

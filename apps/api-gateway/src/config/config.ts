@@ -29,6 +29,7 @@ interface ConfigInterface {
     pass: string
   },
   anthropicApiKey?: string 
+  geminiApiKey?: string
   nodeEnv: string
 }
 
@@ -77,6 +78,7 @@ const configSchema = Joi.object({
     pass: Joi.string().required().description('SMTP password for email service')
   }).required(),
   anthropicApiKey: Joi.string().optional().description('Anthropic API Key for MCP service'),
+  geminiApiKey: Joi.string().optional().description('Gemini API Key for MCP service'),
 }).unknown()
 
 // Create configuration object from config library
@@ -103,6 +105,7 @@ const appConfig: ConfigInterface = {
     pass: getEnvValue('smtp.pass')
   },
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+  geminiApiKey: process.env.GEMINI_API_KEY,
   nodeEnv: process.env.NODE_ENV || 'production'
 }
 
