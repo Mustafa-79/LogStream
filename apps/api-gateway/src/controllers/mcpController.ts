@@ -6,6 +6,7 @@ import enhancedLogger from '../config/logger';
 
 interface NaturalLanguageQueryBody {
   query: string;
+  conversationHistory?: any[];
 }
 
 const mongoMCPClient = new MongoMCPClient();
@@ -27,7 +28,7 @@ export const executeNaturalLanguageQuery = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { query } = req.body as NaturalLanguageQueryBody;
+    const { query, conversationHistory } = req.body as NaturalLanguageQueryBody;
     
     if (!req.user?.userId) {
       res.status(401).json(
@@ -41,9 +42,11 @@ export const executeNaturalLanguageQuery = async (
       role: req.user.isAdmin ? 'admin' : 'user',
     };
 
-    console.log("User Context:", userContext);
-
-    const result: QueryResponse = await mongoMCPClient.executeNaturalLanguageQuery(query, userContext);
+    const result: QueryResponse = await mongoMCPClient.executeNaturalLanguageQuery(
+      query, 
+      userContext, 
+      conversationHistory || []
+    );
     
     enhancedLogger.info(`Natural language query executed by user ${req.user.userId}: ${query.substring(0, 100)}...`);
     

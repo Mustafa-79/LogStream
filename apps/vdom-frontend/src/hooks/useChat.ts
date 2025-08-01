@@ -7,6 +7,7 @@ interface CopilotState {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  conversationHistory: any[];
 }
 
 interface CopilotActions {
@@ -50,6 +51,7 @@ What would you like to know?`,
     ],
     isLoading: false,
     error: null,
+    conversationHistory: []
   });
 
   const actions: CopilotActions = {
@@ -105,8 +107,33 @@ What would you like to know?`,
       }));
 
       try {
+        // Build conversation history from messages INCLUDING the current user message
+        const conversationHistory = [];
+        
+        // Add previous messages to conversation history
+        for (const message of state.messages) {
+          if (message.type === 'user') {
+            conversationHistory.push({
+              role: "user",
+              parts: [{ text: message.content }]
+            });
+          } else if (message.type === 'assistant' && !message.loading) {
+            conversationHistory.push({
+              role: "model", 
+              parts: [{ text: message.content }]
+            });
+          }
+        }
+
+        // Add current user message to conversation history
+        conversationHistory.push({
+          role: "user",
+          parts: [{ text: userMessage.content }]
+        });
+
         const queryRequest: ChatQueryRequest = {
           query: userMessage.content,
+          conversationHistory: conversationHistory
         };
 
         const response = await ChatService.sendQuery(queryRequest);
@@ -124,6 +151,7 @@ What would you like to know?`,
           ...prev,
           messages: prev.messages.slice(0, -1).concat(assistantMessage),
           isLoading: false,
+          conversationHistory: response.data.conversationHistory || prev.conversationHistory
         }));
       } catch (err) {
         const errorMessage: Message = {
@@ -142,7 +170,7 @@ What would you like to know?`,
         }));
         throw err; // Re-throw so the component can handle the error
       }
-    }, [state.isLoading]),
+    }, [state.isLoading, state.messages]),
 
     clearMessages: useCallback(() => {
       setState(prev => ({
@@ -156,6 +184,7 @@ What would you like to know?`,
           }
         ],
         error: null,
+        conversationHistory: []
       }));
     }, []),
   };

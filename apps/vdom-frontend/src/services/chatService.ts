@@ -13,12 +13,14 @@ interface Message {
 
 interface ChatQueryRequest {
   query: string;
+  conversationHistory?: any[];
 }
 
 interface ChatQueryData {
   interpretation: string;
   query_results: any[];
   success: boolean;
+  conversationHistory?: any[];
 }
 
 interface ChatQueryResponse {

@@ -13,6 +13,12 @@ const naturalLanguageQuery = {
         'string.min': 'Query must have at least 1 character',
         'string.max': 'Query cannot exceed 1000 characters',
         'any.required': 'Query is required'
+      }),
+    conversationHistory: Joi.array()
+      .items(Joi.object())
+      .optional()
+      .messages({
+        'array.base': 'Conversation history must be an array'
       })
   })
 };
