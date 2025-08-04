@@ -97,6 +97,17 @@ Auto-populate these fields with default values:
 • createdAt: new Date() (MUST be set to current timestamp)
 • updatedAt: new Date() (MUST be set to current timestamp)
 
+MANDATORY POST-CREATION STEP:
+After creating a new application, ALWAYS add its ObjectId to the "Administrators" user group:
+1. Find the "Administrators" group in the groups collection
+2. Add the new application's ObjectId to the group's applicationIDs array using $push
+3. This ensures administrators have immediate access to the new application
+
+Example workflow for "Create app called 'MyApp'":
+1. Insert new application document with required fields
+2. Get the inserted application's _id
+3. Update the "Administrators" group: db.groups.updateOne({"name": "Administrators"}, {"$push": {"applicationIDs": newAppObjectId}})
+
 USER GROUP CREATION RULES:
 When creating new user groups, users only need to provide:
 • name (required): Group name (5-20 characters)
