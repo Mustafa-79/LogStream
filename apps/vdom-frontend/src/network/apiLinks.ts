@@ -28,6 +28,11 @@ class ApiLinks {
 
   // Chat APIs
   static readonly SEND_CHAT_QUERY: string = `${ApiLinks.API_BASE_URL}/mcp`;
+
+  // Starred Messages APIs
+  static readonly STARRED_MESSAGES: string = `${ApiLinks.API_BASE_URL}/starred-messages`;
+  static readonly STAR_MESSAGE: string = `${ApiLinks.API_BASE_URL}/starred-messages`;
+  static readonly UNSTAR_MESSAGE = (id: string): string => `${ApiLinks.API_BASE_URL}/starred-messages/${id}`;
 }
 
 export default ApiLinks;

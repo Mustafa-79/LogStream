@@ -9,6 +9,7 @@ interface Message {
   loading?: boolean;
   queryResults?: any[];
   success?: boolean;
+  isStarred?: boolean;
 }
 
 interface ChatQueryRequest {

@@ -1,5 +1,6 @@
-import { useState, useCallback } from "preact/hooks";
+import { useState, useCallback, useEffect } from "preact/hooks";
 import ChatService, { Message, ChatQueryRequest } from "../services/chatService";
+import StarredMessageService, { StarredMessage } from "../services/starredMessageService";
 
 interface CopilotState {
   isOpen: boolean;
@@ -8,6 +9,9 @@ interface CopilotState {
   isLoading: boolean;
   error: string | null;
   conversationHistory: any[];
+  starredMessages: StarredMessage[];
+  isStarredMessagesOpen: boolean;
+  isLoadingStarredMessages: boolean;
 }
 
 interface CopilotActions {
@@ -21,6 +25,12 @@ interface CopilotActions {
   // Message actions
   sendMessage: (userInput: string) => Promise<void>;
   clearMessages: () => void;
+
+  // Starred messages actions
+  toggleStarredMessages: () => void;
+  starMessage: (message: Message) => Promise<void>;
+  unstarMessage: (starredMessageId: string) => Promise<void>;
+  loadStarredMessages: () => Promise<void>;
 }
 
 interface UseChatReturn {
@@ -51,8 +61,29 @@ What would you like to know?`,
     ],
     isLoading: false,
     error: null,
-    conversationHistory: []
+    conversationHistory: [],
+    starredMessages: [],
+    isStarredMessagesOpen: false,
+    isLoadingStarredMessages: false,
   });
+
+  // Load starred messages on initialization
+  useEffect(() => {
+    const initializeStarredMessages = async () => {
+      try {
+        const response = await StarredMessageService.getStarredMessages();
+        setState(prev => ({
+          ...prev,
+          starredMessages: response.data.starredMessages,
+        }));
+      } catch (error) {
+        // Silently fail on initialization - user will still be able to star messages
+        console.warn('Could not load initial starred messages:', error);
+      }
+    };
+
+    initializeStarredMessages();
+  }, []);
 
   const actions: CopilotActions = {
     // UI State actions
@@ -186,6 +217,93 @@ What would you like to know?`,
         error: null,
         conversationHistory: []
       }));
+    }, []),
+
+    // Starred messages actions
+    toggleStarredMessages: useCallback(() => {
+      setState(prev => ({ 
+        ...prev, 
+        isStarredMessagesOpen: !prev.isStarredMessagesOpen 
+      }));
+    }, []),
+
+    starMessage: useCallback(async (message: Message) => {
+      try {
+        const response = await StarredMessageService.starMessage({
+          messageContent: message.content,
+        });
+
+        // Update the message to mark it as starred and add to starred messages
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.map(msg => 
+            msg.id === message.id ? { ...msg, isStarred: true } : msg
+          ),
+          starredMessages: [...prev.starredMessages, response.data]
+        }));
+      } catch (error) {
+        console.error('Error starring message:', error);
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to star message'
+        }));
+      }
+    }, []),
+
+    unstarMessage: useCallback(async (starredMessageId: string) => {
+      try {
+        await StarredMessageService.unstarMessage(starredMessageId);
+
+        // Find the starred message that was removed
+        const removedStarredMessage = state.starredMessages.find(starred => starred._id === starredMessageId);
+        
+        // Update the message to mark it as not starred and remove from starred messages
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.map(msg => 
+            msg.type === 'user' && removedStarredMessage && msg.content === removedStarredMessage.messageContent 
+              ? { ...msg, isStarred: false } 
+              : msg
+          ),
+          starredMessages: prev.starredMessages.filter(starred => starred._id !== starredMessageId)
+        }));
+      } catch (error) {
+        console.error('Error unstarring message:', error);
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to unstar message'
+        }));
+      }
+    }, [state.starredMessages]),
+
+    loadStarredMessages: useCallback(async () => {
+      setState(prev => ({ ...prev, isLoadingStarredMessages: true }));
+      try {
+        const response = await StarredMessageService.getStarredMessages();
+        setState(prev => {
+          // Update starred status for existing messages
+          const updatedMessages = prev.messages.map(msg => ({
+            ...msg,
+            isStarred: msg.type === 'user' && response.data.starredMessages.some(
+              starred => starred.messageContent === msg.content
+            )
+          }));
+
+          return {
+            ...prev,
+            messages: updatedMessages,
+            starredMessages: response.data.starredMessages,
+            isLoadingStarredMessages: false,
+          };
+        });
+      } catch (error) {
+        console.error('Error loading starred messages:', error);
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to load starred messages',
+          isLoadingStarredMessages: false,
+        }));
+      }
     }, []),
   };
 

@@ -93,8 +93,6 @@ class MongoMCPClient {
         }
 
         try {
-            console.log("Executing natural language query:", userQuery);
-            console.log("Conversation History:", JSON.stringify(conversationHistory, null, 2));
             const toolsResponse = await this.client.listTools();
             const availableTools = toolsResponse.tools || [];
 
@@ -111,8 +109,6 @@ class MongoMCPClient {
                 userQuery
             );
             let currentConversationHistory = processedHistory;
-            console.log("Initial Conversation History:", JSON.stringify(currentConversationHistory, null, 2));
-            console.log("System Instruction:", systemInstruction);
 
             while (iterationCount < maxIterations) {
                 iterationCount++;

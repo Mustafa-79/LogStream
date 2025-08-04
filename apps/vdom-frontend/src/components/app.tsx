@@ -200,10 +200,17 @@ export const App = registerCustomElement(
                 messages: chat.state.messages,
                 isLoading: chat.state.isLoading,
                 error: chat.state.error,
+                starredMessages: chat.state.starredMessages,
+                isStarredMessagesOpen: chat.state.isStarredMessagesOpen,
+                isLoadingStarredMessages: chat.state.isLoadingStarredMessages,
               }}
               chatActions={{
                 sendMessage: chat.actions.sendMessage,
                 clearMessages: chat.actions.clearMessages,
+                toggleStarredMessages: chat.actions.toggleStarredMessages,
+                starMessage: chat.actions.starMessage,
+                unstarMessage: chat.actions.unstarMessage,
+                loadStarredMessages: chat.actions.loadStarredMessages,
               }}
             />
           </>
